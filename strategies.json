@@ -1,5 +1,5 @@
 {
- "genere": "2026-10-29 14:49 UTC",
+ "genere": "2026-10-29 15:22 UTC",
  "regle": {
   "taux_reussite_min": 0.8,
   "objectif": 0.95,
@@ -8,18 +8,6 @@
   "consensus": 3
  },
  "idees": {
-  "ecart_rang(tendance.ema250,ichimoku.tenkan_kijun_12_36,8)": {
-   "op": "ecart_rang",
-   "a": [
-    "tendance",
-    "ema250"
-   ],
-   "b": [
-    "ichimoku",
-    "tenkan_kijun_12_36"
-   ],
-   "k": 8
-  },
   "ratio(tendance.croise_50_200,volatilite.parkinson_ratio,3)": {
    "op": "ratio",
    "a": [
@@ -31,18 +19,6 @@
     "parkinson_ratio"
    ],
    "k": 3
-  },
-  "ecart_rang(tendance.ema250,ichimoku.tenkan_kijun_12_36,9)": {
-   "op": "ecart_rang",
-   "a": [
-    "tendance",
-    "ema250"
-   ],
-   "b": [
-    "ichimoku",
-    "tenkan_kijun_12_36"
-   ],
-   "k": 9
   },
   "accord(bandes.keltner_20_2.5,tradingview.fvg_baissiers_20,2)": {
    "op": "accord",
@@ -67,6 +43,30 @@
     "vs_kijun_10_30"
    ],
    "k": 1
+  },
+  "ratio(tendance.croise_50_200,volatilite.parkinson_ratio,1)": {
+   "op": "ratio",
+   "a": [
+    "tendance",
+    "croise_50_200"
+   ],
+   "b": [
+    "volatilite",
+    "parkinson_ratio"
+   ],
+   "k": 1
+  },
+  "accord(bandes.keltner_20_2.5,tradingview.fvg_baissiers_20,4)": {
+   "op": "accord",
+   "a": [
+    "bandes",
+    "keltner_20_2.5"
+   ],
+   "b": [
+    "tradingview",
+    "fvg_baissiers_20"
+   ],
+   "k": 4
   }
  },
  "classes": [
@@ -75,11 +75,9 @@
    "tf": "15M",
    "symbols": [
     "EURUSD",
-    "USDJPY",
     "USDCHF",
     "AUDUSD",
     "NZDUSD",
-    "EURJPY",
     "GBPJPY",
     "EURGBP",
     "AUDJPY",
@@ -87,20 +85,17 @@
     "GBPCHF",
     "CADJPY",
     "CHFJPY",
-    "EURAUD",
     "EURCAD",
     "GBPAUD",
-    "AUDNZD",
-    "XAUUSD",
-    "XAGUSD"
+    "XAUUSD"
    ],
-   "historique_jours": 269.0,
-   "bougies": 283619,
-   "conditions": 3429,
-   "combinaisons": 117673,
-   "candidates": 256,
-   "validees": 67,
-   "apres_fdr": 17,
+   "historique_jours": 92.0,
+   "bougies": 120721,
+   "conditions": 3439,
+   "combinaisons": 186501,
+   "candidates": 1330,
+   "validees": 285,
+   "apres_fdr": 49,
    "strategies": [],
    "armee": {}
   },
@@ -116,7 +111,10 @@
     "AUDUSD",
     "NZDUSD",
     "EURJPY",
+    "GBPJPY",
+    "EURGBP",
     "AUDJPY",
+    "EURCHF",
     "GBPCHF",
     "CADJPY",
     "CHFJPY",
@@ -127,14 +125,157 @@
     "XAUUSD",
     "XAGUSD"
    ],
-   "historique_jours": 83.6,
-   "bougies": 267057,
-   "conditions": 3433,
-   "combinaisons": 69886,
-   "candidates": 142,
-   "validees": 20,
-   "apres_fdr": 1,
-   "strategies": [],
+   "historique_jours": 83.7,
+   "bougies": 258112,
+   "conditions": 3414,
+   "combinaisons": 227904,
+   "candidates": 2363,
+   "validees": 724,
+   "apres_fdr": 264,
+   "strategies": [
+    {
+     "id": "fx-5M-oscillateurs-e3--1-1",
+     "kind": "fx",
+     "tf": "5M",
+     "agent": "oscillateurs",
+     "dir": -1,
+     "exit": {
+      "id": "e3",
+      "tp": 0.75,
+      "sl": 2.0,
+      "h": 24
+     },
+     "conds": [
+      [
+       "oscillateurs",
+       "stoch_k3",
+       70.96712493896484,
+       85.81554412841797
+      ],
+      [
+       "oscillateurs",
+       "ultimate_7",
+       73.81752014160156,
+       Infinity
+      ]
+     ],
+     "stats": {
+      "apprentissage": {
+       "n": 1724,
+       "win": 0.8567285382830626,
+       "avg": 0.06960367568629156,
+       "se": 0.009509590421935566,
+       "k": 1477
+      },
+      "validation": {
+       "n": 465,
+       "win": 0.8688172043010752,
+       "avg": 0.08361941889315107,
+       "se": 0.018472236373129895,
+       "k": 404
+      },
+      "test": {
+       "n": 425,
+       "win": 0.8635294117647059,
+       "avg": 0.06158873572789926,
+       "se": 0.02140623531875057,
+       "k": 367
+      },
+      "base_test": {
+       "n": 2190,
+       "win": 0.6707762557077626,
+       "avg": -180012.86064579204,
+       "se": 144595.6652842745
+      }
+     },
+     "wilson_test": 0.8339243705878204,
+     "robustesse": {
+      "ok": true,
+      "actifs_gagnants": "5/9",
+      "reussite_moities": [
+       0.838,
+       0.894
+      ]
+     },
+     "mc": {
+      "p_gain": 0.7543,
+      "mediane": 1.4555387649133344,
+      "pire5": -2.2409553877585306,
+      "baisse_max95": 3.7965392105107054
+     }
+    },
+    {
+     "id": "fx-5M-oscillateurs-e3--1-0",
+     "kind": "fx",
+     "tf": "5M",
+     "agent": "oscillateurs",
+     "dir": -1,
+     "exit": {
+      "id": "e3",
+      "tp": 0.75,
+      "sl": 2.0,
+      "h": 24
+     },
+     "conds": [
+      [
+       "multi_unites",
+       "bougie_1h",
+       -0.10093335658311821,
+       0.10867821425199509
+      ],
+      [
+       "oscillateurs",
+       "ultimate_7",
+       73.81752014160156,
+       Infinity
+      ]
+     ],
+     "stats": {
+      "apprentissage": {
+       "n": 790,
+       "win": 0.8518987341772152,
+       "avg": 0.052200850098607705,
+       "se": 0.015391038622236045,
+       "k": 673
+      },
+      "validation": {
+       "n": 196,
+       "win": 0.8622448979591837,
+       "avg": 0.1014823906707086,
+       "se": 0.025050883311892067,
+       "k": 169
+      },
+      "test": {
+       "n": 202,
+       "win": 0.8316831683168316,
+       "avg": 0.011392724408254425,
+       "se": 0.03546687727349024,
+       "k": 168
+      },
+      "base_test": {
+       "n": 2190,
+       "win": 0.6707762557077626,
+       "avg": -180012.86064579204,
+       "se": 144595.6652842745
+      }
+     },
+     "wilson_test": 0.7842157258869753,
+     "robustesse": {
+      "ok": true,
+      "actifs_gagnants": "4/8",
+      "reussite_moities": [
+       0.839,
+       0.854
+      ]
+     },
+     "mc": {
+      "p_gain": 0.5702,
+      "mediane": 0.4147530438439687,
+      "pire5": -3.771724852262593,
+      "baisse_max95": 5.013594763144368
+     }
+    }
+   ],
    "armee": {}
   },
   {
@@ -142,27 +283,28 @@
    "tf": "30M",
    "symbols": [
     "EURUSD",
+    "GBPUSD",
     "USDCAD",
-    "AUDUSD",
     "NZDUSD",
     "EURJPY",
     "GBPJPY",
     "EURGBP",
-    "AUDJPY",
-    "EURCHF",
     "GBPCHF",
     "CADJPY",
+    "CHFJPY",
+    "EURAUD",
+    "EURCAD",
     "GBPAUD",
     "AUDNZD",
     "XAUUSD",
     "XAGUSD"
    ],
-   "historique_jours": 538.0,
-   "bougies": 201019,
-   "conditions": 3429,
-   "combinaisons": 376451,
-   "candidates": 1246,
-   "validees": 239,
+   "historique_jours": 518.0,
+   "bougies": 128983,
+   "conditions": 3436,
+   "combinaisons": 400020,
+   "candidates": 1222,
+   "validees": 135,
    "apres_fdr": 14,
    "strategies": [],
    "armee": {}
@@ -195,14 +337,14 @@
    ],
    "historique_jours": 1021.6,
    "bougies": 355560,
-   "conditions": 3417,
-   "combinaisons": 671926,
-   "candidates": 5180,
-   "validees": 1744,
-   "apres_fdr": 149,
+   "conditions": 3408,
+   "combinaisons": 670805,
+   "candidates": 5177,
+   "validees": 1765,
+   "apres_fdr": 155,
    "strategies": [
     {
-     "id": "fx-1H-tradingview-e2--1-62",
+     "id": "fx-1H-tradingview-e2--1-65",
      "kind": "fx",
      "tf": "1H",
      "agent": "tradingview",
@@ -356,7 +498,7 @@
      }
     },
     {
-     "id": "fx-1H-multi_unites-e1--1-67",
+     "id": "fx-1H-multi_unites-e1--1-71",
      "kind": "fx",
      "tf": "1H",
      "agent": "multi_unites",
@@ -427,7 +569,7 @@
      }
     },
     {
-     "id": "fx-1H-tradingview-e2--1-60",
+     "id": "fx-1H-tradingview-e2--1-63",
      "kind": "fx",
      "tf": "1H",
      "agent": "tradingview",
@@ -504,7 +646,7 @@
      }
     },
     {
-     "id": "fx-1H-tradingview-e2--1-59",
+     "id": "fx-1H-tradingview-e2--1-62",
      "kind": "fx",
      "tf": "1H",
      "agent": "tradingview",
@@ -581,7 +723,7 @@
      }
     },
     {
-     "id": "fx-1H-tradingview-e2--1-61",
+     "id": "fx-1H-tradingview-e2--1-64",
      "kind": "fx",
      "tf": "1H",
      "agent": "tradingview",
@@ -735,7 +877,7 @@
      }
     },
     {
-     "id": "fx-1H-multi_unites-e2--1-69",
+     "id": "fx-1H-multi_unites-e2--1-73",
      "kind": "fx",
      "tf": "1H",
      "agent": "multi_unites",
@@ -1114,7 +1256,7 @@
      }
     },
     {
-     "id": "fx-1H-tradingview-e2--1-63",
+     "id": "fx-1H-tradingview-e2--1-67",
      "kind": "fx",
      "tf": "1H",
      "agent": "tradingview",
@@ -1407,6 +1549,160 @@
       "mediane": 1.6619092438158607,
       "pire5": -2.0004455537785577,
       "baisse_max95": 3.6489582546738744
+     }
+    },
+    {
+     "id": "fx-1H-inventeur-e2--1-49",
+     "kind": "fx",
+     "tf": "1H",
+     "agent": "inventeur",
+     "dir": -1,
+     "exit": {
+      "id": "e2",
+      "tp": 0.5,
+      "sl": 2.0,
+      "h": 24
+     },
+     "conds": [
+      [
+       "inventeur",
+       "acceleration(tradingview.ssl_10,ichimoku.vs_kijun_10_30,1)",
+       0.1735101342201233,
+       0.6327219605445862
+      ],
+      [
+       "inventeur",
+       "accord(bandes.keltner_20_2.5,tradingview.fvg_baissiers_20,2)",
+       -1e-06,
+       1e-06
+      ],
+      [
+       "multi_unites",
+       "tendance_4h_ema20",
+       -0.0026893466711044307,
+       -0.0005328602273948491
+      ]
+     ],
+     "stats": {
+      "apprentissage": {
+       "n": 744,
+       "win": 0.885752688172043,
+       "avg": 0.04727904179984951,
+       "se": 0.014603370143860296,
+       "k": 659
+      },
+      "validation": {
+       "n": 221,
+       "win": 0.9095022624434389,
+       "avg": 0.07327335900864551,
+       "se": 0.024250071658781253,
+       "k": 201
+      },
+      "test": {
+       "n": 270,
+       "win": 0.8888888888888888,
+       "avg": 0.03683400300274395,
+       "se": 0.023830200701409045,
+       "k": 240
+      },
+      "base_test": {
+       "n": 3020,
+       "win": 0.813907284768212,
+       "avg": -0.04904947337956325,
+       "se": 0.00881649994112255
+      }
+     },
+     "wilson_test": 0.8536070652187628,
+     "robustesse": {
+      "ok": true,
+      "actifs_gagnants": "13/19",
+      "reussite_moities": [
+       0.902,
+       0.894
+      ]
+     },
+     "mc": {
+      "p_gain": 0.6206,
+      "mediane": 0.9846693496036032,
+      "pire5": -2.6595766578137825,
+      "baisse_max95": 3.605467320246348
+     }
+    },
+    {
+     "id": "fx-1H-inventeur-e2--1-50",
+     "kind": "fx",
+     "tf": "1H",
+     "agent": "inventeur",
+     "dir": -1,
+     "exit": {
+      "id": "e2",
+      "tp": 0.5,
+      "sl": 2.0,
+      "h": 24
+     },
+     "conds": [
+      [
+       "inventeur",
+       "acceleration(tradingview.ssl_10,ichimoku.vs_kijun_10_30,1)",
+       0.1735101342201233,
+       0.6327219605445862
+      ],
+      [
+       "inventeur",
+       "accord(bandes.keltner_20_2.5,tradingview.fvg_baissiers_20,4)",
+       -1e-06,
+       1e-06
+      ],
+      [
+       "multi_unites",
+       "tendance_4h_ema20",
+       -0.0026893466711044307,
+       -0.0005328602273948491
+      ]
+     ],
+     "stats": {
+      "apprentissage": {
+       "n": 744,
+       "win": 0.885752688172043,
+       "avg": 0.04727904179984951,
+       "se": 0.014603370143860296,
+       "k": 659
+      },
+      "validation": {
+       "n": 221,
+       "win": 0.9095022624434389,
+       "avg": 0.07327335900864551,
+       "se": 0.024250071658781253,
+       "k": 201
+      },
+      "test": {
+       "n": 270,
+       "win": 0.8888888888888888,
+       "avg": 0.03683400300274395,
+       "se": 0.023830200701409045,
+       "k": 240
+      },
+      "base_test": {
+       "n": 3020,
+       "win": 0.813907284768212,
+       "avg": -0.04904947337956325,
+       "se": 0.00881649994112255
+      }
+     },
+     "wilson_test": 0.8536070652187628,
+     "robustesse": {
+      "ok": true,
+      "actifs_gagnants": "13/19",
+      "reussite_moities": [
+       0.902,
+       0.894
+      ]
+     },
+     "mc": {
+      "p_gain": 0.6206,
+      "mediane": 0.9846693496036032,
+      "pire5": -2.6595766578137825,
+      "baisse_max95": 3.605467320246348
      }
     },
     {
@@ -1915,8 +2211,8 @@
       "test": {
        "n": 187,
        "win": 0.8770053475935828,
-       "avg": 0.03436337849816244,
-       "se": 0.02902750854727853,
+       "avg": 0.03470209582574706,
+       "se": 0.02900626723970921,
        "k": 164
       },
       "base_test": {
@@ -1936,10 +2232,10 @@
       ]
      },
      "mc": {
-      "p_gain": 0.6027,
-      "mediane": 1.0639719301670991,
+      "p_gain": 0.604,
+      "mediane": 1.0642368893846268,
       "pire5": -2.610556875182642,
-      "baisse_max95": 3.6836847756432354
+      "baisse_max95": 3.674366019429338
      }
     },
     {
@@ -2535,6 +2831,83 @@
      }
     },
     {
+     "id": "fx-1H-inventeur-e1--1-48",
+     "kind": "fx",
+     "tf": "1H",
+     "agent": "inventeur",
+     "dir": -1,
+     "exit": {
+      "id": "e1",
+      "tp": 0.5,
+      "sl": 1.5,
+      "h": 16
+     },
+     "conds": [
+      [
+       "inventeur",
+       "acceleration(tradingview.ssl_10,ichimoku.vs_kijun_10_30,1)",
+       0.1735101342201233,
+       0.6327219605445862
+      ],
+      [
+       "inventeur",
+       "accord(bandes.keltner_20_2.5,tradingview.fvg_baissiers_20,4)",
+       -1e-06,
+       1e-06
+      ],
+      [
+       "multi_unites",
+       "tendance_4h_ema20",
+       -0.0026893466711044307,
+       -0.0005328602273948491
+      ]
+     ],
+     "stats": {
+      "apprentissage": {
+       "n": 807,
+       "win": 0.8475836431226765,
+       "avg": 0.05288537447545337,
+       "se": 0.016676253316907325,
+       "k": 684
+      },
+      "validation": {
+       "n": 240,
+       "win": 0.8833333333333333,
+       "avg": 0.09285445088153611,
+       "se": 0.02779107187091969,
+       "k": 212
+      },
+      "test": {
+       "n": 293,
+       "win": 0.8600682593856656,
+       "avg": 0.04920201100834489,
+       "se": 0.026886746749978964,
+       "k": 252
+      },
+      "base_test": {
+       "n": 4818,
+       "win": 0.7961809879618099,
+       "avg": -0.025896052578721705,
+       "se": 0.007739679202111105
+      }
+     },
+     "wilson_test": 0.8235448936165983,
+     "robustesse": {
+      "ok": true,
+      "actifs_gagnants": "12/19",
+      "reussite_moities": [
+       0.868,
+       0.873
+      ]
+     },
+     "mc": {
+      "p_gain": 0.7021,
+      "mediane": 0.8291963797676013,
+      "pire5": -2.551468848823605,
+      "baisse_max95": 4.062708271446694
+     }
+    },
+    {
      "id": "fx-1H-momentum-e2--1-2",
      "kind": "fx",
      "tf": "1H",
@@ -2683,7 +3056,7 @@
      }
     },
     {
-     "id": "fx-1H-multi_unites-e2--1-70",
+     "id": "fx-1H-multi_unites-e2--1-74",
      "kind": "fx",
      "tf": "1H",
      "agent": "multi_unites",
@@ -3099,8 +3472,8 @@
       "test": {
        "n": 652,
        "win": 0.8496932515337423,
-       "avg": 0.0013239924210423537,
-       "se": 0.01730053294564179,
+       "avg": 0.0016406307918478038,
+       "se": 0.01729540741001608,
        "k": 554
       },
       "base_test": {
@@ -3122,8 +3495,8 @@
      "mc": {
       "p_gain": 0.4453,
       "mediane": -0.04894092485676543,
-      "pire5": -3.5777315393047187,
-      "baisse_max95": 4.403738240935534
+      "pire5": -3.538297781052922,
+      "baisse_max95": 4.400199493799349
      }
     },
     {
@@ -3512,7 +3885,7 @@
      }
     },
     {
-     "id": "fx-1H-multi_unites-e1--1-68",
+     "id": "fx-1H-multi_unites-e1--1-72",
      "kind": "fx",
      "tf": "1H",
      "agent": "multi_unites",
@@ -3690,11 +4063,11 @@
     "SUI"
    ],
    "historique_jours": 240.0,
-   "bougies": 442979,
-   "conditions": 3612,
-   "combinaisons": 540715,
+   "bougies": 442981,
+   "conditions": 3606,
+   "combinaisons": 541076,
    "candidates": 1762,
-   "validees": 197,
+   "validees": 203,
    "apres_fdr": 39,
    "strategies": [],
    "armee": {}
@@ -3725,156 +4098,13 @@
     "SUI"
    ],
    "historique_jours": 480.0,
-   "bougies": 435009,
-   "conditions": 3605,
-   "combinaisons": 725068,
-   "candidates": 3818,
-   "validees": 810,
-   "apres_fdr": 81,
-   "strategies": [
-    {
-     "id": "cr-30M-inventeur-e6--1-0",
-     "kind": "cr",
-     "tf": "30M",
-     "agent": "inventeur",
-     "dir": -1,
-     "exit": {
-      "id": "e6",
-      "tp": 1.5,
-      "sl": 4.0,
-      "h": 64
-     },
-     "conds": [
-      [
-       "inventeur",
-       "ecart_rang(tendance.ema250,ichimoku.tenkan_kijun_12_36,8)",
-       0.25999999046325684,
-       Infinity
-      ],
-      [
-       "multi_unites",
-       "tendance_4h_ema50",
-       -0.04789785295724869,
-       -0.02116837538778782
-      ]
-     ],
-     "stats": {
-      "apprentissage": {
-       "n": 707,
-       "win": 0.7524752475247525,
-       "avg": 0.024702753530574467,
-       "se": 0.02095762112245772,
-       "k": 532
-      },
-      "validation": {
-       "n": 234,
-       "win": 0.8247863247863247,
-       "avg": 0.10078942073371208,
-       "se": 0.03290229432132545,
-       "k": 193
-      },
-      "test": {
-       "n": 204,
-       "win": 0.803921568627451,
-       "avg": 0.09383124989341676,
-       "se": 0.03432197252729779,
-       "k": 164
-      },
-      "base_test": {
-       "n": 1375,
-       "win": 0.7272727272727273,
-       "avg": -0.0220212884055315,
-       "se": 0.015795991586522902
-      }
-     },
-     "wilson_test": 0.7545039543793189,
-     "robustesse": {
-      "ok": true,
-      "actifs_gagnants": "17/19",
-      "reussite_moities": [
-       0.84,
-       0.79
-      ]
-     },
-     "mc": {
-      "p_gain": 0.8056,
-      "mediane": 2.1027617533998972,
-      "pire5": -1.9036933779362033,
-      "baisse_max95": 3.848772764715117
-     }
-    },
-    {
-     "id": "cr-30M-inventeur-e6--1-1",
-     "kind": "cr",
-     "tf": "30M",
-     "agent": "inventeur",
-     "dir": -1,
-     "exit": {
-      "id": "e6",
-      "tp": 1.5,
-      "sl": 4.0,
-      "h": 64
-     },
-     "conds": [
-      [
-       "inventeur",
-       "ecart_rang(tendance.ema250,ichimoku.tenkan_kijun_12_36,9)",
-       0.25999999046325684,
-       Infinity
-      ],
-      [
-       "multi_unites",
-       "tendance_4h_ema50",
-       -0.04789785295724869,
-       -0.02116837538778782
-      ]
-     ],
-     "stats": {
-      "apprentissage": {
-       "n": 707,
-       "win": 0.7524752475247525,
-       "avg": 0.024702753530574467,
-       "se": 0.02095762112245772,
-       "k": 532
-      },
-      "validation": {
-       "n": 234,
-       "win": 0.8247863247863247,
-       "avg": 0.10078942073371208,
-       "se": 0.03290229432132545,
-       "k": 193
-      },
-      "test": {
-       "n": 204,
-       "win": 0.803921568627451,
-       "avg": 0.09383124989341676,
-       "se": 0.03432197252729779,
-       "k": 164
-      },
-      "base_test": {
-       "n": 1375,
-       "win": 0.7272727272727273,
-       "avg": -0.0220212884055315,
-       "se": 0.015795991586522902
-      }
-     },
-     "wilson_test": 0.7545039543793189,
-     "robustesse": {
-      "ok": true,
-      "actifs_gagnants": "17/19",
-      "reussite_moities": [
-       0.84,
-       0.79
-      ]
-     },
-     "mc": {
-      "p_gain": 0.8056,
-      "mediane": 2.1027617533998972,
-      "pire5": -1.9036933779362033,
-      "baisse_max95": 3.848772764715117
-     }
-    }
-   ],
+   "bougies": 435011,
+   "conditions": 3617,
+   "combinaisons": 720296,
+   "candidates": 3755,
+   "validees": 792,
+   "apres_fdr": 91,
+   "strategies": [],
    "armee": {}
   },
   {
@@ -3904,11 +4134,11 @@
    ],
    "historique_jours": 1095.0,
    "bougies": 499268,
-   "conditions": 3562,
-   "combinaisons": 488443,
-   "candidates": 3129,
-   "validees": 978,
-   "apres_fdr": 63,
+   "conditions": 3553,
+   "combinaisons": 488033,
+   "candidates": 3135,
+   "validees": 968,
+   "apres_fdr": 61,
    "strategies": [
     {
      "id": "cr-1H-tendance-e2--1-0",
@@ -3967,8 +4197,8 @@
       "base_test": {
        "n": 4180,
        "win": 0.7308612440191388,
-       "avg": -0.1299834450642432,
-       "se": 0.008351354827467771
+       "avg": -0.13060723329398927,
+       "se": 0.008358648659607712
       }
      },
      "wilson_test": 0.7815103252717516,
@@ -4044,8 +4274,8 @@
       "base_test": {
        "n": 4180,
        "win": 0.7308612440191388,
-       "avg": -0.1299834450642432,
-       "se": 0.008351354827467771
+       "avg": -0.13060723329398927,
+       "se": 0.008358648659607712
       }
      },
      "wilson_test": 0.7815103252717516,
@@ -4120,9 +4350,9 @@
       },
       "base_test": {
        "n": 4180,
-       "win": 0.7681818181818182,
-       "avg": -0.0812839457973194,
-       "se": 0.007837483909918065
+       "win": 0.7688995215311005,
+       "avg": -0.08097547911051282,
+       "se": 0.00783798792820451
       }
      },
      "wilson_test": 0.7703148473762232,
@@ -4191,9 +4421,80 @@
       },
       "base_test": {
        "n": 4180,
-       "win": 0.7681818181818182,
-       "avg": -0.0812839457973194,
-       "se": 0.007837483909918065
+       "win": 0.7688995215311005,
+       "avg": -0.08097547911051282,
+       "se": 0.00783798792820451
+      }
+     },
+     "wilson_test": 0.7716787822509414,
+     "robustesse": {
+      "ok": true,
+      "actifs_gagnants": "8/9",
+      "reussite_moities": [
+       0.977,
+       0.841
+      ]
+     },
+     "mc": {
+      "p_gain": 0.7068,
+      "mediane": 0.6556159169247915,
+      "pire5": -1.993004813462996,
+      "baisse_max95": 3.837611034244951
+     }
+    },
+    {
+     "id": "cr-1H-inventeur-e2-1-10",
+     "kind": "cr",
+     "tf": "1H",
+     "agent": "inventeur",
+     "dir": 1,
+     "exit": {
+      "id": "e2",
+      "tp": 0.5,
+      "sl": 2.0,
+      "h": 24
+     },
+     "conds": [
+      [
+       "inventeur",
+       "ratio(tendance.croise_50_200,volatilite.parkinson_ratio,1)",
+       0.03813303709030153,
+       Infinity
+      ],
+      [
+       "multi_unites",
+       "tendance_4h_ema20",
+       -Infinity,
+       -0.025049477815628052
+      ]
+     ],
+     "stats": {
+      "apprentissage": {
+       "n": 280,
+       "win": 0.85,
+       "avg": 0.04310437544783184,
+       "se": 0.026070408309182794,
+       "k": 238
+      },
+      "validation": {
+       "n": 29,
+       "win": 1.0,
+       "avg": 0.2158994704312372,
+       "se": 0.002215541805126702,
+       "k": 29
+      },
+      "test": {
+       "n": 58,
+       "win": 0.8620689655172413,
+       "avg": 0.04530782327533658,
+       "se": 0.05666635772683251,
+       "k": 50
+      },
+      "base_test": {
+       "n": 4180,
+       "win": 0.7688995215311005,
+       "avg": -0.08097547911051282,
+       "se": 0.00783798792820451
       }
      },
      "wilson_test": 0.7716787822509414,
@@ -4269,8 +4570,8 @@
       "base_test": {
        "n": 4180,
        "win": 0.7308612440191388,
-       "avg": -0.1299834450642432,
-       "se": 0.008351354827467771
+       "avg": -0.13060723329398927,
+       "se": 0.008358648659607712
       }
      },
      "wilson_test": 0.7277480739113484,
@@ -4340,8 +4641,8 @@
       "base_test": {
        "n": 4180,
        "win": 0.7308612440191388,
-       "avg": -0.1299834450642432,
-       "se": 0.008351354827467771
+       "avg": -0.13060723329398927,
+       "se": 0.008358648659607712
       }
      },
      "wilson_test": 0.7844970208080236,
@@ -4417,8 +4718,8 @@
       "base_test": {
        "n": 4180,
        "win": 0.7308612440191388,
-       "avg": -0.1299834450642432,
-       "se": 0.008351354827467771
+       "avg": -0.13060723329398927,
+       "se": 0.008358648659607712
       }
      },
      "wilson_test": 0.7719072237010242,
@@ -4493,9 +4794,9 @@
       },
       "base_test": {
        "n": 4180,
-       "win": 0.7681818181818182,
-       "avg": -0.0812839457973194,
-       "se": 0.007837483909918065
+       "win": 0.7688995215311005,
+       "avg": -0.08097547911051282,
+       "se": 0.00783798792820451
       }
      },
      "wilson_test": 0.7092046614592629,
@@ -4570,9 +4871,9 @@
       },
       "base_test": {
        "n": 4180,
-       "win": 0.7681818181818182,
-       "avg": -0.0812839457973194,
-       "se": 0.007837483909918065
+       "win": 0.7688995215311005,
+       "avg": -0.08097547911051282,
+       "se": 0.00783798792820451
       }
      },
      "wilson_test": 0.7732966737652678,
@@ -4647,9 +4948,9 @@
       },
       "base_test": {
        "n": 4180,
-       "win": 0.7681818181818182,
-       "avg": -0.0812839457973194,
-       "se": 0.007837483909918065
+       "win": 0.7688995215311005,
+       "avg": -0.08097547911051282,
+       "se": 0.00783798792820451
       }
      },
      "wilson_test": 0.763294349988896,
@@ -4672,15 +4973,15 @@
    "armee": {}
   }
  ],
- "duree_min": 29.5,
+ "duree_min": 32.8,
  "total": {
-  "conditions": 24487,
-  "combinaisons": 2990162,
-  "candidates": 15533,
-  "strategies": 58
+  "conditions": 24473,
+  "combinaisons": 3234635,
+  "candidates": 18744,
+  "strategies": 62
  },
  "inventeur": {
-  "idees_testees": 1043,
+  "idees_testees": 1034,
   "idees_gagnantes": 5
  }
 }
