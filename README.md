@@ -41,7 +41,7 @@ Les institutions ont leurs algorithmes ; voici le tien, construit avec leur mét
 
 - 🪖 **Conseil des 20** à 8 h, 14 h et 20 h (Paris) : pour BTC, ETH, SOL, EURUSD, GBPUSD, USDJPY, or et argent,
   combien de spécialistes sont haussiers ou baissiers, et qui n'est pas d'accord.
-- 🟢🔴 **Signal** (contrôle toutes les 15 minutes) : catégorie, ACHETER / VENDRE, entrée au prix du marché, sortie de sécurité,
+- 🟢🔴 **Signal** (contrôle toutes les 5 minutes ; forex 15 min en priorité, puis 5 min, 30 min et 1 h) : catégorie, ACHETER / VENDRE, entrée au prix du marché, sortie de sécurité,
   prise de gain et heure de fermeture **en prix et en %** (valable chez n'importe quel courtier), spécialistes d'accord et
   pas d'accord, taux de réussite prouvé, 10 000 simulations Monte Carlo.
 - ✅🛑 **Résultat** de chaque signal et bilan réel de l'armée. Une stratégie qui tombe sous 70 % en réel (après 20 trades)
@@ -49,8 +49,8 @@ Les institutions ont leurs algorithmes ; voici le tien, construit avec leur mét
 
 ## Données (gratuites, sans inscription)
 
-Recherche : **Dukascopy** (forex et métaux, bougies 1 min regroupées en 15 min, ~9 mois), **Coinbase** (crypto, 8 mois en
-15 min, 3 ans en 1 h), Yahoo Finance (forex 1 h sur 2 ans, et en direct). En 15 min, une stratégie doit réussir sur au moins
+Recherche : **Dukascopy** (forex et métaux, bougies 1 min regroupées en 5 min, 15 min et 30 min), **Coinbase** (crypto, 8 mois en
+15 min, 3 ans en 1 h), Yahoo Finance (forex 1 h sur 2 ans, et en direct). En 5, 15 et 30 min, une stratégie doit réussir sur au moins
 **200 trades jamais vus**. Carnets d'ordres publics Coinbase et Bitstamp (crypto, en
 direct uniquement : aucun historique gratuit n'existe), S&P 500 et VIX pour le régime de marché.
 
@@ -62,7 +62,7 @@ direct uniquement : aucun historique gratuit n'existe), S&P 500 et VIX pour le r
   Telegram ; elle recharge chaque heure les stratégies publiées ici. Le workflow `live.yml` de ce dépôt reste disponible à
   la main si on y ajoute le secret `TELEGRAM_BOT_TOKEN`.
 
-Réglages (variables GitHub, facultatives) : `MIN_WIN` (0.80), `CONSENSUS` (3), `BEAM` (40), `TIMEFRAMES` (15M,1H).
+Réglages (variables GitHub, facultatives) : `MIN_WIN` (0.80), `CONSENSUS` (3), `BEAM` (40), `TIMEFRAMES` (15M,5M,30M,1H).
 
 ## ⚠️ Honnêteté
 

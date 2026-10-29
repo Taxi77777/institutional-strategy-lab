@@ -9,6 +9,8 @@
 5. Monte Carlo (10 000 tirages) des resultats de test de chaque strategie retenue."""
 import datetime
 import json
+import sys
+import os
 import logging
 import math
 import random
@@ -314,7 +316,7 @@ def run_class(ds):
         if i not in keep:
             continue
         t = ev["test"]
-        need = CFG["MIN_TRADES_TEST_15M"] if ds["tf"] == "15M" else CFG["MIN_TRADES_TEST"]
+        need = CFG["MIN_TRADES_TEST_15M"] if ds["tf"] != "1H" else CFG["MIN_TRADES_TEST"]     # 5 / 15 / 30 min : 200 trades
         if t.get("n", 0) >= need and t["win"] >= CFG["MIN_WIN"] and t["avg"] > 0:
             rob = robustness(ds, cd)
             if not rob["ok"]:
@@ -403,9 +405,67 @@ def run_all(fetch=None, fetch_daily=None, kinds=None, tfs=None):
     return out
 
 
+ORDER = ["fx-15M", "fx-5M", "fx-30M", "fx-1H", "cr-15M", "cr-30M", "cr-1H", "cr-5M"]   # forex 15 min en priorite
+
+
+def merge(parts_dir="parts", old_path="strategies.json"):
+    """Fusionne les recherches lancees en parallele (une par classe et unite de temps)."""
+    parts = []
+    for fn in sorted(os.listdir(parts_dir)) if os.path.isdir(parts_dir) else []:
+        if fn.endswith(".json"):
+            with open(os.path.join(parts_dir, fn)) as f:
+                parts.append(json.load(f))
+    try:
+        with open(old_path) as f:
+            old = json.load(f)
+    except Exception:
+        old = {"classes": []}
+    classes = {"%s-%s" % (c["kind"], c["tf"]): c for c in old.get("classes", [])}   # classe en echec : on garde l'ancienne
+    out = {"genere": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"), "regle": None, "idees": {}}
+    mem, tested = {}, 0
+    for p in parts:
+        out["regle"] = p["regle"]
+        for c in p["classes"]:
+            classes["%s-%s" % (c["kind"], c["tf"])] = c
+        out["idees"].update(p.get("idees", {}))
+        tested += p.get("inventeur", {}).get("idees_testees", 0)
+        for g in p.get("memoire", {}).get("gagnantes", []):
+            if g["nom"] not in mem or g["score"] > mem[g["nom"]]["score"]:
+                mem[g["nom"]] = g
+    out["regle"] = out["regle"] or old.get("regle")
+    out["classes"] = sorted(classes.values(), key=lambda c: ORDER.index("%s-%s" % (c["kind"], c["tf"]))
+                            if "%s-%s" % (c["kind"], c["tf"]) in ORDER else 99)
+    used = {nm for c in out["classes"] for s in c["strategies"] for ag, nm, _a, _b in s["conds"] if ag == "inventeur"}
+    out["idees"] = {nm: sp for nm, sp in {**old.get("idees", {}), **out["idees"]}.items() if nm in used}
+    out["duree_min"] = max([p.get("duree_min", 0) for p in parts] or [0])
+    out["total"] = {k: sum(c[k] for c in out["classes"]) for k in ("conditions", "combinaisons", "candidates")}
+    out["total"]["strategies"] = sum(len(c["strategies"]) for c in out["classes"])
+    out["inventeur"] = {"idees_testees": tested, "idees_gagnantes": len(used)}
+    with open(old_path, "w") as f:
+        json.dump(out, f, indent=1)
+    if mem:
+        old_mem = IDEAS.load_memory()
+        for g in old_mem.get("gagnantes", []):
+            if g["nom"] not in mem or g["score"] > mem[g["nom"]]["score"]:
+                mem[g["nom"]] = g
+        with open(IDEAS.MEMORY, "w") as f:
+            json.dump({"gagnantes": sorted(mem.values(), key=lambda g: -g["score"])[:200]}, f, indent=1)
+    return out
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
-    res = run_all()
-    with open("strategies.json", "w") as f:
-        json.dump(res, f, indent=1)
+    if len(sys.argv) >= 4 and sys.argv[1] == "part":          # python -m lab.miner part fx 15M
+        kind, tf = sys.argv[2], sys.argv[3].upper()
+        res = run_all(kinds=[kind], tfs=[tf])
+        res["memoire"] = IDEAS.load_memory()
+        os.makedirs("parts", exist_ok=True)
+        with open(os.path.join("parts", "%s_%s.json" % (kind, tf)), "w") as f:
+            json.dump(res, f, indent=1)
+    elif len(sys.argv) >= 2 and sys.argv[1] == "merge":
+        res = merge()
+    else:
+        res = run_all()
+        with open("strategies.json", "w") as f:
+            json.dump(res, f, indent=1)
     log.info("termine : %s", res["total"])

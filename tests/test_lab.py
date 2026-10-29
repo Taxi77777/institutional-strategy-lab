@@ -1,3 +1,4 @@
+import json
 """Tests hors ligne du labo : le hasard ne doit rien donner, un vrai avantage doit etre trouve, l'armee doit voter."""
 import os
 import sys
@@ -100,3 +101,19 @@ def test_inventor_generates_applies_and_remembers():
     mem = ideas.remember([strat], {ideas.name(sp): sp}, {})
     nxt = ideas.generate(names, n=60, seed=2, memory=mem)
     assert ideas.name(sp) in {ideas.name(x) for x in nxt}       # l'idee gagnante est reprise et mutee
+
+
+def test_merge_parallel_parts(tmp_path, monkeypatch):
+    """Fusion des recherches paralleles : forex 15 min en premier, classe manquante gardee de l'ancienne version."""
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "parts").mkdir()
+    cls = lambda k, tf, n: {"kind": k, "tf": tf, "strategies": [{"conds": []}] * n, "conditions": 1, "combinaisons": 2,
+                             "candidates": 3}
+    for k, tf, n in (("cr", "1H", 0), ("fx", "5M", 1), ("fx", "15M", 2)):
+        (tmp_path / "parts" / ("%s_%s.json" % (k, tf))).write_text(json.dumps(
+            {"regle": {"x": 1}, "classes": [cls(k, tf, n)], "memoire": {"gagnantes": [{"nom": "a", "score": 0.8 + n / 100}]}}))
+    (tmp_path / "strategies.json").write_text(json.dumps({"classes": [cls("fx", "1H", 4), cls("fx", "15M", 9)]}))
+    out = miner.merge()
+    assert [(c["kind"], c["tf"]) for c in out["classes"]] == [("fx", "15M"), ("fx", "5M"), ("fx", "1H"), ("cr", "1H")]
+    assert out["classes"][0]["strategies"] == [{"conds": []}] * 2 and out["total"]["strategies"] == 7
+    assert json.load(open(tmp_path / "ideas.json"))["gagnantes"][0]["score"] == pytest.approx(0.82)

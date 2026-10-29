@@ -19,8 +19,8 @@ from .miner import BENCH, align, macro_series
 log = logging.getLogger("lab")
 PARIS = ZoneInfo("Europe/Paris")
 STATE_FILE = "lab_state.json"
-STEP = {"15M": 900, "1H": 3600}
-KEEP = {"15M": 3000, "1H": 2500}
+STEP = {"5M": 300, "15M": 900, "30M": 1800, "1H": 3600}
+KEEP = {"5M": 6000, "15M": 3000, "30M": 2500, "1H": 2500}
 CACHE = {}
 STOP = [False]
 SEP = "━━━━━━━━━━━━━━━"
@@ -110,7 +110,7 @@ def hist(sym, kind, tf):
         a = data.bars(sym, kind, tf)
         CACHE[key] = {"a": a[-KEEP[tf]:], "full": now}
     else:
-        new = data.bars(sym, kind, tf, rng="5d" if tf == "15M" else "1mo")
+        new = data.bars(sym, kind, tf, rng="1mo" if tf == "1H" else "5d")
         rows = {int(r[0]): r for r in c["a"]}
         rows.update({int(r[0]): r for r in new})
         c["a"] = np.array([rows[k] for k in sorted(rows)])[-KEEP[tf]:]
@@ -388,12 +388,16 @@ def main():
                 st["done"]["brief"] = "%s-%d" % (par.date(), par.hour)
                 briefing(st, lab, now)
                 save_state(st)
-            q = int(now // 900)
-            if q != done15 and now % 900 >= 40:
+            q = int(now // 300)
+            if q != done15 and now % 300 >= 40:          # controle toutes les 5 minutes
                 done15 = q
                 lab = load_strategies()
-                scan(st, lab, "15M", now)
-                if now % 3600 < 900:
+                scan(st, lab, "5M", now)                  # (une unite sans strategie validee est sautee aussitot)
+                if now % 900 < 300:
+                    scan(st, lab, "15M", now)
+                if now % 1800 < 300:
+                    scan(st, lab, "30M", now)
+                if now % 3600 < 300:
                     scan(st, lab, "1H", now)
                 save_state(st)
             if st["open"] and int(now // 300) != done_trk and now % 300 >= 50:

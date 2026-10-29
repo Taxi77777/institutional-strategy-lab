@@ -16,7 +16,10 @@ log = logging.getLogger("lab")
 SESSION = requests.Session()
 SESSION.headers.update({"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) strategy-lab/1.0", "Accept": "*/*"})
 HOSTS = ("https://query2.finance.yahoo.com", "https://query1.finance.yahoo.com")
-TF = {"15M": ("15m", "60d", 900), "1H": ("60m", "730d", 3600)}
+TF = {"5M": ("5m", "60d", 300), "15M": ("15m", "60d", 900), "30M": ("30m", "60d", 1800), "1H": ("60m", "730d", 3600)}
+# historique long de la recherche (jours) : meme nombre de bougies environ pour chaque unite de temps
+FX_DAYS = {"5M": ("FX_DAYS_5M", 90), "15M": ("FX_DAYS", 270), "30M": ("FX_DAYS_30M", 540)}
+CR_DAYS = {"5M": ("CR_DAYS_5M", 80), "15M": ("CR_DAYS_15M", 240), "30M": ("CR_DAYS_30M", 480), "1H": ("CR_DAYS_1H", 1095)}
 
 
 def ysym(sym, kind):
@@ -126,7 +129,7 @@ def dukascopy(sym, step, days):
 
 def coinbase(sym, step, days):
     """Crypto : bougies Coinbase (API publique), 300 par requete, sur `days` jours."""
-    gran = 900 if step == 900 else 3600
+    gran = 300 if step == 300 else 900 if step in (900, 1800) else 3600     # 30 min = 2 bougies de 15 min
     end = int(time.time()) // gran * gran
     start_all = end - days * 86400
     rows = {}
@@ -159,11 +162,12 @@ def long_bars(sym, kind, tf):
     """Historique long pour la recherche : Dukascopy (forex, 15 min), Coinbase (crypto) ; Yahoo en secours."""
     step = TF[tf][2]
     try:
-        if kind == "fx" and tf == "15M":
-            return dukascopy(sym, step, int(os.environ.get("FX_DAYS", "270")))
-        if kind == "cr":
-            return coinbase(sym, step, int(os.environ.get("CR_DAYS_15M", "240")) if tf == "15M"
-                            else int(os.environ.get("CR_DAYS_1H", "1095")))
+        if kind == "fx" and tf in FX_DAYS:
+            v, d = FX_DAYS[tf]
+            return dukascopy(sym, step, int(os.environ.get(v, d)))
+        if kind == "cr" and tf in CR_DAYS:
+            v, d = CR_DAYS[tf]
+            return coinbase(sym, step, int(os.environ.get(v, d)))
     except Exception as ex:
         log.warning("historique long %s %s : %s (Yahoo en secours)", sym, tf, ex)
     return bars(sym, kind, tf)

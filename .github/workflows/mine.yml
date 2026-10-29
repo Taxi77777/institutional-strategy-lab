@@ -11,31 +11,66 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # une recherche par classe et unite de temps, en parallele (chacune a jusqu'a 6 h) ; forex 15 min en priorite
   mine:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {kind: fx, tf: 15M}
+          - {kind: fx, tf: 5M}
+          - {kind: fx, tf: 30M}
+          - {kind: fx, tf: 1H}
+          - {kind: cr, tf: 15M}
+          - {kind: cr, tf: 30M}
+          - {kind: cr, tf: 1H}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - run: pip install -r requirements.txt
-      - name: Recherche
+      - name: Recherche ${{ matrix.kind }} ${{ matrix.tf }}
         env:
           MIN_WIN: ${{ vars.MIN_WIN }}
           CONSENSUS: ${{ vars.CONSENSUS }}
           BEAM: ${{ vars.BEAM }}
-          TIMEFRAMES: ${{ vars.TIMEFRAMES }}
           PYTHONUNBUFFERED: '1'
-        run: python -m lab.miner
+        run: python -m lab.miner part ${{ matrix.kind }} ${{ matrix.tf }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: part-${{ matrix.kind }}-${{ matrix.tf }}
+          path: parts/
+          retention-days: 7
+
+  publish:
+    needs: mine
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: part-*
+          path: parts
+          merge-multiple: true
+      - name: Fusion
+        run: python -m lab.miner merge
       - name: Publication des strategies
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           for i in 1 2 3 4 5; do
             cp strategies.json /tmp/strategies.json
+            cp ideas.json /tmp/ideas.json 2>/dev/null || true
             git fetch -q origin main && git reset -q --hard origin/main
             cp /tmp/strategies.json strategies.json
             cp /tmp/ideas.json ideas.json 2>/dev/null || true
