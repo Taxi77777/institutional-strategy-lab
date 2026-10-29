@@ -1,0 +1,46 @@
+name: Labo - recherche de strategies (armee des 20)
+
+# Cherche chaque semaine les strategies >= 80 % de reussite et gagnantes apres frais, sur des donnees jamais vues.
+on:
+  schedule:
+    - cron: '7 20 * * 0'
+  workflow_dispatch:
+
+concurrency:
+  group: lab-mine
+  cancel-in-progress: false
+
+jobs:
+  mine:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Recherche
+        env:
+          MIN_WIN: ${{ vars.MIN_WIN }}
+          CONSENSUS: ${{ vars.CONSENSUS }}
+          BEAM: ${{ vars.BEAM }}
+          TIMEFRAMES: ${{ vars.TIMEFRAMES }}
+          PYTHONUNBUFFERED: '1'
+        run: python -m lab.miner
+      - name: Publication des strategies
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          for i in 1 2 3 4 5; do
+            cp strategies.json /tmp/strategies.json
+            git fetch -q origin main && git reset -q --hard origin/main
+            cp /tmp/strategies.json strategies.json
+            git add strategies.json
+            git diff --cached --quiet && exit 0
+            git commit -qm "labo : nouvelles strategies [skip ci]"
+            git push -q origin HEAD:main && exit 0
+            sleep 5
+          done

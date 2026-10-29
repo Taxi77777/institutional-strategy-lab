@@ -1,0 +1,18 @@
+name: Tests
+on:
+  push:
+    paths-ignore: ['lab_state.json', 'strategies.json', '**.md']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt pytest pyflakes
+      - run: python -m pyflakes lab tests
+      - run: python -m pytest -q

@@ -1,0 +1,69 @@
+name: Armee - signaux en direct (Telegram)
+
+# Tourne en chaine 24 h/24 : chaque job de 5 h 20 relance le suivant. Signaux uniquement, aucun ordre.
+on:
+  schedule:
+    - cron: '11,41 * * * *'      # secours seulement
+  workflow_dispatch:
+
+concurrency:
+  group: lab-live
+  cancel-in-progress: false
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    timeout-minutes: 355
+    outputs:
+      relance: ${{ steps.run.outputs.relance }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Armee
+        id: run
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          CONSENSUS: ${{ vars.CONSENSUS }}
+          STATE_DIR: /tmp/etat_lab
+          PYTHONUNBUFFERED: '1'
+        run: |
+          save() {
+            exec 9>/tmp/lab.lock; flock 9
+            ls /tmp/etat_lab/lab_state.json >/dev/null 2>&1 || { flock -u 9; return 0; }
+            git config user.name "GitHub Actions"; git config user.email "actions@github.com"
+            for i in 1 2 3 4 5; do
+              git fetch -q origin main && git reset -q --hard origin/main
+              cp /tmp/etat_lab/lab_state.json .
+              git add lab_state.json
+              git diff --cached --quiet && break
+              git commit -qm "etat armee [skip ci]"
+              git push -q origin HEAD:main && break
+              sleep $((RANDOM % 5 + 2))
+            done
+            flock -u 9
+          }
+          python -m lab.live &
+          PID=$!
+          trap 'kill -TERM $PID 2>/dev/null; wait $PID' INT TERM
+          ( while kill -0 $PID 2>/dev/null; do sleep 600; kill -0 $PID 2>/dev/null && save || true; done ) &
+          RC=0; wait $PID || RC=$?
+          save
+          if [ -f /tmp/etat_lab/relance ]; then echo "relance=1" >> "$GITHUB_OUTPUT"; fi
+          exit $RC
+
+  relance:
+    needs: live
+    if: ${{ needs.live.outputs.relance == '1' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run live.yml --repo "${{ github.repository }}" --ref main

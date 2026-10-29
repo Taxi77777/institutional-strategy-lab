@@ -1,0 +1,59 @@
+"""Reglages du laboratoire (tous modifiables par variables d'environnement / variables GitHub)."""
+import logging
+import math
+import os
+
+
+def envf(name, default):
+    v = os.environ.get(name, "").strip()
+    if v == "":
+        return default
+    if isinstance(default, str):
+        return v
+    try:
+        x = float(v.replace(",", "."))
+        if not math.isfinite(x):
+            raise ValueError
+        return type(default)(x)
+    except (ValueError, OverflowError):
+        logging.warning("variable %s=%r invalide : %s par defaut", name, v, default)
+        return default
+
+
+def envl(name, default):
+    return [s.strip().upper() for s in envf(name, default).split(",") if s.strip()]
+
+
+UNIVERSE = {
+    # actifs « universels » : cotes chez tous les courtiers (forex, metaux, grandes cryptos, indices / actions US)
+    "fx": envl("FX", "EURUSD,GBPUSD,USDJPY,USDCHF,USDCAD,AUDUSD,NZDUSD,EURJPY,GBPJPY,EURGBP,AUDJPY,EURCHF,"
+                     "GBPCHF,CADJPY,CHFJPY,EURAUD,EURCAD,GBPAUD,AUDNZD,XAUUSD,XAGUSD"),
+    "cr": envl("CRYPTO", "BTC,ETH,SOL,XRP,BNB,DOGE,ADA,AVAX,LINK,LTC,DOT,TRX,BCH,NEAR,XLM,HBAR,ATOM,UNI,AAVE,SUI"),
+    "stocks": envl("STOCKS", "SPY,QQQ,IWM,DIA,NVDA,TSLA,AAPL,MSFT,AMZN,META,GOOGL,AMD,AVGO,NFLX,COIN,MSTR,PLTR"),
+}
+
+CFG = {
+    "TIMEFRAMES": envl("TIMEFRAMES", "15M,1H"),
+    "MIN_WIN": envf("MIN_WIN", 0.80),        # taux de reussite minimum (donnees jamais vues)
+    "TARGET_WIN": envf("TARGET_WIN", 0.95),  # objectif affiche
+    "MIN_TRADES_TEST": envf("MIN_TRADES_TEST", 30),
+    "FDR": envf("FDR", 0.05),                # taux de fausses decouvertes toleré (Benjamini-Hochberg)
+    "CONSENSUS": envf("CONSENSUS", 3),       # specialistes d'accord minimum pour un signal
+    "BEAM": envf("BEAM", 40),                # largeur de la recherche (conditions gardees a chaque etage)
+    "MAX_DEPTH": envf("MAX_DEPTH", 3),       # conditions combinees au maximum
+    "SIMS": envf("SIMS", 10000),             # simulations Monte Carlo par strategie retenue
+    "COST_BPS": {"fx": envf("COST_BPS_FX", 1.5), "cr": envf("COST_BPS_CR", 10.0),
+                 "stocks": envf("COST_BPS_STOCKS", 3.0)},
+    "STATE_DIR": envf("STATE_DIR", "."),
+    "LOOP_MINUTES": min(envf("LOOP_MINUTES", 320), 320),
+    "PAUSE": envf("PAUSE", 0.15),
+}
+
+# sorties testees (en multiples de l'ATR) : objectif de gain, stop, duree maxi en bougies
+EXITS = [
+    {"id": "e1", "tp": 0.5, "sl": 1.5, "h": 16},
+    {"id": "e2", "tp": 0.5, "sl": 2.0, "h": 24},
+    {"id": "e3", "tp": 0.75, "sl": 2.0, "h": 24},
+    {"id": "e4", "tp": 1.0, "sl": 1.0, "h": 12},
+    {"id": "e5", "tp": 1.0, "sl": 2.5, "h": 32},
+]
