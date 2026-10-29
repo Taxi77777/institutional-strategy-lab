@@ -29,7 +29,7 @@ UNIVERSE = {
     "fx": envl("FX", "EURUSD,GBPUSD,USDJPY,USDCHF,USDCAD,AUDUSD,NZDUSD,EURJPY,GBPJPY,EURGBP,AUDJPY,EURCHF,"
                      "GBPCHF,CADJPY,CHFJPY,EURAUD,EURCAD,GBPAUD,AUDNZD,XAUUSD,XAGUSD"),
     "cr": envl("CRYPTO", "BTC,ETH,SOL,XRP,BNB,DOGE,ADA,AVAX,LINK,LTC,DOT,TRX,BCH,NEAR,XLM,HBAR,ATOM,UNI,AAVE,SUI"),
-    "stocks": envl("STOCKS", "SPY,QQQ,IWM,DIA,NVDA,TSLA,AAPL,MSFT,AMZN,META,GOOGL,AMD,AVGO,NFLX,COIN,MSTR,PLTR"),
+    "stocks": envl("STOCKS", ""),                # actions retirees a la demande du trader (forex et crypto seulement)
 }
 
 CFG = {
@@ -37,6 +37,7 @@ CFG = {
     "MIN_WIN": envf("MIN_WIN", 0.80),        # taux de reussite minimum (donnees jamais vues)
     "TARGET_WIN": envf("TARGET_WIN", 0.95),  # objectif affiche
     "MIN_TRADES_TEST": envf("MIN_TRADES_TEST", 30),
+    "MIN_TRADES_TEST_15M": envf("MIN_TRADES_TEST_15M", 200),   # 15 min : au moins 200 trades jamais vus
     "FDR": envf("FDR", 0.05),                # taux de fausses decouvertes toleré (Benjamini-Hochberg)
     "CONSENSUS": envf("CONSENSUS", 3),       # specialistes d'accord minimum pour un signal
     "BEAM": envf("BEAM", 40),                # largeur de la recherche (conditions gardees a chaque etage)

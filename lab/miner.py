@@ -53,9 +53,11 @@ def macro_series(fetch_daily):
 
 def build(kind, tf, fetch=None, fetch_daily=None, symbols=None, macro=None, idea_specs=None):
     """Indicateurs + resultats simules de tous les actifs d'une classe, empiles."""
-    fetch = fetch or data.bars
+    fetch = fetch or data.long_bars
     symbols = symbols or UNIVERSE[kind]
     raw = {}
+    if not symbols:
+        return None
     for s in symbols:
         try:
             a = fetch(s, kind, tf)
@@ -101,7 +103,8 @@ def build(kind, tf, fetch=None, fetch_daily=None, symbols=None, macro=None, idea
     step = float(np.median(np.diff(np.unique(ts)))) if len(ts) > 1 else 900
     emb = max(e["h"] for e in EXITS) * step
     split = np.where(((ts > q1 - emb) & (ts <= q1)) | ((ts > q2 - emb) & (ts <= q2)), -1, split)
-    return {"kind": kind, "tf": tf, "X": X, "R": R, "ts": ts, "aid": aid, "split": split, "step": step,
+    hist = {s: [int(len(a)), round((a[-1, 0] - a[0, 0]) / 86400, 1)] for s, a in raw.items()}
+    return {"kind": kind, "tf": tf, "X": X, "R": R, "ts": ts, "aid": aid, "split": split, "step": step, "hist": hist,
             "symbols": list(raw), "cut": (float(q1), float(q2)), "_base": {}}
 
 
@@ -311,7 +314,8 @@ def run_class(ds):
         if i not in keep:
             continue
         t = ev["test"]
-        if t.get("n", 0) >= CFG["MIN_TRADES_TEST"] and t["win"] >= CFG["MIN_WIN"] and t["avg"] > 0:
+        need = CFG["MIN_TRADES_TEST_15M"] if ds["tf"] == "15M" else CFG["MIN_TRADES_TEST"]
+        if t.get("n", 0) >= need and t["win"] >= CFG["MIN_WIN"] and t["avg"] > 0:
             rob = robustness(ds, cd)
             if not rob["ok"]:
                 continue
@@ -334,7 +338,9 @@ def run_class(ds):
             kept.append(st)
     final = kept
     army = army_test(ds, final)
-    return {"kind": ds["kind"], "tf": ds["tf"], "symbols": ds["symbols"], "conditions": ncond, "combinaisons": tested,
+    days = sorted(v[1] for v in ds["hist"].values())
+    return {"kind": ds["kind"], "tf": ds["tf"], "symbols": ds["symbols"], "historique_jours": days[len(days) // 2] if days else 0,
+            "bougies": int(sum(v[0] for v in ds["hist"].values())), "conditions": ncond, "combinaisons": tested,
             "candidates": len(cands), "validees": len(evals), "apres_fdr": len(keep), "strategies": final, "armee": army}
 
 
@@ -374,7 +380,7 @@ def run_all(fetch=None, fetch_daily=None, kinds=None, tfs=None):
     macro = macro_series(fetch_daily or data.daily) if fetch_daily is not False else {}
     memory = IDEAS.load_memory()
     all_specs = {}
-    for kind in kinds or ("cr", "fx", "stocks"):
+    for kind in kinds or [k for k in ("cr", "fx", "stocks") if UNIVERSE[k]]:
         for tf in tfs or CFG["TIMEFRAMES"]:
             specs = []
             ds = build(kind, tf, fetch, macro=macro, idea_specs=specs)

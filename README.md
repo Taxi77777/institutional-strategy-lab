@@ -1,7 +1,7 @@
 # 🪖 Institutional Strategy Lab — l'armée des 20 spécialistes
 
 **Recherche automatique de stratégies intraday à 80–95 % de réussite, validées sur des données jamais vues.
-Forex, or, crypto et actions US · compatible avec tous les courtiers · signaux Telegram · 100 % gratuit.**
+Forex, or et crypto · compatible avec tous les courtiers · signaux Telegram · 100 % gratuit.**
 
 ## L'idée
 
@@ -39,7 +39,7 @@ Les institutions ont leurs algorithmes ; voici le tien, construit avec leur mét
 
 ## Ce que tu reçois sur Telegram
 
-- 🪖 **Conseil des 20** à 8 h, 14 h et 20 h (Paris) : pour BTC, ETH, SOL, EURUSD, GBPUSD, USDJPY, or, SPY et QQQ,
+- 🪖 **Conseil des 20** à 8 h, 14 h et 20 h (Paris) : pour BTC, ETH, SOL, EURUSD, GBPUSD, USDJPY, or et argent,
   combien de spécialistes sont haussiers ou baissiers, et qui n'est pas d'accord.
 - 🟢🔴 **Signal** (contrôle toutes les 15 minutes) : catégorie, ACHETER / VENDRE, entrée au prix du marché, sortie de sécurité,
   prise de gain et heure de fermeture **en prix et en %** (valable chez n'importe quel courtier), spécialistes d'accord et
@@ -49,7 +49,9 @@ Les institutions ont leurs algorithmes ; voici le tien, construit avec leur mét
 
 ## Données (gratuites, sans inscription)
 
-Yahoo Finance (bougies 15 min sur 60 jours, 1 h sur 2 ans), carnets d'ordres publics Coinbase et Bitstamp (crypto, en
+Recherche : **Dukascopy** (forex et métaux, bougies 1 min regroupées en 15 min, ~9 mois), **Coinbase** (crypto, 8 mois en
+15 min, 3 ans en 1 h), Yahoo Finance (forex 1 h sur 2 ans, et en direct). En 15 min, une stratégie doit réussir sur au moins
+**200 trades jamais vus**. Carnets d'ordres publics Coinbase et Bitstamp (crypto, en
 direct uniquement : aucun historique gratuit n'existe), S&P 500 et VIX pour le régime de marché.
 
 ## Installation (déjà faite)

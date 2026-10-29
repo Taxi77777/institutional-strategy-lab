@@ -25,7 +25,7 @@ CACHE = {}
 STOP = [False]
 SEP = "━━━━━━━━━━━━━━━"
 MAJORS = [("cr", "BTC"), ("cr", "ETH"), ("cr", "SOL"), ("fx", "EURUSD"), ("fx", "GBPUSD"), ("fx", "USDJPY"),
-          ("fx", "XAUUSD"), ("stocks", "SPY"), ("stocks", "QQQ")]
+          ("fx", "XAUUSD"), ("fx", "XAGUSD")]
 BANNER = {"cr": "🪙 <b>CRYPTO</b>", "fx": "💱 <b>FOREX</b>", "stocks": "📈 <b>ACTIONS / INDICES US</b>"}
 
 
@@ -200,7 +200,7 @@ def scan(st, lab, tf, now):
             for dr in (1, -1):
                 army = next((cl.get("armee", {}).get("achat" if dr > 0 else "vente") for cl in lab["classes"]
                              if cl["kind"] == kind and cl["tf"] == tf), None)
-                if not army or army.get("win", 0) < CFG["MIN_WIN"] or army.get("avg", 0) <= 0:
+                if not army or army.get("win", 0) < CFG["MIN_WIN"] or army.get("avg", 0) <= 0 or army.get("n", 0) < 20:
                     continue                        # le vote de l'armee lui-meme doit avoir prouve >= 80 % et un gain
                 agents = votes[dr]
                 strong = {a: s for a, s in agents.items() if a != "carnet"}

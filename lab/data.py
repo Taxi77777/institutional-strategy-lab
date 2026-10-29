@@ -1,7 +1,13 @@
 """Donnees gratuites, sans inscription : Yahoo Finance (bougies), Coinbase / Bitstamp (carnets d'ordres crypto).
 Prix de reference neutres (aucun courtier) : les niveaux sont aussi donnes en % pour s'appliquer partout."""
+import concurrent.futures as cf
+import datetime
 import logging
+import lzma
+import struct
 import time
+
+import os
 
 import numpy as np
 import requests
@@ -63,6 +69,104 @@ def bars(sym, kind, tf, rng=None):
                 last = str(ex)[:100]
         time.sleep(2)
     raise RuntimeError("Yahoo %s : %s" % (sym, last))
+
+
+# ------------------------------------------------------------------ historiques longs (gratuits, sans inscription)
+def _resample(rows, step):
+    """Bougies 1 min (ou plus courtes) -> bougies de `step` secondes."""
+    if not len(rows):
+        return np.zeros((0, 6))
+    rows = rows[np.argsort(rows[:, 0])]
+    k = (rows[:, 0] // step) * step
+    out = []
+    starts = np.flatnonzero(np.r_[True, k[1:] != k[:-1]])
+    ends = np.r_[starts[1:], len(rows)]
+    for s_, e_ in zip(starts, ends):
+        g = rows[s_:e_]
+        out.append((k[s_], g[0, 1], g[:, 2].max(), g[:, 3].min(), g[-1, 4], g[:, 5].sum()))
+    return np.array(out, dtype=float)
+
+
+DUKA_POINT = {"JPY": 1e-3, "XAU": 1e-3, "XAG": 1e-3}
+
+
+def _duka_day(sym, day):
+    url = "https://datafeed.dukascopy.com/datafeed/%s/%04d/%02d/%02d/BID_candles_min_1.bi5" % (
+        sym, day.year, day.month - 1, day.day)
+    try:
+        r = SESSION.get(url, timeout=20)
+        if r.status_code != 200 or not r.content:
+            return None
+        raw = lzma.decompress(r.content, format=lzma.FORMAT_ALONE)
+    except Exception:
+        return None
+    pt = DUKA_POINT.get(sym[3:], DUKA_POINT.get(sym[:3], 1e-5))
+    t0 = int(datetime.datetime(day.year, day.month, day.day, tzinfo=datetime.timezone.utc).timestamp())
+    rows = []
+    for off in range(0, len(raw) - 23, 24):
+        t, o, c, lo, hi, v = struct.unpack(">5if", raw[off:off + 24])
+        rows.append((t0 + t, o * pt, hi * pt, lo * pt, c * pt, v))
+    return rows
+
+
+def dukascopy(sym, step, days):
+    """Forex / metaux : bougies 1 min Dukascopy (flux public), regroupees en bougies de `step` secondes."""
+    today = datetime.datetime.now(datetime.timezone.utc).date()
+    dates = [today - datetime.timedelta(days=i) for i in range(1, days + 1)]
+    dates = [d for d in dates if d.weekday() != 5]               # samedi : marche ferme
+    rows = []
+    with cf.ThreadPoolExecutor(8) as ex:
+        for res in ex.map(lambda d: _duka_day(sym, d), dates):
+            if res:
+                rows.extend(res)
+    if len(rows) < 1000:
+        raise RuntimeError("Dukascopy %s : historique indisponible" % sym)
+    return _resample(np.array(rows, dtype=float), step)
+
+
+def coinbase(sym, step, days):
+    """Crypto : bougies Coinbase (API publique), 300 par requete, sur `days` jours."""
+    gran = 900 if step == 900 else 3600
+    end = int(time.time()) // gran * gran
+    start_all = end - days * 86400
+    rows = {}
+    t = start_all
+    while t < end:
+        t2 = min(end, t + 300 * gran)
+        try:
+            r = SESSION.get("https://api.exchange.coinbase.com/products/%s-USD/candles" % sym, timeout=20, params={
+                "granularity": gran, "start": datetime.datetime.utcfromtimestamp(t).isoformat(),
+                "end": datetime.datetime.utcfromtimestamp(t2).isoformat()})
+            if r.status_code == 429:
+                time.sleep(2)
+                continue
+            if r.status_code != 200:
+                raise RuntimeError("HTTP %d" % r.status_code)
+            for tt, lo, hi, op, cl, vol in r.json():
+                rows[int(tt)] = (int(tt), float(op), float(hi), float(lo), float(cl), float(vol))
+        except Exception as ex:
+            if not rows:
+                raise RuntimeError("Coinbase %s : %s" % (sym, str(ex)[:80]))
+        t = t2
+        time.sleep(0.12)
+    a = np.array([rows[k] for k in sorted(rows)], dtype=float).reshape(-1, 6)
+    if gran != step:
+        a = _resample(a, step)
+    return a
+
+
+def long_bars(sym, kind, tf):
+    """Historique long pour la recherche : Dukascopy (forex, 15 min), Coinbase (crypto) ; Yahoo en secours."""
+    step = TF[tf][2]
+    try:
+        if kind == "fx" and tf == "15M":
+            return dukascopy(sym, step, int(os.environ.get("FX_DAYS", "270")))
+        if kind == "cr":
+            return coinbase(sym, step, int(os.environ.get("CR_DAYS_15M", "240")) if tf == "15M"
+                            else int(os.environ.get("CR_DAYS_1H", "1095")))
+    except Exception as ex:
+        log.warning("historique long %s %s : %s (Yahoo en secours)", sym, tf, ex)
+    return bars(sym, kind, tf)
 
 
 def order_book(sym):
