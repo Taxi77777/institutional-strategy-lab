@@ -406,6 +406,9 @@ def compute(arr, kind, refs=None, macro=None):
             if x_.std() > 0 and y_.std() > 0:
                 cor[i] = np.corrcoef(x_, y_)[0, 1]
         F["intermarche"]["correlation50"] = cor
+        for lag in (1, 3, 6):                       # avance entre marches : le meneur (BTC, EURUSD, SPY) bouge d'abord
+            F["intermarche"]["meneur_ret%d" % lag] = safe_div(b, shift(b, lag)) - 1
+            F["intermarche"]["retard_vs_meneur%d" % lag] = (safe_div(b, shift(b, lag)) - 1) - (safe_div(c, shift(c, lag)) - 1)
 
     # 19 macro et regime
     if macro:

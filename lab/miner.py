@@ -89,6 +89,10 @@ def build(kind, tf, fetch=None, fetch_daily=None, symbols=None, macro=None):
     ts, aid = np.concatenate(TS), np.concatenate(AID)
     q1, q2 = np.quantile(ts, [0.6, 0.8])
     split = np.where(ts <= q1, 0, np.where(ts <= q2, 1, 2))
+    # purge + embargo (Lopez de Prado) : les trades dont le resultat deborde sur la periode suivante sont retires
+    step = float(np.median(np.diff(np.unique(ts)))) if len(ts) > 1 else 900
+    emb = max(e["h"] for e in EXITS) * step
+    split = np.where(((ts > q1 - emb) & (ts <= q1)) | ((ts > q2 - emb) & (ts <= q2)), -1, split)
     return {"kind": kind, "tf": tf, "X": X, "R": R, "ts": ts, "aid": aid, "split": split,
             "symbols": list(raw), "cut": (float(q1), float(q2))}
 
@@ -252,6 +256,26 @@ def evaluate(ds, cand):
     return out
 
 
+def robustness(ds, cand):
+    """Sur validation + test (jamais appris) : gagnante sur la majorite des actifs pris un par un, et >= 75 % de
+       reussite sur chacune des deux moitiés chronologiques (stabilite)."""
+    ex = next(e for e in EXITS if e["id"] == cand["exit"])
+    r, win, valid = ds["R"][(cand["exit"], cand["dir"])]
+    step = float(np.median(np.diff(np.unique(ds["ts"])))) if len(ds["ts"]) > 1 else 900
+    m = thin(full_mask(ds, cand["conds"]) & valid & (ds["split"] >= 1), ds["aid"], ds["ts"], ex["h"] * step)
+    pos = tot = 0
+    for a in np.unique(ds["aid"][m]):
+        ma = m & (ds["aid"] == a)
+        if ma.sum() >= 5:
+            tot += 1
+            pos += int(r[ma].mean() > 0)
+    idx = np.flatnonzero(m)
+    halves = [idx[:len(idx) // 2], idx[len(idx) // 2:]]
+    wins = [float(win[h_].mean()) if len(h_) else 0.0 for h_ in halves]
+    ok = (tot == 0 or pos / tot >= 0.5) and min(wins) >= CFG["MIN_WIN"] - 0.05
+    return {"ok": bool(ok), "actifs_gagnants": "%d/%d" % (pos, tot), "reussite_moities": [round(w, 3) for w in wins]}
+
+
 def bh(pvals, q):
     """Benjamini-Hochberg : indices acceptes."""
     order = sorted(range(len(pvals)), key=lambda i: pvals[i])
@@ -277,6 +301,9 @@ def run_class(ds):
             continue
         t = ev["test"]
         if t.get("n", 0) >= CFG["MIN_TRADES_TEST"] and t["win"] >= CFG["MIN_WIN"] and t["avg"] > 0:
+            rob = robustness(ds, cd)
+            if not rob["ok"]:
+                continue
             ex = next(e for e in EXITS if e["id"] == cd["exit"])
             final.append({
                 "id": "%s-%s-%s-%s-%d-%d" % (ds["kind"], ds["tf"], cd["agent"], cd["exit"], cd["dir"], len(final)),
@@ -284,6 +311,7 @@ def run_class(ds):
                 "conds": [list(c_) for c_ in cd["conds"]],
                 "stats": {k: ev[k] for k in ("apprentissage", "validation", "test", "base_test")},
                 "wilson_test": wilson_low(t["k"], t["n"]),
+                "robustesse": rob,
                 "mc": mc(ev["test_r"], CFG["SIMS"]),
             })
     final.sort(key=lambda s: (-s["wilson_test"], -s["stats"]["test"]["avg"]))

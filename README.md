@@ -11,12 +11,15 @@ Les institutions ont leurs algorithmes ; voici le tien, construit avec leur mét
    Volatilité · Bandes · Volume · VWAP · Volume profile · Fibonacci · AMD et sessions · Structure de marché ·
    Chandeliers · Statisticien · Mathématicien · Retour à la moyenne · Horaires · Inter-marchés · Macro · Carnet d'ordres.
 2. **Près de 600 variantes d'indicateurs** (divergences RSI / MACD / OBV, Supertrend, Hull, régressions, Hurst,
-   entropie, sweeps de liquidité…), découpées en **près de 3 000 conditions**, combinées par 2 et par 3 :
+   entropie, sweeps de liquidité, avance du marché meneur BTC / EURUSD / SPY…), découpées en **près de 3 000 conditions**, combinées par 2 et par 3 :
    **des millions de combinaisons testées** à chaque recherche.
 3. **Méthode anti-hasard des fonds quantitatifs** :
    - apprentissage sur les 60 % les plus anciens, validation sur les 20 % suivants, **verdict sur les 20 % les plus récents, jamais vus** ;
    - correction des tests multiples (Benjamini-Hochberg) : sur des millions d'essais, le hasard « trouve » toujours quelque chose ;
    - trades sans chevauchement, frais inclus, exécution prudente ;
+   - **purge et embargo** entre les périodes (López de Prado) : aucun trade appris ne « voit » la période suivante ;
+   - **robustesse** : gagnante sur la majorité des actifs pris un par un, et ≥ 75 % de réussite sur chaque moitié de la
+     période jamais vue (stabilité dans le temps) ;
    - test de contrôle : sur des prix au hasard, le labo ne doit **rien** trouver (vérifié par les tests automatiques).
 4. **Règle de sélection** : taux de réussite **≥ 80 %** (objectif 95 %) **et** gain moyen positif après frais.
    Un taux élevé avec un total perdant ne passe pas.
