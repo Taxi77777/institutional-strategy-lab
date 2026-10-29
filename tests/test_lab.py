@@ -27,6 +27,7 @@ def fast(monkeypatch, tmp_path):
     monkeypatch.setitem(config.CFG, "PAUSE", 0)
     monkeypatch.setitem(config.CFG, "SIMS", 500)
     monkeypatch.setitem(config.CFG, "BEAM", 15)
+    monkeypatch.setitem(config.CFG, "MIN_TRADES_TEST_15M", 30)     # petites donnees de test
     monkeypatch.setitem(config.CFG, "STATE_DIR", str(tmp_path))
     monkeypatch.chdir(tmp_path)
 
