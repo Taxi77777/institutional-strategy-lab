@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 
 import numpy as np
 
-from . import data, indicators as IND, telegram as TG
+from . import data, ideas as IDEAS, indicators as IND, telegram as TG
 from .config import CFG, UNIVERSE
 from .miner import BENCH, align, macro_series
 
@@ -109,7 +109,7 @@ def macro():
     return MACRO["v"]
 
 
-def features(sym, kind, tf, now):
+def features(sym, kind, tf, now, specs=None):
     a = hist(sym, kind, tf)
     a = a[a[:, 0] + STEP[tf] <= now]                # bougies cloturees uniquement
     if len(a) < 300:
@@ -123,6 +123,10 @@ def features(sym, kind, tf, now):
             refs = None
     mac = {k: align(v[0], v[1], a[:, 0]) for k, v in macro().items()}
     F, atr = IND.compute(a, kind, refs, mac)
+    for nm, sp in (specs or {}).items():
+        x = IDEAS.apply_spec(F, sp)
+        if x is not None:
+            F["inventeur"][nm] = x
     last = {(ag, nm): float(x[-1]) for ag, d in F.items() for nm, x in d.items()}
     return {"a": a, "last": last, "atr": float(atr[-1]), "ts": float(a[-1, 0]), "close": float(a[-1, 4])}
 
@@ -160,7 +164,7 @@ def scan(st, lab, tf, now):
             if STOP[0]:
                 return sent
             try:
-                fx = features(sym, kind, tf, now)
+                fx = features(sym, kind, tf, now, lab.get("idees"))
             except Exception as ex:
                 log.warning("%s %s : %s", sym, tf, ex)
                 continue

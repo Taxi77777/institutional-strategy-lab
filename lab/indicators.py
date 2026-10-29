@@ -15,6 +15,7 @@ AGENTS = {
     "structure": "Structure de marché", "bougies": "Chandeliers", "statisticien": "Statisticien",
     "mathematicien": "Mathématicien (Hurst, entropie)", "retour": "Retour à la moyenne", "temps": "Horaires",
     "intermarche": "Inter-marchés", "macro": "Macro et régime", "carnet": "Carnet d'ordres",
+    "inventeur": "Inventeur (idées auto-générées)",
 }
 NAN = np.nan
 # grilles de parametres : DENSE=1 (defaut) -> plus de 600 variantes d'indicateurs

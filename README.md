@@ -26,6 +26,13 @@ Les institutions ont leurs algorithmes ; voici le tien, construit avec leur mét
 5. **L'armée vote** : un signal part seulement si au moins **3 spécialistes** ont une stratégie validée active dans le
    même sens, sans majorité contraire. Le vote lui-même est testé sur les données jamais vues.
 6. **Tant qu'aucune stratégie ne passe, l'armée reste silencieuse.** C'est voulu.
+7. **L'Inventeur (21ᵉ agent)** cherche en permanence des idées : à chaque recherche il invente ~150 nouveaux indicateurs
+   en combinant ceux des spécialistes (accords, désaccords, accélérations, croisements, rangs), les fait tester avec les
+   mêmes règles, garde en mémoire (`ideas.json`) celles qui gagnent et les fait évoluer la semaine suivante
+   (mutation, croisement), comme une sélection naturelle.
+8. **L'algorithme final** = le comité des stratégies validées et leur vote, régénéré chaque semaine dans
+   `strategies.json` : il devient plus fort à mesure que l'Inventeur trouve de meilleures idées et que les stratégies
+   qui faiblissent en réel sont retirées.
 
 ## Ce que tu reçois sur Telegram
 

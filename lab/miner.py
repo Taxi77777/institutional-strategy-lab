@@ -17,7 +17,7 @@ import warnings
 
 import numpy as np
 
-from . import data, indicators as IND, sim
+from . import data, ideas as IDEAS, indicators as IND, sim
 from .config import CFG, EXITS, UNIVERSE
 
 log = logging.getLogger("lab")
@@ -51,7 +51,7 @@ def macro_series(fetch_daily):
     return out
 
 
-def build(kind, tf, fetch=None, fetch_daily=None, symbols=None, macro=None):
+def build(kind, tf, fetch=None, fetch_daily=None, symbols=None, macro=None, idea_specs=None):
     """Indicateurs + resultats simules de tous les actifs d'une classe, empiles."""
     fetch = fetch or data.bars
     symbols = symbols or UNIVERSE[kind]
@@ -73,6 +73,14 @@ def build(kind, tf, fetch=None, fetch_daily=None, symbols=None, macro=None):
         refs = {"bench": align(bench[:, 0], bench[:, 4], a[:, 0])} if bench is not None and s != BENCH[kind] else None
         mac = {k: align(v[0], v[1], a[:, 0]) for k, v in macro.items()}
         F, atr = IND.compute(a, kind, refs, mac)
+        if idea_specs is not None:                  # l'Inventeur : ses idees deviennent des indicateurs testes
+            if not idea_specs:
+                idea_specs.extend(IDEAS.generate([(ag, nm) for ag, d in F.items() for nm in d],
+                                                 seed=int(time.time() // (7 * 86400)), memory=IDEAS.load_memory()))
+            for sp in idea_specs:
+                x = IDEAS.apply_spec(F, sp)
+                if x is not None:
+                    F["inventeur"][IDEAS.name(sp)] = x
         days = IND.day_index(a[:, 0], kind) if kind == "stocks" else None
         for agent, feats in F.items():
             for name, x in feats.items():
@@ -361,18 +369,28 @@ def run_all(fetch=None, fetch_daily=None, kinds=None, tfs=None):
         "taux_reussite_min": CFG["MIN_WIN"], "objectif": CFG["TARGET_WIN"], "trades_test_min": CFG["MIN_TRADES_TEST"],
         "fdr": CFG["FDR"], "consensus": CFG["CONSENSUS"]}, "classes": []}
     macro = macro_series(fetch_daily or data.daily) if fetch_daily is not False else {}
+    memory = IDEAS.load_memory()
+    all_specs = {}
     for kind in kinds or ("cr", "fx", "stocks"):
         for tf in tfs or CFG["TIMEFRAMES"]:
-            ds = build(kind, tf, fetch, macro=macro)
+            specs = []
+            ds = build(kind, tf, fetch, macro=macro, idea_specs=specs)
             if not ds:
                 continue
+            all_specs.update({IDEAS.name(sp): sp for sp in specs})
             res = run_class(ds)
+            memory = IDEAS.remember(res["strategies"], all_specs, memory)
             out["classes"].append(res)
             log.info("%s %s : %d strategies retenues", kind, tf, len(res["strategies"]))
             del ds
     out["duree_min"] = round((time.time() - t0) / 60, 1)
     out["total"] = {k: sum(c[k] for c in out["classes"]) for k in ("conditions", "combinaisons", "candidates")}
     out["total"]["strategies"] = sum(len(c["strategies"]) for c in out["classes"])
+    used = {nm for c in out["classes"] for s in c["strategies"] for ag, nm, _a, _b in s["conds"] if ag == "inventeur"}
+    out["idees"] = {nm: all_specs[nm] for nm in used if nm in all_specs}
+    out["inventeur"] = {"idees_testees": len(all_specs), "idees_gagnantes": len(used)}
+    with open(IDEAS.MEMORY, "w") as f:
+        json.dump(memory, f, indent=1)
     return out
 
 

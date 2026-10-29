@@ -38,7 +38,8 @@ jobs:
             cp strategies.json /tmp/strategies.json
             git fetch -q origin main && git reset -q --hard origin/main
             cp /tmp/strategies.json strategies.json
-            git add strategies.json
+            cp /tmp/ideas.json ideas.json 2>/dev/null || true
+            git add strategies.json ideas.json 2>/dev/null || git add strategies.json
             git diff --cached --quiet && exit 0
             git commit -qm "labo : nouvelles strategies [skip ci]"
             git push -q origin HEAD:main && exit 0

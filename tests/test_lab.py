@@ -83,3 +83,19 @@ def test_pairing_roundtrip(monkeypatch):
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "123:abc")
     for cid in ("987654321", "-1001234567890"):
         assert TG.pair_decode(TG.pair_encode(cid)) == cid
+
+
+def test_inventor_generates_applies_and_remembers():
+    from lab import ideas
+    a = synth(3)
+    F, _ = IND.compute(a, "cr")
+    names = [(ag, nm) for ag, d in F.items() for nm in d]
+    specs = ideas.generate(names, n=60, seed=1)
+    assert len(specs) >= 50
+    built = [ideas.apply_spec(F, sp) for sp in specs]
+    assert sum(x is not None and len(x) == len(a) for x in built) >= 50
+    sp = specs[0]
+    strat = {"conds": [["inventeur", ideas.name(sp), 0, 1]], "stats": {"test": {"win": 0.9}}}
+    mem = ideas.remember([strat], {ideas.name(sp): sp}, {})
+    nxt = ideas.generate(names, n=60, seed=2, memory=mem)
+    assert ideas.name(sp) in {ideas.name(x) for x in nxt}       # l'idee gagnante est reprise et mutee
