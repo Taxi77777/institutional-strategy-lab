@@ -124,7 +124,9 @@ def dukascopy(sym, step, days):
                 rows.extend(res)
     if len(rows) < 1000:
         raise RuntimeError("Dukascopy %s : historique indisponible" % sym)
-    return _resample(np.array(rows, dtype=float), step)
+    a = _resample(np.array(rows, dtype=float), step)
+    a[:, 5] = 0.0                   # meme vue que le direct (Yahoo : pas de volume forex) -> aucun ecart recherche / direct
+    return a
 
 
 def coinbase(sym, step, days):

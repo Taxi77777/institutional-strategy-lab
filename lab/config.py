@@ -40,6 +40,9 @@ CFG = {
     "MIN_TRADES_TEST_15M": envf("MIN_TRADES_TEST_15M", 200),   # 5 / 15 / 30 min : au moins 200 trades jamais vus
     "FDR": envf("FDR", 0.05),                # taux de fausses decouvertes toleré (Benjamini-Hochberg)
     "CONSENSUS": envf("CONSENSUS", 3),       # specialistes d'accord minimum pour un signal
+    "ELITE_WIN": envf("ELITE_WIN", 0.90),    # setup elite : peut signaler seul (>= 90 % ...
+    "ELITE_WILSON": envf("ELITE_WILSON", 0.85),  # ... borne basse prudente >= 85 % ...
+    "ELITE_N": envf("ELITE_N", 100),         # ... sur au moins 100 trades jamais vus)
     "BEAM": envf("BEAM", 40),                # largeur de la recherche (conditions gardees a chaque etage)
     "MAX_DEPTH": envf("MAX_DEPTH", 3),       # conditions combinees au maximum
     "SIMS": envf("SIMS", 10000),             # simulations Monte Carlo par strategie retenue

@@ -81,6 +81,25 @@ def test_signal_message_and_tracking(monkeypatch):
     assert "GAGNANT" in sent[-1] and st["track"][0]["win"] and not st["open"]
 
 
+def test_elite_setup_signals_alone(monkeypatch):
+    """Un setup elite (>= 90 % sur >= 100 trades) envoie seul ; un setup ordinaire seul n'envoie rien."""
+    sent = []
+    monkeypatch.setattr(TG, "send", lambda m: sent.append(m) or True)
+    monkeypatch.setattr(live, "save_state", lambda st: None)
+    mk = lambda win, n, w: {"id": "e%d" % n, "agent": "tendance", "dir": -1, "wilson_test": w, "exit": config.EXITS[1],
+                            "conds": [], "stats": {"test": {"win": win, "n": n, "avg": 0.1}}}
+    fx = {"close": 100.0, "atr": 1.0, "ts": 1790000000.0, "last": {}}
+    monkeypatch.setattr(live, "features", lambda *a, **k: fx)
+    monkeypatch.setattr(live, "UNIVERSE", {"fx": ["EURUSD"]})
+    for strat, expect in ((mk(0.86, 60, 0.75), 0), (mk(0.95, 127, 0.91), 1)):
+        st = live.load_state()
+        lab = {"classes": [{"kind": "fx", "tf": "1H", "armee": {}, "strategies": [strat]}]}
+        n0 = len(sent)
+        assert live.scan(st, lab, "1H", fx["ts"] + 3600 + 60) == expect
+        assert len(sent) - n0 == expect
+    assert "Setup élite" in sent[-1] and "VENDRE" in sent[-1]
+
+
 def test_pairing_roundtrip(monkeypatch):
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "123:abc")
     for cid in ("987654321", "-1001234567890"):

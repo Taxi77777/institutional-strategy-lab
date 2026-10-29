@@ -107,14 +107,30 @@ def hist(sym, kind, tf):
     c = CACHE.get(key)
     now = time.time()
     if not c or now - c["full"] > 6 * 3600:
-        a = data.bars(sym, kind, tf)
+        a = fetch_live(sym, kind, tf, full=True)
         CACHE[key] = {"a": a[-KEEP[tf]:], "full": now}
     else:
-        new = data.bars(sym, kind, tf, rng="1mo" if tf == "1H" else "5d")
+        new = fetch_live(sym, kind, tf, full=False)
         rows = {int(r[0]): r for r in c["a"]}
         rows.update({int(r[0]): r for r in new})
         c["a"] = np.array([rows[k] for k in sorted(rows)])[-KEEP[tf]:]
     return CACHE[key]["a"]
+
+
+def fetch_live(sym, kind, tf, full):
+    """Memes sources que la recherche : Coinbase pour la crypto, Yahoo pour le forex (volume neutralise la ou la
+       recherche utilise Dukascopy)."""
+    if kind == "cr":
+        try:
+            days = int(KEEP[tf] * STEP[tf] / 86400) + 2 if full else 2
+            return data.coinbase(sym, STEP[tf], days)
+        except Exception as ex:
+            log.warning("Coinbase %s %s : %s (Yahoo en secours)", sym, tf, ex)
+    a = data.bars(sym, kind, tf) if full else data.bars(sym, kind, tf, rng="1mo" if tf == "1H" else "5d")
+    if kind == "fx" and tf in data.FX_DAYS:
+        a = np.array(a, dtype=float)
+        a[:, 5] = 0.0
+    return a
 
 
 MACRO = {"ts": 0, "v": {}}
@@ -173,6 +189,13 @@ def council_votes(lab, kind, tf, sym, fx, retired):
     return votes
 
 
+def is_elite(s):
+    """Setup elite : >= 90 % sur >= 100 trades jamais vus, borne basse prudente >= 85 %, gain positif."""
+    t = s["stats"]["test"]
+    return (t.get("win", 0) >= CFG["ELITE_WIN"] and t.get("n", 0) >= CFG["ELITE_N"] and t.get("avg", 0) > 0
+            and s.get("wilson_test", 0) >= CFG["ELITE_WILSON"])
+
+
 def scan(st, lab, tf, now):
     sent = 0
     for kind, syms in UNIVERSE.items():
@@ -200,23 +223,26 @@ def scan(st, lab, tf, now):
             for dr in (1, -1):
                 army = next((cl.get("armee", {}).get("achat" if dr > 0 else "vente") for cl in lab["classes"]
                              if cl["kind"] == kind and cl["tf"] == tf), None)
-                if not army or army.get("win", 0) < CFG["MIN_WIN"] or army.get("avg", 0) <= 0 or army.get("n", 0) < 20:
-                    continue                        # le vote de l'armee lui-meme doit avoir prouve >= 80 % et un gain
                 agents = votes[dr]
                 strong = {a: s for a, s in agents.items() if a != "carnet"}
-                if len(agents) < CFG["CONSENSUS"] or not strong or len(votes[-dr]) >= len(agents):
-                    continue
+                if not strong or len(votes[-dr]) >= len(agents):
+                    continue                        # personne de solide, ou autant de specialistes contre
+                army_ok = (army and army.get("win", 0) >= CFG["MIN_WIN"] and army.get("avg", 0) > 0
+                           and army.get("n", 0) >= 20 and len(agents) >= CFG["CONSENSUS"])
+                elite = [s for s in strong.values() if is_elite(s)]
+                if not army_ok and not elite:
+                    continue                        # ni vote de l'armee prouve, ni setup elite
                 key = "%s|%s|%d|%d" % (sym, tf, dr, int(fx["ts"]))
                 if key in st["alerts"]:
                     continue
                 st["alerts"][key] = time.time()
-                lead = max(strong.values(), key=lambda s: (s["stats"]["test"]["win"], s["wilson_test"]))
-                send_signal(st, kind, tf, sym, dr, fx, lead, agents, votes[-dr], lab)
+                lead = max(elite or strong.values(), key=lambda s: (s["stats"]["test"]["win"], s["wilson_test"]))
+                send_signal(st, kind, tf, sym, dr, fx, lead, agents, votes[-dr], lab, elite=not army_ok)
                 sent += 1
     return sent
 
 
-def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab):
+def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab, elite=False):
     ex, px, atr = lead["exit"], fx["close"], fx["atr"]
     sl, tp = px - dr * ex["sl"] * atr, px + dr * ex["tp"] * atr
     t_exit = fx["ts"] + STEP[tf] * (ex["h"] + 1)
@@ -226,7 +252,8 @@ def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab):
     L = [banner(kind, sym),
          "%s <b>%s %s</b>%s" % ("🟢" if dr > 0 else "🔴", "ACHETER" if dr > 0 else "VENDRE", TG.esc(data.label(sym, kind)),
                                 "" if dr > 0 else "  <i>(tu gagnes si le prix baisse)</i>"),
-         "🪖 Armée : <b>%d spécialistes d'accord</b> · bougies %s" % (len(agents), tf.lower()), SEP,
+         ("⭐ <b>Setup élite</b> (prouvé seul à plus de 90 %%) · bougies %s" % tf.lower() if elite else
+          "🪖 Armée : <b>%d spécialistes d'accord</b> · bougies %s" % (len(agents), tf.lower())), SEP,
          "💵 Entrée au prix du marché : <code>%s</code>  · à faire avant %s" % (fmt(px), paris(fx["ts"] + STEP[tf] + 600).strftime("%H:%M")),
          "🛑 Sortie de sécurité : <code>%s</code>  (%+.2f %%)" % (fmt(sl), -dr * 100 * ex["sl"] * atr / px),
          "🎯 Prendre le gain : <code>%s</code>  (%+.2f %%)" % (fmt(tp), dr * 100 * ex["tp"] * atr / px),
@@ -234,7 +261,7 @@ def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab):
          "<i>Chez ton courtier le prix peut différer un peu : garde les mêmes % depuis ton prix d'entrée.</i>", SEP,
          "✅ Taux de réussite de la meilleure stratégie : <b>%.0f %%</b> sur %d trades jamais vus (gain moyen %+.2f × le risque, frais inclus)"
          % (100 * t["win"], t["n"], t["avg"])]
-    if army:
+    if army and not elite:
         L.append("🪖 Vote de l'armée testé : %.0f %% de réussite sur %d trades jamais vus" % (100 * army["win"], army["n"]))
     if lead.get("mc"):
         L.append("🎲 %d simulations de 20 trades : positif dans %.0f %% des cas" % (CFG["SIMS"], 100 * lead["mc"]["p_gain"]))

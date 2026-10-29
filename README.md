@@ -25,7 +25,9 @@ Les institutions ont leurs algorithmes ; voici le tien, construit avec leur mét
    Un taux élevé avec un total perdant ne passe pas.
 5. **L'armée vote** : un signal part seulement si au moins **3 spécialistes** ont une stratégie validée active dans le
    même sens, sans majorité contraire. Le vote lui-même est testé sur les données jamais vues.
-6. **Tant qu'aucune stratégie ne passe, l'armée reste silencieuse.** C'est voulu.
+6. **Setup élite** : une stratégie prouvée à **≥ 90 % sur ≥ 100 trades jamais vus** (borne basse prudente ≥ 85 %) peut signaler seule, sans attendre 3 spécialistes.
+   Tant qu'aucune stratégie ne passe, l'armée reste silencieuse. C'est voulu.
+   En direct, l'armée lit les mêmes données que la recherche (Coinbase pour la crypto, volume forex neutralisé) : aucun écart entre ce qui a été testé et ce qui est surveillé.
 7. **L'Inventeur (21ᵉ agent)** cherche en permanence des idées : à chaque recherche il invente ~150 nouveaux indicateurs
    en combinant ceux des spécialistes (accords, désaccords, accélérations, croisements, rangs), les fait tester avec les
    mêmes règles, garde en mémoire (`ideas.json`) celles qui gagnent et les fait évoluer la semaine suivante
