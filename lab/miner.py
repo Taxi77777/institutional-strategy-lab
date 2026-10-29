@@ -372,10 +372,15 @@ def army_test(ds, final):
             r, win, valid = ds["R"][(e["id"], dr)]
             mk = thin(sig & valid, ds["aid"], ds["ts"], e["h"] * step)
             st = stats(r, win, mk)
-            if st.get("n", 0) and (best is None or st["avg"] > best["avg"]):
-                best = dict(st, exit=e["id"])
+            if not st.get("n", 0):
+                continue
+            st = dict(st, exit=e["id"])
+            ok = st["n"] >= 20 and st["avg"] > 0          # taux de reussite maximal, avec un gain positif
+            key = (ok, st["win"] if ok else st["avg"])
+            if best is None or key > best[0]:
+                best = (key, st)
         if best:
-            res["achat" if dr > 0 else "vente"] = best
+            res["achat" if dr > 0 else "vente"] = best[1]
     return res
 
 

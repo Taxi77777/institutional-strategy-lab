@@ -57,7 +57,7 @@ direct uniquement : aucun historique gratuit n'existe), S&P 500 et VIX pour le r
 
 ## Installation (déjà faite)
 
-- **Recherche** : *Actions* → **Labo - recherche de strategies** (**tourne sans arrêt** : chaque recherche relance la suivante avec de nouvelles idées ; mettre la variable `CONTINU` à `0` pour l'arrêter).
+- **Recherche** : *Actions* → **Labo - recherche de strategies** (**tourne sans arrêt** : chaque recherche relance la suivante avec de nouvelles idées ; mettre la variable `CONTINU` à `stop` pour l'arrêter).
   Publie `strategies.json` (l'algorithme) et `ideas.json` (la mémoire de l'Inventeur).
 - **Armée en direct** : tourne depuis le dépôt `crypto-signals-timesfm` (workflow *Armee des 20*), qui a déjà le jeton
   Telegram ; elle recharge chaque heure les stratégies publiées ici. Le workflow `live.yml` de ce dépôt reste disponible à
