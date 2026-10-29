@@ -16,6 +16,7 @@ AGENTS = {
     "mathematicien": "Mathématicien (Hurst, entropie)", "retour": "Retour à la moyenne", "temps": "Horaires",
     "intermarche": "Inter-marchés", "macro": "Macro et régime", "carnet": "Carnet d'ordres",
     "inventeur": "Inventeur (idées auto-générées)",
+    "tradingview": "Favoris TradingView (WaveTrend, Squeeze, UT Bot, QQE…)",
 }
 NAN = np.nan
 # grilles de parametres : DENSE=1 (defaut) -> plus de 600 variantes d'indicateurs
@@ -492,6 +493,98 @@ def compute(arr, kind, refs=None, macro=None):
         F["structure"]["vs_bas_%dj" % nd] = safe_div(c - roll(per_day(days, l, np.min), max(1, nd * 4), np.nanmin), atr14)
     for p in (2, 3, 5, 7, 10):
         F["retour"]["rsi_du_rsi%d" % p] = rsi(np.nan_to_num(F["momentum"]["rsi14"], nan=50.0), p)
+
+    # 22 favoris de la communaute TradingView (formules publiques, reecrites sans regarder le futur)
+    tv = F.setdefault("tradingview", {})
+    hlc3 = (h + l + c) / 3
+    for n1, n2 in ((10, 21), (9, 12)):                            # WaveTrend (LazyBear / VuManChu Cipher B)
+        esa = ema(hlc3, n1)
+        dd = ema(np.abs(hlc3 - np.nan_to_num(esa)), n1)
+        wt1 = ema(np.nan_to_num(safe_div(hlc3 - esa, 0.015 * dd)), n2)
+        wt2 = sma(np.nan_to_num(wt1), 4)
+        tv["wavetrend_%d_%d" % (n1, n2)] = wt1
+        tv["wavetrend_croise_%d_%d" % (n1, n2)] = wt1 - wt2
+    for p in (20, 30):                                            # Squeeze Momentum (LazyBear)
+        mid_ = ((roll(h, p, np.max) + roll(l, p, np.min)) / 2 + sma(c, p)) / 2
+        sl_, _r2 = linreg(np.nan_to_num(c - mid_), p)
+        tv["squeeze_momentum%d" % p] = safe_div((c - mid_) + sl_ * (p - 1) / 2, atr14)
+    for key, ap in ((1.0, 10), (2.0, 10), (1.0, 3)):              # UT Bot (stop suiveur ATR)
+        a_ = key * ema(true_range(h, l, c), 2 * ap - 1)
+        stop = np.full(n, NAN)
+        for i in range(1, n):
+            if not np.isfinite(a_[i]):
+                continue
+            prev = stop[i - 1] if np.isfinite(stop[i - 1]) else c[i] - a_[i]
+            if c[i] > prev and c[i - 1] > prev:
+                stop[i] = max(prev, c[i] - a_[i])
+            elif c[i] < prev and c[i - 1] < prev:
+                stop[i] = min(prev, c[i] + a_[i])
+            else:
+                stop[i] = c[i] - a_[i] if c[i] > prev else c[i] + a_[i]
+        tv["ut_bot_%.0f_%d" % (key, ap)] = safe_div(c - stop, atr14)
+    for p, m_ in ((22, 3.0), (14, 2.0)):                          # Chandelier Exit
+        a_ = ema(true_range(h, l, c), 2 * p - 1)
+        tv["chandelier_long_%d" % p] = safe_div(c - (roll(h, p, np.max) - m_ * a_), atr14)
+        tv["chandelier_short_%d" % p] = safe_div((roll(l, p, np.min) + m_ * a_) - c, atr14)
+    for rp, sf in ((14, 5), (6, 3)):                              # QQE
+        rs_ = ema(np.nan_to_num(rsi(c, rp), nan=50.0), sf)
+        atr_rsi = ema(np.abs(np.diff(rs_, prepend=rs_[0])), 2 * rp - 1) * 4.236
+        trail = np.full(n, NAN)
+        for i in range(1, n):
+            if not (np.isfinite(rs_[i]) and np.isfinite(atr_rsi[i])):
+                continue
+            pv = trail[i - 1] if np.isfinite(trail[i - 1]) else rs_[i]
+            if rs_[i] > pv and rs_[i - 1] > pv:
+                trail[i] = max(pv, rs_[i] - atr_rsi[i])
+            elif rs_[i] < pv and rs_[i - 1] < pv:
+                trail[i] = min(pv, rs_[i] + atr_rsi[i])
+            else:
+                trail[i] = rs_[i] - atr_rsi[i] if rs_[i] > pv else rs_[i] + atr_rsi[i]
+        tv["qqe_%d" % rp] = rs_ - trail
+        tv["qqe_niveau_%d" % rp] = rs_ - 50
+    for p, m_ in ((100, 3.0), (50, 2.0)):                         # Range Filter
+        rng_f = ema(np.abs(np.diff(c, prepend=c[0])), p) * m_
+        filt = np.full(n, NAN)
+        for i in range(n):
+            if not np.isfinite(rng_f[i]):
+                continue
+            pv = filt[i - 1] if i and np.isfinite(filt[i - 1]) else c[i]
+            filt[i] = max(pv, c[i] - rng_f[i]) if c[i] > pv else min(pv, c[i] + rng_f[i])
+        tv["range_filter_%d" % p] = safe_div(c - filt, atr14)
+        tv["range_filter_pente_%d" % p] = np.sign(filt - shift(filt, 1))
+    for p in (10, 20):                                            # SSL Channel
+        up_, dn_ = sma(h, p), sma(l, p)
+        tv["ssl_%d" % p] = safe_div(c - (up_ + dn_) / 2, up_ - dn_)
+    for p in (9, 20):                                             # Fisher Transform
+        hh, ll = roll(hlc3, p, np.max), roll(hlc3, p, np.min)
+        x_ = np.clip(2 * safe_div(hlc3 - ll, hh - ll) - 1, -0.999, 0.999)
+        x_ = ema(np.nan_to_num(x_), 3)
+        tv["fisher_%d" % p] = 0.5 * np.log(safe_div(1 + x_, 1 - x_))
+    for f_, s_, cy in ((23, 50, 10), (12, 26, 9)):                # Schaff Trend Cycle
+        m = ema(c, f_) - ema(c, s_)
+        lo_, hi_ = roll(np.nan_to_num(m), cy, np.min), roll(np.nan_to_num(m), cy, np.max)
+        k1 = ema(np.nan_to_num(100 * safe_div(m - lo_, hi_ - lo_), nan=50.0), 3)
+        lo2, hi2 = roll(k1, cy, np.min), roll(k1, cy, np.max)
+        tv["schaff_%d_%d" % (f_, s_)] = ema(np.nan_to_num(100 * safe_div(k1 - lo2, hi2 - lo2), nan=50.0), 3)
+    for q_ in (0.01, 0.1):                                        # filtre de Kalman (niveau)
+        est, pe, out_k = c[0], 1.0, np.empty(n)
+        for i in range(n):
+            pe += q_
+            kg = pe / (pe + 1.0)
+            est = est + kg * (c[i] - est)
+            pe *= (1 - kg)
+            out_k[i] = est
+        tv["kalman_%g" % q_] = safe_div(c - out_k, atr14)
+    bull_gap = (l > shift(h, 2))                                   # Fair Value Gaps (SMC)
+    bear_gap = (h < shift(l, 2))
+    tv["fvg_haussiers_20"] = roll(bull_gap.astype(float), 20, np.sum)
+    tv["fvg_baissiers_20"] = roll(bear_gap.astype(float), 20, np.sum)
+    tv["fvg_dernier"] = np.where(bull_gap, 1.0, np.where(bear_gap, -1.0, 0.0))
+    for bw in (8, 16):                                            # Nadaraya-Watson (causal, ne repeint pas)
+        wts = np.exp(-(np.arange(50)[::-1] ** 2) / (2 * bw * bw))
+        nw = roll(c, 50, lambda w, axis, wts=wts: (w * wts).sum(axis=axis) / wts.sum())
+        mae = roll(np.abs(c - np.nan_to_num(nw)), 50, np.mean) * 3
+        tv["nadaraya_watson_%d" % bw] = safe_div(c - nw, mae)
 
     # 20 carnet d'ordres : uniquement en direct (pas d'historique gratuit) -> vote de confirmation dans council.py
     return F, atr14

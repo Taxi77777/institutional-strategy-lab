@@ -10,7 +10,7 @@ Les institutions ont leurs algorithmes ; voici le tien, construit avec leur mét
 1. **20 spécialistes**, chacun avec sa famille d'indicateurs : Tendance · Ichimoku · Momentum · Oscillateurs ·
    Volatilité · Bandes · Volume · VWAP · Volume profile · Fibonacci · AMD et sessions · Structure de marché ·
    Chandeliers · Statisticien · Mathématicien · Retour à la moyenne · Horaires · Inter-marchés · Macro · Carnet d'ordres.
-2. **Près de 600 variantes d'indicateurs** (divergences RSI / MACD / OBV, Supertrend, Hull, régressions, Hurst,
+2. **Plus de 600 variantes d'indicateurs** (divergences RSI / MACD / OBV, Supertrend, Hull, régressions, Hurst,
    entropie, sweeps de liquidité, avance du marché meneur BTC / EURUSD / SPY…), découpées en **près de 3 000 conditions**, combinées par 2 et par 3 :
    **des millions de combinaisons testées** à chaque recherche.
 3. **Méthode anti-hasard des fonds quantitatifs** :
@@ -30,7 +30,10 @@ Les institutions ont leurs algorithmes ; voici le tien, construit avec leur mét
    en combinant ceux des spécialistes (accords, désaccords, accélérations, croisements, rangs), les fait tester avec les
    mêmes règles, garde en mémoire (`ideas.json`) celles qui gagnent et les fait évoluer la semaine suivante
    (mutation, croisement), comme une sélection naturelle.
-8. **L'algorithme final** = le comité des stratégies validées et leur vote, régénéré chaque semaine dans
+8. **Favoris TradingView (22ᵉ agent)** : WaveTrend (VuManChu Cipher B), Squeeze Momentum, UT Bot, Chandelier Exit, QQE,
+   Range Filter, SSL Channel, Fisher Transform, Schaff Trend Cycle, Kalman, Fair Value Gaps, Nadaraya-Watson (version qui
+   ne repeint pas) — réécrits à partir de leurs formules publiques (aucune copie de script).
+9. **L'algorithme final** = le comité des stratégies validées et leur vote, régénéré chaque semaine dans
    `strategies.json` : il devient plus fort à mesure que l'Inventeur trouve de meilleures idées et que les stratégies
    qui faiblissent en réel sont retirées.
 
