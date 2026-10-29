@@ -198,6 +198,10 @@ def scan(st, lab, tf, now):
                     if votes[d_]:
                         votes[d_]["carnet"] = {"agent": "carnet", "wilson_test": 0, "ob": ob[0]}
             for dr in (1, -1):
+                army = next((cl.get("armee", {}).get("achat" if dr > 0 else "vente") for cl in lab["classes"]
+                             if cl["kind"] == kind and cl["tf"] == tf), None)
+                if not army or army.get("win", 0) < CFG["MIN_WIN"] or army.get("avg", 0) <= 0:
+                    continue                        # le vote de l'armee lui-meme doit avoir prouve >= 80 % et un gain
                 agents = votes[dr]
                 strong = {a: s for a, s in agents.items() if a != "carnet"}
                 if len(agents) < CFG["CONSENSUS"] or not strong or len(votes[-dr]) >= len(agents):
