@@ -30,7 +30,8 @@ Les institutions ont leurs algorithmes ; voici le tien, construit avec leur mét
    en combinant ceux des spécialistes (accords, désaccords, accélérations, croisements, rangs), les fait tester avec les
    mêmes règles, garde en mémoire (`ideas.json`) celles qui gagnent et les fait évoluer la semaine suivante
    (mutation, croisement), comme une sélection naturelle.
-8. **Favoris TradingView (22ᵉ agent)** : WaveTrend (VuManChu Cipher B), Squeeze Momentum, UT Bot, Chandelier Exit, QQE,
+8. **Multi-unités (23ᵉ agent)** : tendance 1 h, 4 h et journalière (bougies clôturées uniquement), que chaque spécialiste peut ajouter à ses conditions — l'entrée en 15 min dans le sens de la tendance supérieure, comme les desks institutionnels.
+9. **Favoris TradingView (22ᵉ agent)** : WaveTrend (VuManChu Cipher B), Squeeze Momentum, UT Bot, Chandelier Exit, QQE,
    Range Filter, SSL Channel, Fisher Transform, Schaff Trend Cycle, Kalman, Fair Value Gaps, Nadaraya-Watson (version qui
    ne repeint pas) — réécrits à partir de leurs formules publiques (aucune copie de script).
 9. **L'algorithme final** = le comité des stratégies validées et leur vote, régénéré chaque semaine dans
@@ -56,7 +57,7 @@ direct uniquement : aucun historique gratuit n'existe), S&P 500 et VIX pour le r
 
 ## Installation (déjà faite)
 
-- **Recherche** : *Actions* → **Labo - recherche de strategies** (automatique chaque dimanche soir, ou *Run workflow*).
+- **Recherche** : *Actions* → **Labo - recherche de strategies** (**tourne sans arrêt** : chaque recherche relance la suivante avec de nouvelles idées ; mettre la variable `CONTINU` à `0` pour l'arrêter).
   Publie `strategies.json` (l'algorithme) et `ideas.json` (la mémoire de l'Inventeur).
 - **Armée en direct** : tourne depuis le dépôt `crypto-signals-timesfm` (workflow *Armee des 20*), qui a déjà le jeton
   Telegram ; elle recharge chaque heure les stratégies publiées ici. Le workflow `live.yml` de ce dépôt reste disponible à

@@ -80,7 +80,7 @@ def build(kind, tf, fetch=None, fetch_daily=None, symbols=None, macro=None, idea
         if idea_specs is not None:                  # l'Inventeur : ses idees deviennent des indicateurs testes
             if not idea_specs:
                 idea_specs.extend(IDEAS.generate([(ag, nm) for ag, d in F.items() for nm in d],
-                                                 seed=int(time.time() // (7 * 86400)), memory=IDEAS.load_memory()))
+                                                 seed=int(os.environ.get("IDEA_SEED", time.time() // 3600)), memory=IDEAS.load_memory()))
             for sp in idea_specs:
                 x = IDEAS.apply_spec(F, sp)
                 if x is not None:
@@ -207,12 +207,17 @@ def search(ds, log_every=50):
     by_agent = {}
     for c_ in conds:
         by_agent.setdefault(c_[0], []).append(c_)
+    ctx = by_agent.get("multi_unites", [])
+    ctx_masks = {c_: cmask(ds, c_) for c_ in ctx}         # contexte 1 h / 4 h / jour, partage par tous les specialistes
     for agent, cl in by_agent.items():
         masks = {c_: cmask(ds, c_) for c_ in cl}
+        masks.update(ctx_masks)
         for (eid, dr), (r, win, valid) in ds["R"].items():
             base = valid & tr
             scored = []
             for c_, m in masks.items():
+                if c_[0] != agent:
+                    continue
                 mm = m & base
                 st = stats(r, win, mm)
                 tested += 1
@@ -220,7 +225,7 @@ def search(ds, log_every=50):
                     scored.append((st["avg"] - st["se"], (c_,), mm))
             scored.sort(key=lambda x: -x[0])
             level = scored[:beam]
-            singles = [x[1][0] for x in level]
+            singles = [x[1][0] for x in level] + ([] if agent == "multi_unites" else ctx)
             allc = list(level)
             for _d in range(2, depth + 1):
                 nxt = []

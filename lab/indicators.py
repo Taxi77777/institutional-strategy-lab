@@ -17,7 +17,9 @@ AGENTS = {
     "intermarche": "Inter-marchés", "macro": "Macro et régime", "carnet": "Carnet d'ordres",
     "inventeur": "Inventeur (idées auto-générées)",
     "tradingview": "Favoris TradingView (WaveTrend, Squeeze, UT Bot, QQE…)",
+    "multi_unites": "Multi-unités (tendance 1 h, 4 h, jour)",
 }
+HTF = ((3600, "1h"), (14400, "4h"), (86400, "jour"))
 NAN = np.nan
 # grilles de parametres : DENSE=1 (defaut) -> plus de 600 variantes d'indicateurs
 G = {
@@ -586,8 +588,52 @@ def compute(arr, kind, refs=None, macro=None):
         mae = roll(np.abs(c - np.nan_to_num(nw)), 50, np.mean) * 3
         tv["nadaraya_watson_%d" % bw] = safe_div(c - nw, mae)
 
+    # 23 multi-unites : la tendance des unites superieures (1 h, 4 h, jour), comme les desks institutionnels
+    F["multi_unites"] = higher_tf(ts, o, h, l, c)
+
     # 20 carnet d'ordres : uniquement en direct (pas d'historique gratuit) -> vote de confirmation dans council.py
     return F, atr14
+
+
+def higher_tf(ts, o, h, l, c):
+    """Indicateurs calcules sur les bougies 1 h / 4 h / jour, alignes sans regarder l'avenir : une bougie superieure
+       n'est utilisee qu'une fois entierement cloturee."""
+    out = {}
+    if len(ts) < 3:
+        return out
+    step = float(np.median(np.diff(ts)))
+    for H, lab in HTF:
+        if H <= step * 1.5:
+            continue
+        g = (ts // H).astype(np.int64)
+        uniq, start = np.unique(g, return_index=True)
+        end = np.append(start[1:], len(ts))
+        ho = o[start]
+        hc = c[end - 1]
+        hh = np.maximum.reduceat(h, start)
+        hl = np.minimum.reduceat(l, start)
+        k = np.searchsorted((uniq + 1) * H, ts + step, side="right") - 1   # derniere bougie superieure cloturee
+        ok = k >= 0
+        kk = np.clip(k, 0, None)
+
+        def al(x):
+            r = x[kk].astype(float)
+            r[~ok] = NAN
+            return r
+        hatr = ema(true_range(hh, hl, hc), 14)
+        long_p = (10, 20) if lab == "jour" else (20, 50)
+        for p in long_p:
+            e = ema(hc, p)
+            out["tendance_%s_ema%d" % (lab, p)] = al(safe_div(hc, e) - 1)
+            out["prix_vs_ema%d_%s" % (p, lab)] = safe_div(c - al(e), al(hatr))          # cloture actuelle (connue)
+        e20 = ema(hc, long_p[0])
+        out["pente_%s" % lab] = al(safe_div(e20, shift(e20, 3)) - 1)
+        out["rsi14_%s" % lab] = al(rsi(hc, 14))
+        n_ = 10 if lab == "jour" else 20
+        mx, mn = roll(hh, n_, np.max), roll(hl, n_, np.min)
+        out["position_%s_%d" % (lab, n_)] = al(safe_div(hc - mn, mx - mn))
+        out["bougie_%s" % lab] = al(safe_div(hc - ho, hatr))
+    return out
 
 
 def intraday_streak(x):

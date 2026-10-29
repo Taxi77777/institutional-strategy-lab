@@ -57,5 +57,7 @@ EXITS = [
     {"id": "e3", "tp": 0.75, "sl": 2.0, "h": 24},
     {"id": "e4", "tp": 1.0, "sl": 1.0, "h": 12},
     {"id": "e5", "tp": 1.0, "sl": 2.5, "h": 32},
+    {"id": "e6", "tp": 1.5, "sl": 4.0, "h": 64},   # grands mouvements : les frais pesent moins en 5 / 15 / 30 min
+    {"id": "e7", "tp": 2.0, "sl": 4.0, "h": 96},
     # pas de sortie a gain < 0,5 ATR : sur des prix au hasard elle « reussit » deja ~87 % (faux taux, teste)
 ]
