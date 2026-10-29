@@ -75,12 +75,30 @@ def save_state(st):
     os.replace(p + ".tmp", p)
 
 
+STRAT_URL = os.environ.get("LAB_STRATEGIES_URL",
+                           "https://raw.githubusercontent.com/Taxi77777/institutional-strategy-lab/main/strategies.json")
+LAB_CACHE = {"ts": 0, "v": None}
+
+
 def load_strategies():
+    """Strategies du labo : version publiee sur GitHub (rechargee chaque heure), sinon le fichier local."""
+    if LAB_CACHE["v"] is not None and time.time() - LAB_CACHE["ts"] < 3600:
+        return LAB_CACHE["v"]
+    v = None
     try:
-        with open("strategies.json") as f:
-            return json.load(f)
+        r = data.SESSION.get(STRAT_URL, params={"t": int(time.time() // 3600)}, timeout=20)
+        if r.ok:
+            v = r.json()
     except Exception:
-        return {"classes": []}
+        v = None
+    if not isinstance(v, dict):
+        try:
+            with open("strategies.json") as f:
+                v = json.load(f)
+        except Exception:
+            v = {"classes": []}
+    LAB_CACHE.update(ts=time.time(), v=v)
+    return v
 
 
 # ------------------------------------------------------------------ donnees en direct
@@ -362,7 +380,6 @@ def main():
                 TG.send("✅ <b>Labo institutionnel connecté</b> : l'armée des 20 spécialistes enverra ses signaux ici.")
                 save_state(st)
             par = paris(now)
-            slot = par.strftime("%Y-%m-%d") + "-%d" % (par.hour // 6)
             if par.hour in (8, 14, 20) and par.minute < 30 and st["done"].get("brief") != "%s-%d" % (par.date(), par.hour):
                 st["done"]["brief"] = "%s-%d" % (par.date(), par.hour)
                 briefing(st, lab, now)
@@ -370,7 +387,7 @@ def main():
             q = int(now // 900)
             if q != done15 and now % 900 >= 40:
                 done15 = q
-                lab = load_strategies() if slot else lab
+                lab = load_strategies()
                 scan(st, lab, "15M", now)
                 if now % 3600 < 900:
                     scan(st, lab, "1H", now)
