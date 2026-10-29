@@ -57,4 +57,5 @@ EXITS = [
     {"id": "e3", "tp": 0.75, "sl": 2.0, "h": 24},
     {"id": "e4", "tp": 1.0, "sl": 1.0, "h": 12},
     {"id": "e5", "tp": 1.0, "sl": 2.5, "h": 32},
+    # pas de sortie a gain < 0,5 ATR : sur des prix au hasard elle « reussit » deja ~87 % (faux taux, teste)
 ]

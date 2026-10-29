@@ -329,7 +329,7 @@ def run_class(ds):
                 "robustesse": rob,
                 "mc": mc(ev["test_r"], CFG["SIMS"]),
             })
-    final.sort(key=lambda s: (-s["wilson_test"], -s["stats"]["test"]["avg"]))
+    final.sort(key=lambda s: (-s["stats"]["test"]["win"], -s["wilson_test"], -s["stats"]["test"]["avg"]))   # reussite d'abord
     per, kept = {}, []
     for st in final:                              # au plus 5 strategies par specialiste et par sens (pas de doublons)
         key = (st["agent"], st["dir"])

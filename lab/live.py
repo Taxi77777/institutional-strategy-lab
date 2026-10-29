@@ -210,7 +210,7 @@ def scan(st, lab, tf, now):
                 if key in st["alerts"]:
                     continue
                 st["alerts"][key] = time.time()
-                lead = max(strong.values(), key=lambda s: s["wilson_test"])
+                lead = max(strong.values(), key=lambda s: (s["stats"]["test"]["win"], s["wilson_test"]))
                 send_signal(st, kind, tf, sym, dr, fx, lead, agents, votes[-dr], lab)
                 sent += 1
     return sent
