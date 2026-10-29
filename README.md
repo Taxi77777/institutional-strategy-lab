@@ -49,12 +49,13 @@ Les institutions ont leurs algorithmes ; voici le tien, construit avec leur mét
 Yahoo Finance (bougies 15 min sur 60 jours, 1 h sur 2 ans), carnets d'ordres publics Coinbase et Bitstamp (crypto, en
 direct uniquement : aucun historique gratuit n'existe), S&P 500 et VIX pour le régime de marché.
 
-## Installation
+## Installation (déjà faite)
 
-1. Ajoute le secret **`TELEGRAM_BOT_TOKEN`** (le même que Bot Pro) dans *Settings → Secrets and variables → Actions*.
-   La conversation est déjà appairée (destination chiffrée avec le jeton).
-2. *Actions* → **Labo - recherche de strategies** → *Run workflow* (puis automatique chaque dimanche soir).
-3. *Actions* → **Armee - signaux en direct** → *Run workflow* (tourne ensuite 24 h/24).
+- **Recherche** : *Actions* → **Labo - recherche de strategies** (automatique chaque dimanche soir, ou *Run workflow*).
+  Publie `strategies.json` (l'algorithme) et `ideas.json` (la mémoire de l'Inventeur).
+- **Armée en direct** : tourne depuis le dépôt `crypto-signals-timesfm` (workflow *Armee des 20*), qui a déjà le jeton
+  Telegram ; elle recharge chaque heure les stratégies publiées ici. Le workflow `live.yml` de ce dépôt reste disponible à
+  la main si on y ajoute le secret `TELEGRAM_BOT_TOKEN`.
 
 Réglages (variables GitHub, facultatives) : `MIN_WIN` (0.80), `CONSENSUS` (3), `BEAM` (40), `TIMEFRAMES` (15M,1H).
 

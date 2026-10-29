@@ -101,8 +101,8 @@ def build(kind, tf, fetch=None, fetch_daily=None, symbols=None, macro=None, idea
     step = float(np.median(np.diff(np.unique(ts)))) if len(ts) > 1 else 900
     emb = max(e["h"] for e in EXITS) * step
     split = np.where(((ts > q1 - emb) & (ts <= q1)) | ((ts > q2 - emb) & (ts <= q2)), -1, split)
-    return {"kind": kind, "tf": tf, "X": X, "R": R, "ts": ts, "aid": aid, "split": split,
-            "symbols": list(raw), "cut": (float(q1), float(q2))}
+    return {"kind": kind, "tf": tf, "X": X, "R": R, "ts": ts, "aid": aid, "split": split, "step": step,
+            "symbols": list(raw), "cut": (float(q1), float(q2)), "_base": {}}
 
 
 # ------------------------------------------------------------------ conditions
@@ -251,7 +251,7 @@ def evaluate(ds, cand):
     ex = next(e for e in EXITS if e["id"] == cand["exit"])
     r, win, valid = ds["R"][(cand["exit"], cand["dir"])]
     m = full_mask(ds, cand["conds"]) & valid
-    step = float(np.median(np.diff(np.unique(ds["ts"])))) if len(ds["ts"]) > 1 else 900
+    step = ds["step"]
     out = {}
     for k, name in ((0, "apprentissage"), (1, "validation"), (2, "test")):
         mk = thin(m & (ds["split"] == k), ds["aid"], ds["ts"], ex["h"] * step)
@@ -259,8 +259,11 @@ def evaluate(ds, cand):
         out[name]["k"] = int((win & mk).sum())
         if name == "test":
             out["test_r"] = r[mk].tolist()
-        bm = thin(valid & (ds["split"] == k), ds["aid"], ds["ts"], ex["h"] * step)
-        out["base_" + name] = stats(r, win, bm)
+        bk = (cand["exit"], cand["dir"], k)
+        if bk not in ds["_base"]:                 # reference (toutes les bougies) calculee une seule fois
+            bm = thin(valid & (ds["split"] == k), ds["aid"], ds["ts"], ex["h"] * step)
+            ds["_base"][bk] = stats(r, win, bm)
+        out["base_" + name] = ds["_base"][bk]
     return out
 
 
@@ -269,7 +272,7 @@ def robustness(ds, cand):
        reussite sur chacune des deux moitiés chronologiques (stabilite)."""
     ex = next(e for e in EXITS if e["id"] == cand["exit"])
     r, win, valid = ds["R"][(cand["exit"], cand["dir"])]
-    step = float(np.median(np.diff(np.unique(ds["ts"])))) if len(ds["ts"]) > 1 else 900
+    step = ds["step"]
     m = thin(full_mask(ds, cand["conds"]) & valid & (ds["split"] >= 1), ds["aid"], ds["ts"], ex["h"] * step)
     pos = tot = 0
     for a in np.unique(ds["aid"][m]):
@@ -340,7 +343,7 @@ def army_test(ds, final):
        strategie validee active dans le meme sens au meme moment."""
     res = {}
     te = ds["split"] == 2
-    step = float(np.median(np.diff(np.unique(ds["ts"])))) if len(ds["ts"]) > 1 else 900
+    step = ds["step"]
     for dr in (1, -1):
         votes = {}
         for s in final:
