@@ -362,6 +362,34 @@ READ = {
 }
 
 
+SCOUT_URL = STRAT_URL.replace("strategies.json", "veille.json")
+
+
+def scout_digest(st, now):
+    """Resume quotidien de l'Eclaireur : nouveautes GitHub et arXiv qui interessent le labo."""
+    try:
+        v = data.SESSION.get(SCOUT_URL, params={"t": int(now // 3600)}, timeout=20).json()
+    except Exception:
+        return False
+    if not isinstance(v, dict) or not v.get("date") or st["done"].get("veille") == v["date"]:
+        return False
+    st["done"]["veille"] = v["date"]
+    items = v.get("trouvailles", [])
+    gh = [x for x in items if x["source"] == "GitHub"][:3]
+    ax = [x for x in items if x["source"] == "arXiv"][:3]
+    names = lambda ags: ", ".join(IND.AGENTS.get(a, a).split(" (")[0] for a in ags[:3])  # noqa: E731
+    L = ["🔭 <b>ÉCLAIREUR · veille du %s</b>" % TG.esc(v["date"]), SEP,
+         "Familles d'indicateurs à la mode : <b>%s</b>" % TG.esc(names(list(v.get("poids", {}))) or "-"),
+         "→ l'Inventeur teste plus d'idées dans ces familles."]
+    for x in gh:
+        L.append("⭐ %d · <a href=\"%s\">%s</a> : %s" % (x["etoiles"], TG.esc(x["url"]), TG.esc(x["titre"]), TG.esc(x["resume"][:110])))
+    for x in ax:
+        L.append("📄 <a href=\"%s\">%s</a>" % (TG.esc(x["url"]), TG.esc(x["titre"][:120])))
+    L.append("<i>Idées à tester par le labo, pas des signaux.</i>")
+    TG.send("\n".join(L))
+    return True
+
+
 def briefing(st, lab, now):
     L = ["🪖 <b>CONSEIL DES 20 SPÉCIALISTES</b> · %s" % paris(now).strftime("%d/%m %H:%M"), SEP]
     n_strat = sum(len(c["strategies"]) for c in lab["classes"])
@@ -439,6 +467,10 @@ def main():
                 briefing(st, lab, now)
                 save_state(st)
             q = int(now // 300)
+            if par.hour >= 9 and st["done"].get("veille_essai") != str(par.date()) and now % 300 < 60:
+                st["done"]["veille_essai"] = str(par.date())
+                if scout_digest(st, now):
+                    save_state(st)
             if q != done15 and now % 300 >= 40:          # controle toutes les 5 minutes
                 done15 = q
                 lab = load_strategies()

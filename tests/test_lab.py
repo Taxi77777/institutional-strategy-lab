@@ -191,3 +191,26 @@ def test_truefx_account_session(monkeypatch):
     monkeypatch.setattr(data.SESSION, "get", fake)
     assert data.poll_truefx() == 1 and data.TRUEFX["mode"] == "compte" and data.TRUEFX["paires"] == 1
     assert calls[-1]["id"].endswith("1793300000000") and "secret" not in str(data.TRUEFX["mode"])
+
+
+def test_scout_weights_inventor_and_digest(monkeypatch, tmp_path):
+    """Eclaireur : mots-cles -> specialistes, poids, Inventeur oriente, resume Telegram envoye une seule fois."""
+    from lab import scout, ideas
+    assert scout._agents("Smart money order block and VWAP momentum") == ["momentum", "smc", "vwap"]
+    w = scout.weights([{"agents": ["smc"]}, {"agents": ["smc", "momentum"]}, {"agents": []}])
+    assert w["smc"] > w["momentum"] > 1
+    feats = [("smc", "x%d" % i) for i in range(5)] + [("bandes", "y%d" % i) for i in range(50)]
+    sp = ideas.generate(feats, n=200, seed=3, weights={"smc": 3.0})
+    share = sum(1 for s in sp if s["a"][0] == "smc") / len(sp)
+    assert share > 5 / 55                                         # la famille a la mode est tiree plus souvent
+    sent = []
+    monkeypatch.setattr(TG, "send", lambda m: sent.append(m) or True)
+    v = {"date": "2026-10-30", "poids": {"smc": 3.0}, "trouvailles": [
+        {"source": "GitHub", "titre": "a/b", "url": "https://github.com/a/b", "etoiles": 500, "resume": "SMC tool", "agents": ["smc"]},
+        {"source": "arXiv", "titre": "Order flow paper", "url": "http://arxiv.org/abs/1", "etoiles": 0, "resume": "", "agents": ["volume"]}]}
+    class R:
+        def json(self): return v
+    monkeypatch.setattr(live.data.SESSION, "get", lambda *a, **k: R())
+    st = live.load_state()
+    assert live.scout_digest(st, 1793300000) and not live.scout_digest(st, 1793300000)
+    assert "ÉCLAIREUR" in sent[0] and "a/b" in sent[0] and "Order flow paper" in sent[0]

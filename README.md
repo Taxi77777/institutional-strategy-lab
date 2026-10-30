@@ -34,6 +34,7 @@ Les institutions ont leurs algorithmes ; voici le tien, construit avec leur mét
    (mutation, croisement), comme une sélection naturelle.
 8. **Multi-unités (23ᵉ agent)** : tendance 1 h, 4 h et journalière (bougies clôturées uniquement), que chaque spécialiste peut ajouter à ses conditions — l'entrée en 15 min dans le sens de la tendance supérieure, comme les desks institutionnels.
 10. **Sources publiques reconnues (24ᵉ à 27ᵉ agents)** : les 61 figures de chandeliers de TA-Lib, les facteurs Alpha158 de Microsoft Qlib, les « 101 Formulaic Alphas » de WorldQuant (version série temporelle) et les Smart Money Concepts (swings confirmés, BOS / CHoCH, order blocks, FVG, liquidité) — formules réécrites, sans regard vers le futur (testé).
+11. **L'Éclaireur (28ᵉ agent)** : chaque jour, veille sur GitHub (projets de trading récents et populaires) et arXiv (dernières publications de finance quantitative). Il ne télécharge ni n'exécute aucun code : il repère les familles d'indicateurs qui montent, oriente l'Inventeur vers elles (`veille.json`) et envoie un résumé sur Telegram.
 9. **Favoris TradingView (22ᵉ agent)** : WaveTrend (VuManChu Cipher B), Squeeze Momentum, UT Bot, Chandelier Exit, QQE,
    Range Filter, SSL Channel, Fisher Transform, Schaff Trend Cycle, Kalman, Fair Value Gaps, Nadaraya-Watson (version qui
    ne repeint pas) — réécrits à partir de leurs formules publiques (aucune copie de script).

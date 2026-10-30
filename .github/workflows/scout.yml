@@ -1,0 +1,39 @@
+name: Eclaireur - veille GitHub et arXiv
+
+# Chaque jour : nouveautes GitHub et publications arXiv -> veille.json (oriente l'Inventeur, resume Telegram).
+on:
+  schedule:
+    - cron: '23 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Veille
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PYTHONUNBUFFERED: '1'
+        run: python -m lab.scout
+      - name: Publication
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          for i in 1 2 3 4 5; do
+            cp veille.json /tmp/v.json
+            git fetch -q origin main && git reset -q --hard origin/main
+            cp /tmp/v.json veille.json
+            git add veille.json
+            git diff --cached --quiet && exit 0
+            git commit -qm "eclaireur : veille du jour [skip ci]"
+            git push -q origin HEAD:main && exit 0
+            sleep 5
+          done

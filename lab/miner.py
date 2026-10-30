@@ -92,7 +92,8 @@ def build(kind, tf, fetch=None, fetch_daily=None, symbols=None, macro=None, idea
         if idea_specs is not None:                  # l'Inventeur : ses idees deviennent des indicateurs testes
             if not idea_specs:
                 idea_specs.extend(IDEAS.generate([(ag, nm) for ag, d in F.items() for nm in d],
-                                                 seed=int(os.environ.get("IDEA_SEED", time.time() // 3600)), memory=IDEAS.load_memory()))
+                                                 seed=int(os.environ.get("IDEA_SEED", time.time() // 3600)), memory=IDEAS.load_memory(),
+                                                 weights=IDEAS.load_scout()))
             for sp in idea_specs:
                 x = IDEAS.apply_spec(F, sp)
                 if x is not None:

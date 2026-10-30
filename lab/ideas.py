@@ -62,10 +62,21 @@ def load_memory():
         return {}
 
 
-def generate(feature_names, n=150, seed=0, memory=None):
-    """Idees de la semaine : les gagnantes passees, leurs mutations / croisements, puis des idees nouvelles."""
+def load_scout(path="veille.json"):
+    """Poids par specialiste publies par l'Eclaireur (veille GitHub / arXiv) ; vide si absent."""
+    try:
+        with open(path) as f:
+            return json.load(f).get("poids", {}) or {}
+    except Exception:
+        return {}
+
+
+def generate(feature_names, n=150, seed=0, memory=None, weights=None):
+    """Idees de la semaine : les gagnantes passees, leurs mutations / croisements, puis des idees nouvelles,
+       tirees plus souvent dans les familles que l'Eclaireur voit monter (weights)."""
     rng = random.Random(seed)
     feats = [tuple(f) for f in feature_names if f[0] not in ("temps",)]
+    w = [float((weights or {}).get(f[0], 1.0)) for f in feats]
     mem = sorted((memory or {}).get("gagnantes", []), key=lambda x: -x.get("score", 0))[:40]
     specs = []
     for g in mem:
@@ -76,7 +87,7 @@ def generate(feature_names, n=150, seed=0, memory=None):
         if feats:
             specs.append(dict(sp, b=list(rng.choice(feats)), op=rng.choice(OPS)))
     while len(specs) < n and feats:
-        a, b = rng.sample(feats, 2) if len(feats) > 1 else (feats[0], feats[0])
+        a, b = rng.choices(feats, weights=w, k=2) if len(feats) > 1 else (feats[0], feats[0])
         specs.append({"op": rng.choice(OPS), "a": list(a), "b": list(b), "k": rng.choice((1, 2, 3, 5, 8))})
     uniq = {}
     for sp in specs:
