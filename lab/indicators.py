@@ -4,6 +4,7 @@ import datetime
 from zoneinfo import ZoneInfo
 
 import numpy as np
+from lab import extra as EX
 from numpy.lib.stride_tricks import sliding_window_view as swv
 
 NY = ZoneInfo("America/New_York")
@@ -18,6 +19,10 @@ AGENTS = {
     "inventeur": "Inventeur (idées auto-générées)",
     "tradingview": "Favoris TradingView (WaveTrend, Squeeze, UT Bot, QQE…)",
     "multi_unites": "Multi-unités (tendance 1 h, 4 h, jour)",
+    "chandeliers": "Chandeliers TA-Lib (61 figures)",
+    "alpha158": "Alpha158 (Microsoft Qlib)",
+    "wq101": "101 Alphas (WorldQuant)",
+    "smc": "Smart Money Concepts (BOS, CHoCH, order blocks, FVG)",
 }
 HTF = ((3600, "1h"), (14400, "4h"), (86400, "jour"))
 NAN = np.nan
@@ -590,6 +595,9 @@ def compute(arr, kind, refs=None, macro=None):
 
     # 23 multi-unites : la tendance des unites superieures (1 h, 4 h, jour), comme les desks institutionnels
     F["multi_unites"] = higher_tf(ts, o, h, l, c)
+
+    # 24-27 sources publiques reconnues : chandeliers TA-Lib, Alpha158 (Qlib), 101 Alphas (WorldQuant), SMC
+    F.update(EX.compute_extra(o, h, l, c, v, atr14))
 
     # 20 carnet d'ordres : uniquement en direct (pas d'historique gratuit) -> vote de confirmation dans council.py
     return F, atr14
