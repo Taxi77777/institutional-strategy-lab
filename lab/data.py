@@ -233,18 +233,26 @@ def _truefx_session():
     try:
         r = SESSION.get(TFX_URL, params={"u": u, "p": p, "q": "ozrates", "c": pairs, "f": "csv"}, timeout=10)
         sid = r.text.strip()
-        if r.status_code == 200 and sid and ":" in sid and "\n" not in sid and "," not in sid:
-            return sid
-    except Exception:
-        pass
-    TRUEFX["mode"] = "erreur de connexion au compte (identifiant ou mot de passe ?)"
+        ok = r.status_code == 200 and sid and "," not in sid and "\n" not in sid and "<" not in sid and len(sid) < 200
+        if ok:
+            t = SESSION.get(TFX_URL, params={"id": sid, "f": "csv", "s": "y"}, timeout=10)
+            if t.status_code == 200 and "," in t.text:
+                return sid
+        # diagnostic sans aucun secret : code HTTP, taille et forme de la reponse
+        low = sid.lower()
+        hint = next((w for w in ("not authorized", "invalid", "error", "denied", "expired") if w in low), "")
+        TRUEFX["mode"] = "erreur compte : HTTP %d, reponse %d caracteres%s%s" % (
+            r.status_code, len(sid), ", %d ':'" % sid.count(":") if sid else "", (", mot-cle : " + hint) if hint else "")
+    except Exception as ex:
+        TRUEFX["mode"] = "erreur compte : %s" % type(ex).__name__
     return None
 
 
 def poll_truefx():
     """Prix interbancaires en temps reel TrueFX -> bougies 1 min (bid) par paire. Avec le compte si les secrets
        sont presents (plus de paires), sinon le flux public (10 paires)."""
-    if TRUEFX["session"] is None and TRUEFX["mode"] == "public" and os.environ.get("TRUEFX_USER"):
+    if TRUEFX["session"] is None and not TRUEFX.get("tente") and os.environ.get("TRUEFX_USER"):
+        TRUEFX["tente"] = True
         TRUEFX["session"] = _truefx_session()
         if TRUEFX["session"]:
             TRUEFX["mode"] = "compte"

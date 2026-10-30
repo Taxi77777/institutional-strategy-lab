@@ -179,7 +179,7 @@ def test_truefx_account_session(monkeypatch):
     now = _t.time()
     monkeypatch.setenv("TRUEFX_USER", "moi")
     monkeypatch.setenv("TRUEFX_PASS", "secret")
-    data.TRUEFX.update(start=None, min={}, session=None, mode="public", paires=0)
+    data.TRUEFX.update(start=None, min={}, session=None, mode="public", paires=0, tente=False)
     calls = []
     class R:
         def __init__(self, text): self.status_code, self.text = 200, text
