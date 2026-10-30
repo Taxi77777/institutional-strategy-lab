@@ -98,6 +98,7 @@ def test_elite_setup_signals_alone(monkeypatch):
         assert live.scan(st, lab, "1H", fx["ts"] + 3600 + 60) == expect
         assert len(sent) - n0 == expect
     assert "Setup élite" in sent[-1] and "VENDRE" in sent[-1]
+    assert live.scan(st, lab, "1H", fx["ts"] + 7200 + 60) == 0       # deja un trade ouvert sur EURUSD : pas de doublon
 
 
 def test_pairing_roundtrip(monkeypatch):

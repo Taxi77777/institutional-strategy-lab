@@ -232,6 +232,8 @@ def scan(st, lab, tf, now):
                 elite = [s for s in strong.values() if is_elite(s)]
                 if not army_ok and not elite:
                     continue                        # ni vote de l'armee prouve, ni setup elite
+                if any(o["sym"] == sym for o in st["open"]):
+                    continue                        # un seul trade a la fois par paire : pas d'empilement du meme risque
                 key = "%s|%s|%d|%d" % (sym, tf, dr, int(fx["ts"]))
                 if key in st["alerts"]:
                     continue
