@@ -442,6 +442,7 @@ def main():
                 lab = load_strategies()
                 for tf_ in CFG["TIMEFRAMES"]:            # 15 minutes (demande du trader)
                     scan(st, lab, tf_, now)
+                st.setdefault("diag", {})["truefx"] = {"mode": data.TRUEFX["mode"], "paires_temps_reel": data.TRUEFX["paires"]}
                 save_state(st)
             if st["open"] and int(now // 300) != done_trk and now % 300 >= 50:
                 done_trk = int(now // 300)

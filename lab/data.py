@@ -218,14 +218,42 @@ def dukascopy_live(sym, step, days, recent=None):
     return a
 
 
-TRUEFX = {"start": None, "min": {}}
+TRUEFX = {"start": None, "min": {}, "session": None, "mode": "public", "paires": 0}
+TFX_URL = "https://webrates.truefx.com/rates/connect.html"
+
+
+def _truefx_session():
+    """Compte TrueFX (secrets TRUEFX_USER / TRUEFX_PASS) : plus de paires. Jamais affiche ni enregistre."""
+    u, p = os.environ.get("TRUEFX_USER", ""), os.environ.get("TRUEFX_PASS", "")
+    if not u or not p:
+        return None
+    pairs = ",".join(s[:3] + "/" + s[3:] for s in os.environ.get("FX", "EURUSD,GBPUSD,USDJPY,USDCHF,USDCAD,AUDUSD,"
+                     "NZDUSD,EURJPY,GBPJPY,EURGBP,AUDJPY,EURCHF,GBPCHF,CADJPY,CHFJPY,EURAUD,EURCAD,GBPAUD,AUDNZD").split(",")
+                     if not s.startswith(("XAU", "XAG")))
+    try:
+        r = SESSION.get(TFX_URL, params={"u": u, "p": p, "q": "ozrates", "c": pairs, "f": "csv"}, timeout=10)
+        sid = r.text.strip()
+        if r.status_code == 200 and sid and ":" in sid and "\n" not in sid and "," not in sid:
+            return sid
+    except Exception:
+        pass
+    TRUEFX["mode"] = "erreur de connexion au compte (identifiant ou mot de passe ?)"
+    return None
 
 
 def poll_truefx():
-    """Prix interbancaires en temps reel TrueFX (public, sans connexion) -> bougies 1 min (bid) par paire."""
+    """Prix interbancaires en temps reel TrueFX -> bougies 1 min (bid) par paire. Avec le compte si les secrets
+       sont presents (plus de paires), sinon le flux public (10 paires)."""
+    if TRUEFX["session"] is None and TRUEFX["mode"] == "public" and os.environ.get("TRUEFX_USER"):
+        TRUEFX["session"] = _truefx_session()
+        if TRUEFX["session"]:
+            TRUEFX["mode"] = "compte"
+    params = {"id": TRUEFX["session"], "f": "csv", "s": "y"} if TRUEFX["session"] else {"f": "csv"}
     try:
-        r = SESSION.get("https://webrates.truefx.com/rates/connect.html", params={"f": "csv"}, timeout=8)
-        if r.status_code != 200:
+        r = SESSION.get(TFX_URL, params=params, timeout=8)
+        if r.status_code != 200 or ("," not in r.text and TRUEFX["session"]):
+            TRUEFX["session"] = None                       # session expiree : reconnexion au prochain tour
+            TRUEFX["mode"] = "public"
             return 0
     except Exception:
         return 0
@@ -248,6 +276,7 @@ def poll_truefx():
         for k in [k for k in d if k < now - 3 * 3600]:
             del d[k]
         n += 1
+    TRUEFX["paires"] = max(TRUEFX["paires"], n) if n else TRUEFX["paires"]
     return n
 
 

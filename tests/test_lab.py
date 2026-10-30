@@ -170,3 +170,24 @@ def test_truefx_realtime_minutes(monkeypatch):
     m = data.truefx_minutes("EURUSD", 900)
     assert m and m[-1][4] == 1.08512 and m[-1][5] == 0.0
     assert data.truefx_minutes("GBPUSD", 900) == []
+
+
+def test_truefx_account_session(monkeypatch):
+    """Compte TrueFX : connexion avec les secrets, puis lecture par session ; le mot de passe n'est jamais stocke."""
+    from lab import data
+    import time as _t
+    now = _t.time()
+    monkeypatch.setenv("TRUEFX_USER", "moi")
+    monkeypatch.setenv("TRUEFX_PASS", "secret")
+    data.TRUEFX.update(start=None, min={}, session=None, mode="public", paires=0)
+    calls = []
+    class R:
+        def __init__(self, text): self.status_code, self.text = 200, text
+    def fake(url, params=None, timeout=None):
+        calls.append(dict(params))
+        if "u" in params:
+            return R("moi:secret:ozrates:1793300000000")
+        return R("EUR/AUD,%d,1.59,236,1.59,240,1,1,1\n" % (now * 1000))
+    monkeypatch.setattr(data.SESSION, "get", fake)
+    assert data.poll_truefx() == 1 and data.TRUEFX["mode"] == "compte" and data.TRUEFX["paires"] == 1
+    assert calls[-1]["id"].endswith("1793300000000") and "secret" not in str(data.TRUEFX["mode"])
