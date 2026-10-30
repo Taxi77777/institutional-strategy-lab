@@ -1,0 +1,35 @@
+name: Labo - verification sur donnees courtier
+
+on:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Verification
+        env:
+          PYTHONUNBUFFERED: '1'
+        run: python -m lab.validate
+      - name: Publication
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          for i in 1 2 3 4 5; do
+            cp validation.json /tmp/v.json
+            git fetch -q origin main && git reset -q --hard origin/main
+            cp /tmp/v.json validation.json
+            git add validation.json
+            git diff --cached --quiet && exit 0
+            git commit -qm "labo : verification sur donnees courtier [skip ci]"
+            git push -q origin HEAD:main && exit 0
+            sleep 5
+          done
