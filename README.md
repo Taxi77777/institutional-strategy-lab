@@ -53,7 +53,7 @@ Les institutions ont leurs algorithmes ; voici le tien, construit avec leur mét
 
 ## Données (gratuites, sans inscription)
 
-Recherche : **Dukascopy** (forex et métaux, bougies 1 min regroupées en 5 min, 15 min et 30 min), **Coinbase** (crypto, 8 mois en
+Recherche **et signaux en direct** : **Dukascopy** pour tout le forex et les métaux (bougies 1 min regroupées en 5 min, 15 min, 30 min et 1 h, 3 ans en 1 h, avec le volume ; vérifié : Yahoo produisait de faux setups forex), **Coinbase** (crypto, 8 mois en
 15 min, 3 ans en 1 h), Yahoo Finance (forex 1 h sur 2 ans, et en direct). En 5, 15 et 30 min, une stratégie doit réussir sur au moins
 **200 trades jamais vus**. Carnets d'ordres publics Coinbase et Bitstamp (crypto, en
 direct uniquement : aucun historique gratuit n'existe), S&P 500 et VIX pour le régime de marché.

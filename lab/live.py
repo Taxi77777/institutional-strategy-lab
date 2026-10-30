@@ -128,11 +128,9 @@ def fetch_live(sym, kind, tf, full):
             return data.coinbase(sym, STEP[tf], days)
         except Exception as ex:
             log.warning("Coinbase %s %s : %s (Yahoo en secours)", sym, tf, ex)
-    a = data.bars(sym, kind, tf) if full else data.bars(sym, kind, tf, rng="1mo" if tf == "1H" else "5d")
-    if kind == "fx" and tf in data.FX_DAYS:
-        a = np.array(a, dtype=float)
-        a[:, 5] = 0.0
-    return a
+    if kind == "fx":                                # forex : uniquement Dukascopy (Yahoo donnait de faux setups)
+        return data.dukascopy_live(sym, STEP[tf], int(KEEP[tf] * STEP[tf] / 86400 * 7 / 5) + 4)
+    return data.bars(sym, kind, tf) if full else data.bars(sym, kind, tf, rng="1mo" if tf == "1H" else "5d")
 
 
 MACRO = {"ts": 0, "v": {}}
@@ -145,11 +143,17 @@ def macro():
     return MACRO["v"]
 
 
+FEAT = {}
+
+
 def features(sym, kind, tf, now, specs=None):
     a = hist(sym, kind, tf)
     a = a[a[:, 0] + STEP[tf] <= now]                # bougies cloturees uniquement
     if len(a) < 300:
         return None
+    key = (sym, kind, tf, len(specs or {}))
+    if key in FEAT and FEAT[key]["ts"] == float(a[-1, 0]):
+        return FEAT[key]                            # pas de nouvelle bougie : rien a recalculer
     refs = None
     if sym != BENCH[kind]:
         try:
@@ -174,7 +178,8 @@ def features(sym, kind, tf, now, specs=None):
         if x is not None:
             F["inventeur"][nm] = x
     last = {(ag, nm): float(x[-1]) for ag, d in F.items() for nm, x in d.items()}
-    return {"a": a, "last": last, "atr": float(atr[-1]), "ts": float(a[-1, 0]), "close": float(a[-1, 4])}
+    FEAT[key] = {"a": a, "last": last, "atr": float(atr[-1]), "ts": float(a[-1, 0]), "close": float(a[-1, 4])}
+    return FEAT[key]
 
 
 def active(strat, last):
@@ -223,7 +228,8 @@ def scan(st, lab, tf, now):
                 continue
             finally:
                 time.sleep(CFG["PAUSE"])
-            if not fx or now - fx["ts"] - STEP[tf] > 600:
+            late = 2400 if kind == "fx" else 600          # Dukascopy publie chaque heure avec un leger retard
+            if not fx or now - fx["ts"] - STEP[tf] > late:
                 continue                            # bougie trop ancienne : jamais de signal en retard
             votes = council_votes(lab, kind, tf, sym, fx, set(st["retired"]))
             if kind == "cr":
@@ -268,7 +274,7 @@ def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab, elite=Fal
                                 "" if dr > 0 else "  <i>(tu gagnes si le prix baisse)</i>"),
          ("⭐ <b>Setup élite</b> (prouvé seul à plus de 90 %%) · bougies %s" % tf.lower() if elite else
           "🪖 Armée : <b>%d spécialistes d'accord</b> · bougies %s" % (len(agents), tf.lower())), SEP,
-         "💵 Entrée au prix du marché : <code>%s</code>  · à faire avant %s" % (fmt(px), paris(fx["ts"] + STEP[tf] + 600).strftime("%H:%M")),
+         "💵 Entrée au prix du marché : <code>%s</code>  · à faire avant %s" % (fmt(px), paris(max(fx["ts"] + STEP[tf] + 600, time.time() + 600)).strftime("%H:%M")),
          "🛑 Sortie de sécurité : <code>%s</code>  (%+.2f %%)" % (fmt(sl), -dr * 100 * ex["sl"] * atr / px),
          "🎯 Prendre le gain : <code>%s</code>  (%+.2f %%)" % (fmt(tp), dr * 100 * ex["tp"] * atr / px),
          "⏰ Fermer de toute façon à %s (Paris)" % paris(t_exit).strftime("%H:%M"),
@@ -434,12 +440,8 @@ def main():
                 done15 = q
                 lab = load_strategies()
                 scan(st, lab, "5M", now)                  # (une unite sans strategie validee est sautee aussitot)
-                if now % 900 < 300:
-                    scan(st, lab, "15M", now)
-                if now % 1800 < 300:
-                    scan(st, lab, "30M", now)
-                if now % 3600 < 300:
-                    scan(st, lab, "1H", now)
+                for tf_ in ("15M", "30M", "1H"):         # a chaque controle : une bougie arrivee en retard
+                    scan(st, lab, tf_, now)               # est vue des sa publication (sans doublon)
                 save_state(st)
             if st["open"] and int(now // 300) != done_trk and now % 300 >= 50:
                 done_trk = int(now // 300)

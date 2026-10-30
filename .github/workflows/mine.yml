@@ -32,11 +32,18 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -r requirements.txt
+      - uses: actions/cache@v4
+        if: matrix.kind == 'fx'
+        with:
+          path: .duka_cache
+          key: duka-${{ matrix.tf }}-${{ github.run_id }}
+          restore-keys: duka-${{ matrix.tf }}-
       - name: Recherche ${{ matrix.kind }} ${{ matrix.tf }}
         env:
           MIN_WIN: ${{ vars.MIN_WIN }}
           CONSENSUS: ${{ vars.CONSENSUS }}
           BEAM: ${{ vars.BEAM }}
+          DUKA_CACHE: .duka_cache
           PYTHONUNBUFFERED: '1'
         run: python -m lab.miner part ${{ matrix.kind }} ${{ matrix.tf }}
       - uses: actions/upload-artifact@v4

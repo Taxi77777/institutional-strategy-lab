@@ -137,3 +137,19 @@ def test_merge_parallel_parts(tmp_path, monkeypatch):
     assert [(c["kind"], c["tf"]) for c in out["classes"]] == [("fx", "15M"), ("fx", "5M"), ("fx", "1H"), ("cr", "1H")]
     assert out["classes"][0]["strategies"] == [{"conds": []}] * 2 and out["total"]["strategies"] == 7
     assert json.load(open(tmp_path / "ideas.json"))["gagnantes"][0]["score"] == pytest.approx(0.82)
+
+
+def test_dukascopy_live_ticks(monkeypatch):
+    """Direct forex Dukascopy : ticks horaires decodes en bougies, jours termines + heures du jour assembles."""
+    import lzma, struct, datetime as dt
+    from lab import data
+    recs = b"".join(struct.pack(">3i2f", ms, 108510, 108500 + (ms // 60000), 1.0, 2.0) for ms in range(0, 3600000, 30000))
+    blob = lzma.compress(recs, format=lzma.FORMAT_ALONE)
+    monkeypatch.setattr(data, "_duka_get", lambda sym, day, fname, cache: blob if fname.endswith("ticks.bi5") else None)
+    h = data._duka_hour("EURUSD", dt.datetime(2026, 10, 29, 10, tzinfo=dt.timezone.utc))
+    assert len(h) == 60 and h[0][1] == pytest.approx(1.085) and h[-1][4] == pytest.approx(1.08559) and h[0][5] == 4.0
+    data.LIVE_CACHE.clear()
+    day_rows = [(1.7e9 + k * 60, 1.1, 1.1, 1.1, 1.1, 1.0) for k in range(1440)]
+    monkeypatch.setattr(data, "_duka_day", lambda sym, d: [(r[0] + (d.toordinal() - 739000) * 86400,) + r[1:] for r in day_rows])
+    a = data.dukascopy_live("EURUSD", 3600, 5)
+    assert a.shape[1] == 6 and len(a) >= 24 * 3 and np.all(np.diff(a[:, 0]) > 0)

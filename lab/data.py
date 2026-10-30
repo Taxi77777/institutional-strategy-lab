@@ -18,7 +18,7 @@ SESSION.headers.update({"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) strategy-
 HOSTS = ("https://query2.finance.yahoo.com", "https://query1.finance.yahoo.com")
 TF = {"5M": ("5m", "60d", 300), "15M": ("15m", "60d", 900), "30M": ("30m", "60d", 1800), "1H": ("60m", "730d", 3600)}
 # historique long de la recherche (jours) : meme nombre de bougies environ pour chaque unite de temps
-FX_DAYS = {"5M": ("FX_DAYS_5M", 90), "15M": ("FX_DAYS", 270), "30M": ("FX_DAYS_30M", 540)}
+FX_DAYS = {"5M": ("FX_DAYS_5M", 90), "15M": ("FX_DAYS", 270), "30M": ("FX_DAYS_30M", 540), "1H": ("FX_DAYS_1H", 1095)}
 CR_DAYS = {"5M": ("CR_DAYS_5M", 80), "15M": ("CR_DAYS_15M", 240), "30M": ("CR_DAYS_30M", 480), "1H": ("CR_DAYS_1H", 1095)}
 
 
@@ -93,14 +93,38 @@ def _resample(rows, step):
 DUKA_POINT = {"JPY": 1e-3, "XAU": 1e-3, "XAG": 1e-3}
 
 
-def _duka_day(sym, day):
-    url = "https://datafeed.dukascopy.com/datafeed/%s/%04d/%02d/%02d/BID_candles_min_1.bi5" % (
-        sym, day.year, day.month - 1, day.day)
+DUKA_URL = "https://datafeed.dukascopy.com/datafeed/%s/%04d/%02d/%02d/%s"
+
+
+def _duka_get(sym, day, fname, cache):
+    """Telecharge un fichier Dukascopy ; les jours termines sont gardes sur disque (DUKA_CACHE) pour ne pas
+       les retelecharger a chaque recherche."""
+    root = os.environ.get("DUKA_CACHE", "")
+    path = os.path.join(root, sym, "%s_%s" % (day.isoformat(), fname)) if root and cache else None
+    if path and os.path.exists(path):
+        with open(path, "rb") as f:
+            return f.read() or None
     try:
-        r = SESSION.get(url, timeout=20)
-        if r.status_code != 200 or not r.content:
-            return None
-        raw = lzma.decompress(r.content, format=lzma.FORMAT_ALONE)
+        r = SESSION.get(DUKA_URL % (sym, day.year, day.month - 1, day.day, fname), timeout=20)
+    except Exception:
+        return None
+    if r.status_code not in (200, 404):
+        return None
+    content = r.content if r.status_code == 200 else b""
+    if path:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "wb") as f:
+            f.write(content)
+    return content or None
+
+
+def _duka_day(sym, day):
+    old = day < datetime.datetime.now(datetime.timezone.utc).date() - datetime.timedelta(days=2)
+    content = _duka_get(sym, day, "BID_candles_min_1.bi5", cache=old)
+    if not content:
+        return None
+    try:
+        raw = lzma.decompress(content, format=lzma.FORMAT_ALONE)
     except Exception:
         return None
     pt = DUKA_POINT.get(sym[3:], DUKA_POINT.get(sym[:3], 1e-5))
@@ -118,15 +142,74 @@ def dukascopy(sym, step, days):
     dates = [today - datetime.timedelta(days=i) for i in range(1, days + 1)]
     dates = [d for d in dates if d.weekday() != 5]               # samedi : marche ferme
     rows = []
-    with cf.ThreadPoolExecutor(8) as ex:
+    with cf.ThreadPoolExecutor(12) as ex:
         for res in ex.map(lambda d: _duka_day(sym, d), dates):
             if res:
                 rows.extend(res)
     if len(rows) < 1000:
         raise RuntimeError("Dukascopy %s : historique indisponible" % sym)
-    a = _resample(np.array(rows, dtype=float), step)
-    a[:, 5] = 0.0                   # meme vue que le direct (Yahoo : pas de volume forex) -> aucun ecart recherche / direct
-    return a
+    return _resample(np.array(rows, dtype=float), step)      # volume Dukascopy conserve (le direct lit la meme source)
+
+
+def _duka_hour(sym, hour_dt):
+    """Ticks d'une heure terminee (publies par Dukascopy apres la fin de l'heure) -> bougies 1 min (bid, volume bid)."""
+    content = _duka_get(sym, hour_dt.date(), "%02dh_ticks.bi5" % hour_dt.hour, cache=False)
+    if not content:
+        return None
+    try:
+        raw = lzma.decompress(content, format=lzma.FORMAT_ALONE)
+    except Exception:
+        return None
+    pt = DUKA_POINT.get(sym[3:], DUKA_POINT.get(sym[:3], 1e-5))
+    t0 = int(hour_dt.timestamp())
+    mins = {}
+    for off in range(0, len(raw) - 19, 20):
+        ms, _ask, bid, _av, bv = struct.unpack(">3i2f", raw[off:off + 20])
+        t = t0 + (ms // 60000) * 60
+        p = bid * pt
+        m = mins.get(t)
+        mins[t] = [p, p, p, p, bv] if m is None else [m[0], max(m[1], p), min(m[2], p), p, m[4] + bv]
+    return [(t, *v) for t, v in sorted(mins.items())]
+
+
+LIVE_CACHE = {}
+
+
+def dukascopy_live(sym, step, days):
+    """Direct forex sur les memes prix que la recherche : jours termines (bougies 1 min) + heures terminees du jour
+       (ticks). Tout est garde en memoire : seuls les nouveaux fichiers sont telecharges."""
+    now = datetime.datetime.now(datetime.timezone.utc)
+    today = now.date()
+    need = []
+    for i in range(days, 0, -1):
+        d = today - datetime.timedelta(days=i)
+        if d.weekday() != 5 and (sym, d) not in LIVE_CACHE:
+            need.append(d)
+    with cf.ThreadPoolExecutor(8) as ex:
+        for d, res in zip(need, ex.map(lambda d: _duka_day(sym, d), need)):
+            if res:
+                LIVE_CACHE[(sym, d)] = res
+            elif d >= today - datetime.timedelta(days=2):            # fichier du jour pas encore publie : par heures
+                hrs = []
+                for hh in range(24):
+                    r = _duka_hour(sym, datetime.datetime(d.year, d.month, d.day, hh, tzinfo=datetime.timezone.utc))
+                    hrs += r or []
+                if hrs:
+                    LIVE_CACHE[(sym, d, "h")] = hrs
+    rows = []
+    for i in range(days, 0, -1):
+        d = today - datetime.timedelta(days=i)
+        rows += LIVE_CACHE.get((sym, d)) or LIVE_CACHE.get((sym, d, "h")) or []
+    for hh in range(now.hour):                                       # heures terminees d'aujourd'hui
+        key = (sym, today, hh)
+        if key not in LIVE_CACHE:
+            r = _duka_hour(sym, datetime.datetime(today.year, today.month, today.day, hh, tzinfo=datetime.timezone.utc))
+            if r:
+                LIVE_CACHE[key] = r
+        rows += LIVE_CACHE.get(key) or []
+    if len(rows) < 1000:
+        raise RuntimeError("Dukascopy direct %s : pas assez de donnees" % sym)
+    return _resample(np.array(rows, dtype=float), step)
 
 
 def coinbase(sym, step, days):
