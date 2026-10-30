@@ -443,7 +443,7 @@ def merge(parts_dir="parts", old_path="strategies.json"):
     except Exception:
         old = {"classes": []}
     classes = {"%s-%s" % (c["kind"], c["tf"]): c for c in old.get("classes", [])   # classe en echec : on garde l'ancienne
-               if UNIVERSE.get(c["kind"]) and c["tf"] in data.TF}                     # (sauf marches retires : actions)
+               if UNIVERSE.get(c["kind"]) and c["tf"] in CFG["TIMEFRAMES"]}           # (sauf marches / unites retires)
     out = {"genere": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"), "regle": None, "idees": {}}
     mem, tested = {}, 0
     for p in parts:

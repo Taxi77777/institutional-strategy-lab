@@ -18,14 +18,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
+        include:                     # 15 minutes uniquement (demande du trader)
           - {kind: fx, tf: 15M}
-          - {kind: fx, tf: 5M}
-          - {kind: fx, tf: 30M}
-          - {kind: fx, tf: 1H}
           - {kind: cr, tf: 15M}
-          - {kind: cr, tf: 30M}
-          - {kind: cr, tf: 1H}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -42,7 +37,7 @@ jobs:
         env:
           MIN_WIN: ${{ vars.MIN_WIN }}
           CONSENSUS: ${{ vars.CONSENSUS }}
-          BEAM: ${{ vars.BEAM }}
+          BEAM: ${{ vars.BEAM || '60' }}
           DUKA_CACHE: .duka_cache
           PYTHONUNBUFFERED: '1'
         run: python -m lab.miner part ${{ matrix.kind }} ${{ matrix.tf }}

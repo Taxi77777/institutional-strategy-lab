@@ -129,7 +129,8 @@ def fetch_live(sym, kind, tf, full):
         except Exception as ex:
             log.warning("Coinbase %s %s : %s (Yahoo en secours)", sym, tf, ex)
     if kind == "fx":                                # forex : uniquement Dukascopy (Yahoo donnait de faux setups)
-        return data.dukascopy_live(sym, STEP[tf], int(KEEP[tf] * STEP[tf] / 86400 * 7 / 5) + 4)
+        return data.dukascopy_live(sym, STEP[tf], int(KEEP[tf] * STEP[tf] / 86400 * 7 / 5) + 4,
+                                   recent=data.truefx_minutes(sym, STEP[tf]))
     return data.bars(sym, kind, tf) if full else data.bars(sym, kind, tf, rng="1mo" if tf == "1H" else "5d")
 
 
@@ -228,7 +229,7 @@ def scan(st, lab, tf, now):
                 continue
             finally:
                 time.sleep(CFG["PAUSE"])
-            late = 2400 if kind == "fx" else 600          # Dukascopy publie chaque heure avec un leger retard
+            late = 600
             if not fx or now - fx["ts"] - STEP[tf] > late:
                 continue                            # bougie trop ancienne : jamais de signal en retard
             votes = council_votes(lab, kind, tf, sym, fx, set(st["retired"]))
@@ -368,7 +369,7 @@ def briefing(st, lab, now):
         L.append("🧪 Labo : <b>aucune stratégie n'atteint encore %.0f %%</b> avec un gain positif → l'armée reste silencieuse (voulu)" % (100 * CFG["MIN_WIN"]))
     for kind, sym in MAJORS:
         try:
-            fx = features(sym, kind, "1H", now)
+            fx = features(sym, kind, CFG["TIMEFRAMES"][0], now)
         except Exception:
             fx = None
         if not fx:
@@ -439,9 +440,8 @@ def main():
             if q != done15 and now % 300 >= 40:          # controle toutes les 5 minutes
                 done15 = q
                 lab = load_strategies()
-                scan(st, lab, "5M", now)                  # (une unite sans strategie validee est sautee aussitot)
-                for tf_ in ("15M", "30M", "1H"):         # a chaque controle : une bougie arrivee en retard
-                    scan(st, lab, tf_, now)               # est vue des sa publication (sans doublon)
+                for tf_ in CFG["TIMEFRAMES"]:            # 15 minutes (demande du trader)
+                    scan(st, lab, tf_, now)
                 save_state(st)
             if st["open"] and int(now // 300) != done_trk and now % 300 >= 50:
                 done_trk = int(now // 300)
@@ -449,6 +449,7 @@ def main():
                 save_state(st)
         except Exception as ex:
             log.warning("boucle : %s", ex)
+        data.poll_truefx()                          # prix temps reel forex toutes les ~5 s
         time.sleep(5)
     if not STOP[0]:
         with open(os.path.join(CFG["STATE_DIR"], "relance"), "w") as f:

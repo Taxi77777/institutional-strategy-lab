@@ -45,7 +45,7 @@ Les institutions ont leurs algorithmes ; voici le tien, construit avec leur mét
 
 - 🪖 **Conseil des 20** à 8 h, 14 h et 20 h (Paris) : pour BTC, ETH, SOL, EURUSD, GBPUSD, USDJPY, or et argent,
   combien de spécialistes sont haussiers ou baissiers, et qui n'est pas d'accord.
-- 🟢🔴 **Signal** (contrôle toutes les 5 minutes ; forex 15 min en priorité, puis 5 min, 30 min et 1 h) : catégorie, ACHETER / VENDRE, entrée au prix du marché, sortie de sécurité,
+- 🟢🔴 **Signal** (contrôle toutes les 5 minutes, **bougies 15 minutes uniquement** ; forex : historique Dukascopy + prix interbancaires temps réel TrueFX) : catégorie, ACHETER / VENDRE, entrée au prix du marché, sortie de sécurité,
   prise de gain et heure de fermeture **en prix et en %** (valable chez n'importe quel courtier), spécialistes d'accord et
   pas d'accord, taux de réussite prouvé, 10 000 simulations Monte Carlo.
 - ✅🛑 **Résultat** de chaque signal et bilan réel de l'armée. Une stratégie qui tombe sous 70 % en réel (après 20 trades)

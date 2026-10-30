@@ -33,7 +33,7 @@ UNIVERSE = {
 }
 
 CFG = {
-    "TIMEFRAMES": envl("TIMEFRAMES", "15M,5M,30M,1H"),
+    "TIMEFRAMES": envl("TIMEFRAMES", "15M"),          # demande du trader : 15 minutes uniquement
     "MIN_WIN": envf("MIN_WIN", 0.80),        # taux de reussite minimum (donnees jamais vues)
     "TARGET_WIN": envf("TARGET_WIN", 0.95),  # objectif affiche
     "MIN_TRADES_TEST": envf("MIN_TRADES_TEST", 30),

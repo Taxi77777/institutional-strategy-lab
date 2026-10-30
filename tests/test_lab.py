@@ -126,6 +126,7 @@ def test_inventor_generates_applies_and_remembers():
 def test_merge_parallel_parts(tmp_path, monkeypatch):
     """Fusion des recherches paralleles : forex 15 min en premier, classe manquante gardee de l'ancienne version."""
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setitem(config.CFG, "TIMEFRAMES", ["15M", "5M", "1H"])
     (tmp_path / "parts").mkdir()
     cls = lambda k, tf, n: {"kind": k, "tf": tf, "strategies": [{"conds": []}] * n, "conditions": 1, "combinaisons": 2,
                              "candidates": 3}
@@ -153,3 +154,19 @@ def test_dukascopy_live_ticks(monkeypatch):
     monkeypatch.setattr(data, "_duka_day", lambda sym, d: [(r[0] + (d.toordinal() - 739000) * 86400,) + r[1:] for r in day_rows])
     a = data.dukascopy_live("EURUSD", 3600, 5)
     assert a.shape[1] == 6 and len(a) >= 24 * 3 and np.all(np.diff(a[:, 0]) > 0)
+
+
+def test_truefx_realtime_minutes(monkeypatch):
+    """Flux temps reel TrueFX : lignes CSV -> bougies 1 min, utilisees seulement apres une bougie complete."""
+    from lab import data
+    import time as _t
+    now = _t.time()
+    data.TRUEFX.update(start=now - 2000, min={})
+    class R:
+        status_code = 200
+        text = "EUR/USD,%d,1.08,512,1.08,515,1.09,1.07,1.08\nUSD/JPY,%d,157.,612,157.,615,158,156,157\n" % (now * 1000, now * 1000)
+    monkeypatch.setattr(data.SESSION, "get", lambda *a, **k: R())
+    assert data.poll_truefx() == 2
+    m = data.truefx_minutes("EURUSD", 900)
+    assert m and m[-1][4] == 1.08512 and m[-1][5] == 0.0
+    assert data.truefx_minutes("GBPUSD", 900) == []

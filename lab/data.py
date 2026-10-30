@@ -18,7 +18,7 @@ SESSION.headers.update({"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) strategy-
 HOSTS = ("https://query2.finance.yahoo.com", "https://query1.finance.yahoo.com")
 TF = {"5M": ("5m", "60d", 300), "15M": ("15m", "60d", 900), "30M": ("30m", "60d", 1800), "1H": ("60m", "730d", 3600)}
 # historique long de la recherche (jours) : meme nombre de bougies environ pour chaque unite de temps
-FX_DAYS = {"5M": ("FX_DAYS_5M", 90), "15M": ("FX_DAYS", 270), "30M": ("FX_DAYS_30M", 540), "1H": ("FX_DAYS_1H", 1095)}
+FX_DAYS = {"5M": ("FX_DAYS_5M", 90), "15M": ("FX_DAYS", 540), "30M": ("FX_DAYS_30M", 540), "1H": ("FX_DAYS_1H", 1095)}
 CR_DAYS = {"5M": ("CR_DAYS_5M", 80), "15M": ("CR_DAYS_15M", 240), "30M": ("CR_DAYS_30M", 480), "1H": ("CR_DAYS_1H", 1095)}
 
 
@@ -148,7 +148,9 @@ def dukascopy(sym, step, days):
                 rows.extend(res)
     if len(rows) < 1000:
         raise RuntimeError("Dukascopy %s : historique indisponible" % sym)
-    return _resample(np.array(rows, dtype=float), step)      # volume Dukascopy conserve (le direct lit la meme source)
+    a = _resample(np.array(rows, dtype=float), step)
+    a[:, 5] = 0.0                   # meme vue que le direct temps reel (TrueFX : pas de volume) -> aucun ecart
+    return a
 
 
 def _duka_hour(sym, hour_dt):
@@ -175,7 +177,7 @@ def _duka_hour(sym, hour_dt):
 LIVE_CACHE = {}
 
 
-def dukascopy_live(sym, step, days):
+def dukascopy_live(sym, step, days, recent=None):
     """Direct forex sur les memes prix que la recherche : jours termines (bougies 1 min) + heures terminees du jour
        (ticks). Tout est garde en memoire : seuls les nouveaux fichiers sont telecharges."""
     now = datetime.datetime.now(datetime.timezone.utc)
@@ -209,7 +211,52 @@ def dukascopy_live(sym, step, days):
         rows += LIVE_CACHE.get(key) or []
     if len(rows) < 1000:
         raise RuntimeError("Dukascopy direct %s : pas assez de donnees" % sym)
-    return _resample(np.array(rows, dtype=float), step)
+    last = max(r[0] for r in rows)
+    rows += [r for r in (recent or []) if r[0] > last]      # minutes temps reel apres le dernier fichier publie
+    a = _resample(np.array(rows, dtype=float), step)
+    a[:, 5] = 0.0
+    return a
+
+
+TRUEFX = {"start": None, "min": {}}
+
+
+def poll_truefx():
+    """Prix interbancaires en temps reel TrueFX (public, sans connexion) -> bougies 1 min (bid) par paire."""
+    try:
+        r = SESSION.get("https://webrates.truefx.com/rates/connect.html", params={"f": "csv"}, timeout=8)
+        if r.status_code != 200:
+            return 0
+    except Exception:
+        return 0
+    n = 0
+    now = time.time()
+    for line in r.text.strip().splitlines():
+        p = line.strip().split(",")
+        if len(p) < 6 or "/" not in p[0]:
+            continue
+        try:
+            sym, t, bid = p[0].replace("/", ""), int(p[1]) / 1000.0, float(p[2] + p[3])
+        except ValueError:
+            continue
+        if TRUEFX["start"] is None:
+            TRUEFX["start"] = now
+        m = int(t // 60) * 60
+        d = TRUEFX["min"].setdefault(sym, {})
+        c = d.get(m)
+        d[m] = [bid, bid, bid, bid] if c is None else [c[0], max(c[1], bid), min(c[2], bid), bid]
+        for k in [k for k in d if k < now - 3 * 3600]:
+            del d[k]
+        n += 1
+    return n
+
+
+def truefx_minutes(sym, step):
+    """Minutes temps reel d'une paire, seulement a partir d'une bougie complete suivie depuis son debut."""
+    if TRUEFX["start"] is None:
+        return []
+    first = (int(TRUEFX["start"]) // step + 1) * step
+    return [(t, o, h, l, c, 0.0) for t, (o, h, l, c) in sorted(TRUEFX["min"].get(sym, {}).items()) if t >= first]
 
 
 def coinbase(sym, step, days):
