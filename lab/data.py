@@ -212,3 +212,40 @@ def daily(sym):
         except Exception:
             continue
     raise RuntimeError("Yahoo %s indisponible" % sym)
+
+
+def funding(sym, days=1200):
+    """Taux de financement horaire des perpetuels : Kraken Futures (public), Hyperliquid en secours.
+       Retourne (n, 2) : temps, taux relatif par heure."""
+    k = {"BTC": "XBT"}.get(sym, sym)
+    try:
+        r = SESSION.get("https://futures.kraken.com/derivatives/api/v4/historicalfundingrates",
+                        params={"symbol": "PF_%sUSD" % k}, timeout=20)
+        rates = r.json().get("rates", []) if r.status_code == 200 else []
+        rows = [(datetime.datetime.fromisoformat(x["timestamp"].replace("Z", "+00:00")).timestamp(),
+                 float(x.get("relativeFundingRate", x.get("fundingRate", 0.0)))) for x in rates]
+        if len(rows) > 100:
+            return np.array(sorted(rows), dtype=float)
+    except Exception as ex:
+        log.warning("funding Kraken %s : %s", sym, ex)
+    rows = []
+    start = int((time.time() - days * 86400) * 1000)
+    for _ in range(60):                                   # Hyperliquid : 500 points par appel
+        try:
+            r = SESSION.post("https://api.hyperliquid.xyz/info", json={"type": "fundingHistory", "coin": sym,
+                                                                         "startTime": start}, timeout=20)
+            batch = r.json() if r.status_code == 200 else []
+        except Exception as ex:
+            log.warning("funding Hyperliquid %s : %s", sym, ex)
+            break
+        if not batch:
+            break
+        rows += [(x["time"] / 1000.0, float(x["fundingRate"])) for x in batch]
+        start = int(batch[-1]["time"]) + 1
+        if len(batch) < 500:
+            break
+        time.sleep(0.2)
+    if len(rows) < 100:
+        raise RuntimeError("funding %s indisponible" % sym)
+    return np.array(sorted(set(rows)), dtype=float)
+

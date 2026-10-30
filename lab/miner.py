@@ -19,7 +19,7 @@ import warnings
 
 import numpy as np
 
-from . import data, ideas as IDEAS, indicators as IND, sim
+from . import data, extra as EX, ideas as IDEAS, indicators as IND, sim
 from .config import CFG, EXITS, UNIVERSE
 
 log = logging.getLogger("lab")
@@ -33,6 +33,16 @@ def align(src_ts, src_val, ts):
     idx = np.searchsorted(src_ts, ts, side="right") - 1
     out = np.where(idx >= 0, src_val[np.clip(idx, 0, None)], np.nan)
     return out
+
+
+def funding_refs(sym, ts, fetch=None):
+    """Indicateurs de financement alignes sur les bougies (NaN si la source ne repond pas)."""
+    try:
+        fts, feats = EX.funding_feats((fetch or data.funding)(sym))
+        return {k: align(fts, feats[k], ts) for k in EX.FUNDING_KEYS}
+    except Exception as ex:
+        log.warning("financement %s : %s", sym, ex)
+        return {k: np.full(len(ts), np.nan) for k in EX.FUNDING_KEYS}
 
 
 def macro_series(fetch_daily):
@@ -74,7 +84,9 @@ def build(kind, tf, fetch=None, fetch_daily=None, symbols=None, macro=None, idea
     macro = macro if macro is not None else (macro_series(fetch_daily) if fetch_daily else {})
     X, R, TS, AID = {}, {}, [], []
     for ai, (s, a) in enumerate(raw.items()):
-        refs = {"bench": align(bench[:, 0], bench[:, 4], a[:, 0])} if bench is not None and s != BENCH[kind] else None
+        refs = {"bench": align(bench[:, 0], bench[:, 4], a[:, 0])} if bench is not None and s != BENCH[kind] else {}
+        if kind == "cr":
+            refs["funding"] = funding_refs(s, a[:, 0])
         mac = {k: align(v[0], v[1], a[:, 0]) for k, v in macro.items()}
         F, atr = IND.compute(a, kind, refs, mac)
         if idea_specs is not None:                  # l'Inventeur : ses idees deviennent des indicateurs testes

@@ -290,3 +290,19 @@ def compute_extra(o, h, l, c, v, atr):
     has_vol = np.nansum(v) > 0
     return {"chandeliers": candles(o, h, l, c), "alpha158": alpha158(o, h, l, c, v, has_vol),
             "wq101": wq101(o, h, l, c, v, has_vol, atr), "smc": smc(o, h, l, c, atr)}
+
+
+FUNDING_KEYS = ("financement", "financement_moy24", "financement_moy72", "financement_z30j", "financement_var24",
+                "financement_extreme")
+
+
+def funding_feats(fr):
+    """fr : (n, 2) temps, taux horaire. Indicateurs calcules sur la serie horaire du financement (en points de base)."""
+    x = fr[:, 1] * 1e4
+    m24, m72 = _sma(x, 24), _sma(x, 72)
+    mu, sd = _sma(x, 720), _roll(x, 720, np.std)
+    z = _div(x - mu, sd)
+    out = {"financement": x, "financement_moy24": m24, "financement_moy72": m72, "financement_z30j": z,
+           "financement_var24": m24 - _shift(m24, 24), "financement_extreme": np.where(z > 2, 1.0, np.where(z < -2, -1.0, 0.0))}
+    return fr[:, 0], out
+

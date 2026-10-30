@@ -14,7 +14,9 @@ import numpy as np
 
 from . import data, ideas as IDEAS, indicators as IND, telegram as TG
 from .config import CFG, UNIVERSE
-from .miner import BENCH, align, macro_series
+from .miner import BENCH, align, macro_series, funding_refs
+
+FUND = {}
 
 log = logging.getLogger("lab")
 PARIS = ZoneInfo("Europe/Paris")
@@ -156,6 +158,16 @@ def features(sym, kind, tf, now, specs=None):
         except Exception:
             refs = None
     mac = {k: align(v[0], v[1], a[:, 0]) for k, v in macro().items()}
+    if kind == "cr":
+        refs = dict(refs or {})
+        fc = FUND.get(sym)
+        if not fc or time.time() - fc[0] > 3600:
+            try:
+                fc = (time.time(), data.funding(sym, days=60))
+            except Exception:
+                fc = (time.time(), None)
+            FUND[sym] = fc
+        refs["funding"] = funding_refs(sym, a[:, 0], fetch=lambda s_: fc[1] if fc[1] is not None else (_ for _ in ()).throw(RuntimeError("indisponible")))
     F, atr = IND.compute(a, kind, refs, mac)
     for nm, sp in (specs or {}).items():
         x = IDEAS.apply_spec(F, sp)
