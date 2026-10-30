@@ -271,6 +271,8 @@ def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab, elite=Fal
     army = next((cl.get("armee", {}).get("achat" if dr > 0 else "vente") for cl in lab["classes"]
                  if cl["kind"] == kind and cl["tf"] == tf), None)
     L = [banner(kind, sym),
+         "🪖 <b>ARMÉE DU LABO</b> · stratégie validée (≥ %.0f %% sur des trades jamais vus) : <b>%s</b>" % (
+             100 * CFG["MIN_WIN"], TG.esc(IND.AGENTS.get(lead.get("agent", ""), lead.get("agent", "")))),
          "%s <b>%s %s</b>%s" % ("🟢" if dr > 0 else "🔴", "ACHETER" if dr > 0 else "VENDRE", TG.esc(data.label(sym, kind)),
                                 "" if dr > 0 else "  <i>(tu gagnes si le prix baisse)</i>"),
          ("⭐ <b>Setup élite</b> (prouvé seul à plus de 90 %%) · bougies %s" % tf.lower() if elite else
@@ -337,7 +339,7 @@ def track(st, now):
                             "day": paris(now).date().isoformat()})
         tot = st["track"]
         k = sum(1 for x in tot if x["win"])
-        TG.send("%s\n%s <b>%s terminé : %s</b> (%+.2f %%)\n📒 Bilan de l'armée : %d trades · %d gagnants · <b>%.0f %% de réussite</b>"
+        TG.send("%s\n🪖 ARMÉE DU LABO\n%s <b>%s terminé : %s</b> (%+.2f %%)\n📒 Bilan de l'armée : %d trades · %d gagnants · <b>%.0f %% de réussite</b>"
                 % (banner(o["kind"], o["sym"]), "✅" if win else "🛑", TG.esc(o["sym"]), res[0], pct, len(tot), k, 100 * k / len(tot)))
     st["open"] = still
 
