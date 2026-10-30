@@ -214,3 +214,17 @@ def test_scout_weights_inventor_and_digest(monkeypatch, tmp_path):
     st = live.load_state()
     assert live.scout_digest(st, 1793300000) and not live.scout_digest(st, 1793300000)
     assert "ÉCLAIREUR" in sent[0] and "a/b" in sent[0] and "Order flow paper" in sent[0]
+
+
+def test_round_numbers_and_weekend():
+    """Conseil du 30/10 : chiffres ronds (niveaux psychologiques) et volatilite du week-end crypto."""
+    from lab import extra as EX
+    c = np.array([1.0849, 1.0851, 1.0899, 1.0901])
+    rn = EX.round_numbers(c + 0.0002, c - 0.0002, c, np.full(4, 0.001))
+    assert np.allclose(rn["dist_fin"][:2], [-0.1, 0.1]) and rn["traverse_rond"][3] == 1.0
+    ts = 1.7e9 - (1.7e9 % 86400) + np.arange(24 * 7 * 6) * 3600.0       # 6 semaines de bougies 1 h
+    px = 100 * np.exp(np.cumsum(np.random.default_rng(1).normal(0, 0.002, len(ts))))
+    wk = EX.weekend_vol(ts, px)
+    day = (ts // 86400).astype(int)
+    assert np.all(np.isnan(wk["vol_weekend"][(day + 3) % 7 >= 5]))          # jamais pendant le week-end en cours
+    assert np.isfinite(wk["vol_weekend"]).sum() > 0

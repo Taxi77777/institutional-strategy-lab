@@ -286,10 +286,62 @@ def smc(o, h, l, c, atr, k=3):
             "egaux_bas": eq_lo, "balayage_liquidite": sweep}
 
 
-def compute_extra(o, h, l, c, v, atr):
+def round_numbers(h, l, c, atr):
+    """Chiffres ronds (etude arXiv « Do Round Numbers Hold Prices? ») : distance aux niveaux ronds (ex. 1,0800 /
+       1,0850 en forex, 157,00 en yen, 70 000 en BTC), position dans la case, niveau traverse, touches recentes."""
+    out = {}
+    lg = np.floor(np.log10(np.where(c > 0, c, np.nan)))
+    for nm, mult in (("fin", 0.5), ("rond", 1.0), ("gros", 10.0)):
+        g = mult * 10.0 ** (lg - 2)
+        lvl = np.round(c / g) * g
+        out["dist_%s" % nm] = _div(c - lvl, atr)
+        out["position_%s" % nm] = _div(c - np.floor(c / g) * g, g)
+        lo_l, hi_l = np.floor(l / g), np.floor(h / g)
+        out["traverse_%s" % nm] = (hi_l > lo_l).astype(float)
+        near = (np.abs(h - lvl) <= 0.1 * atr) | (np.abs(l - lvl) <= 0.1 * atr) | ((l <= lvl) & (h >= lvl))
+        out["touches20_%s" % nm] = _roll(near.astype(float), 20, np.sum)
+    return out
+
+
+def weekend_vol(ts, c):
+    """Volatilite du week-end crypto (etude arXiv « Weekend Crypto Volatility and Monday Market Risk ») :
+       volatilite du dernier week-end TERMINE rapportee a celle des jours ouvres des 4 semaines precedentes."""
+    n = len(c)
+    out = np.full(n, NAN)
+    monday = np.zeros(n)
+    if n < 3:
+        return {"vol_weekend": out, "lundi": monday}
+    r = np.abs(np.diff(np.log(c), prepend=np.log(c[0])))
+    day = (ts // 86400).astype(np.int64)
+    wd = (day + 3) % 7                                   # 0 = lundi ... 5 = samedi, 6 = dimanche
+    week = (day + 3) // 7                                # semaine commencant le lundi
+    wk_end, wk_day = {}, {}
+    for i in range(n):
+        d = wk_end if wd[i] >= 5 else wk_day
+        d[week[i]] = d.get(week[i], 0.0) + r[i] ** 2
+    for i in range(n):
+        w = week[i]
+        last = w - 1 if wd[i] < 5 else w - 1            # week-end termine le plus recent
+        if wd[i] >= 5:
+            continue                                     # pendant le week-end : pas encore termine
+        we = wk_end.get(last)
+        base = [wk_day[k] for k in range(last - 4, last) if k in wk_day]
+        if we is not None and len(base) >= 2 and np.mean(base) > 0:
+            out[i] = np.sqrt(we / (np.mean(base) * 2.0 / 5.0))
+        monday[i] = 1.0 if wd[i] == 0 else 0.0
+    return {"vol_weekend": out, "lundi": monday}
+
+
+def compute_extra(o, h, l, c, v, atr, ts=None):
     has_vol = np.nansum(v) > 0
-    return {"chandeliers": candles(o, h, l, c), "alpha158": alpha158(o, h, l, c, v, has_vol),
-            "wq101": wq101(o, h, l, c, v, has_vol, atr), "smc": smc(o, h, l, c, atr)}
+    out = {"chandeliers": candles(o, h, l, c), "alpha158": alpha158(o, h, l, c, v, has_vol),
+           "wq101": wq101(o, h, l, c, v, has_vol, atr), "smc": smc(o, h, l, c, atr),
+           "chiffres_ronds": round_numbers(h, l, c, atr)}
+    if ts is not None:
+        wk = weekend_vol(ts, c)
+        if np.isfinite(wk["vol_weekend"]).sum() > 0:     # seulement les marches ouverts le week-end (crypto)
+            out["weekend"] = wk
+    return out
 
 
 FUNDING_KEYS = ("financement", "financement_moy24", "financement_moy72", "financement_z30j", "financement_var24",

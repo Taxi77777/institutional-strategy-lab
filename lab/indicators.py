@@ -24,6 +24,8 @@ AGENTS = {
     "wq101": "101 Alphas (WorldQuant)",
     "smc": "Smart Money Concepts (BOS, CHoCH, order blocks, FVG)",
     "derives": "Dérivés crypto (taux de financement des perpétuels)",
+    "chiffres_ronds": "Chiffres ronds (niveaux psychologiques)",
+    "weekend": "Volatilité du week-end crypto",
 }
 HTF = ((3600, "1h"), (14400, "4h"), (86400, "jour"))
 NAN = np.nan
@@ -598,7 +600,7 @@ def compute(arr, kind, refs=None, macro=None):
     F["multi_unites"] = higher_tf(ts, o, h, l, c)
 
     # 24-27 sources publiques reconnues : chandeliers TA-Lib, Alpha158 (Qlib), 101 Alphas (WorldQuant), SMC
-    F.update(EX.compute_extra(o, h, l, c, v, atr14))
+    F.update(EX.compute_extra(o, h, l, c, v, atr14, ts))
     if refs and refs.get("funding"):                # crypto : financement des perpetuels (aligne, deja connu)
         F["derives"] = {k: np.asarray(x, dtype=float) for k, x in refs["funding"].items() if len(x) == n}
 
