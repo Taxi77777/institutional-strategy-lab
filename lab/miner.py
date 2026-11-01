@@ -351,11 +351,19 @@ def robustness(ds, cand):
     step = ds["step"]
     m = thin(full_mask(ds, cand["conds"]) & valid & (ds["split"] >= 1), ds["aid"], ds["ts"], ex["h"] * step)
     pos = tot = 0
+    per_asset, bad = {}, []
     for a in np.unique(ds["aid"][m]):
         ma = m & (ds["aid"] == a)
-        if ma.sum() >= 5:
+        n_a = int(ma.sum())
+        if n_a >= 5:
             tot += 1
             pos += int(r[ma].mean() > 0)
+            w_a = float(win[ma].mean())
+            sym = ds["symbols"][int(a)] if int(a) < len(ds["symbols"]) else str(a)
+            per_asset[sym] = {"reussite": round(w_a, 3), "trades": n_a}
+            # exigence du trader : >= MIN_WIN sur CHAQUE paire (une perte toleree sur un petit echantillon)
+            if n_a - int(win[ma].sum()) > max(1, int((1 - CFG["MIN_WIN"]) * n_a)):
+                bad.append(sym)
     idx = np.flatnonzero(m)
     halves = [idx[:len(idx) // 2], idx[len(idx) // 2:]]
     wins = [float(win[h_].mean()) if len(h_) else 0.0 for h_ in halves]
@@ -369,8 +377,9 @@ def robustness(ds, cand):
             per_year[int(1970 + y)] = (round(float(win[sel].mean()), 3), int(len(sel)), float(r[sel].mean()))
     good = sum(1 for w, n, a in per_year.values() if w >= CFG["MIN_WIN"] - 0.05 and a > 0)
     years_ok = len(per_year) < 2 or good >= max(1, int(np.ceil(0.75 * len(per_year))))
-    ok = (tot == 0 or pos / tot >= 0.5) and min(wins) >= CFG["MIN_WIN"] - 0.05 and years_ok
+    ok = (tot == 0 or pos / tot >= 0.5) and min(wins) >= CFG["MIN_WIN"] - 0.05 and years_ok and not bad
     return {"ok": bool(ok), "actifs_gagnants": "%d/%d" % (pos, tot), "reussite_moities": [round(w, 3) for w in wins],
+            "par_actif": per_asset, "actifs_sous_seuil": bad,
             "par_annee": {str(y): {"reussite": w, "trades": n} for y, (w, n, a) in per_year.items()},
             "annees_reussies": "%d/%d" % (good, len(per_year))}
 

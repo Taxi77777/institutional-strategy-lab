@@ -88,7 +88,8 @@ def test_elite_setup_signals_alone(monkeypatch):
     monkeypatch.setattr(TG, "send", lambda m: sent.append(m) or True)
     monkeypatch.setattr(live, "save_state", lambda st: None)
     mk = lambda win, n, w: {"id": "e%d" % n, "agent": "tendance", "dir": -1, "wilson_test": w, "exit": config.EXITS[1],
-                            "conds": [], "stats": {"test": {"win": win, "n": n, "avg": 0.1}}}
+                            "conds": [], "stats": {"test": {"win": win, "n": n, "avg": 0.1}},
+                            "robustesse": {"par_actif": {"EURUSD": {"reussite": win, "trades": 20}}}}
     fx = {"close": 100.0, "atr": 1.0, "ts": 1790000000.0, "last": {}}
     monkeypatch.setattr(live, "features", lambda *a, **k: fx)
     monkeypatch.setattr(live, "UNIVERSE", {"fx": ["EURUSD"]})
@@ -100,6 +101,11 @@ def test_elite_setup_signals_alone(monkeypatch):
         assert len(sent) - n0 == expect
     assert "Setup élite" in sent[-1] and "VENDRE" in sent[-1]
     assert live.scan(st, lab, "1H", fx["ts"] + 7200 + 60) == 0       # deja un trade ouvert sur EURUSD : pas de doublon
+    unproven = mk(0.95, 127, 0.91)
+    unproven["robustesse"] = {"par_actif": {"GBPUSD": {"reussite": 0.95, "trades": 20}}}
+    st2 = live.load_state()
+    lab2 = {"classes": [{"kind": "fx", "tf": "1H", "armee": {}, "strategies": [unproven]}]}
+    assert live.scan(st2, lab2, "1H", fx["ts"] + 3600 + 60) == 0      # pas prouvee sur EURUSD : aucun signal
 
 
 def test_pairing_roundtrip(monkeypatch):

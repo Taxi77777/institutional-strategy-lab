@@ -22,7 +22,7 @@ Forex, or, argent et crypto · compatible avec tous les courtiers · signaux Tel
 5. **Méthode anti-hasard des fonds quantitatifs** : apprentissage sur les 60 % les plus anciens, validation sur les 20 %
    suivants, verdict sur les 20 % les plus récents jamais vus ; purge et embargo entre les périodes ; correction des
    tests multiples (Benjamini-Hochberg) ; trades sans chevauchement, frais inclus, exécution prudente ; robustesse
-   (majorité des actifs gagnants, ≥ 75 % sur chaque moitié de la période jamais vue) ; contrôle : sur des prix au
+   (**≥ 92 % sur chaque paire** ayant au moins 5 trades jamais vus, majorité des actifs gagnants, chaque année jamais vue, ≥ 75 % sur chaque moitié de la période jamais vue) ; contrôle : sur des prix au
    hasard le labo ne trouve rien (testé).
 6. **Règle de sélection** : **≥ 92 % de réussite** (exigence du trader, objectif 95 %), ≥ 30 trades jamais vus **et** gain moyen positif après frais.
    Pas de prise de gain sous 0,5 ATR (sur des prix au hasard elle « réussit » déjà ~87 %).
@@ -41,7 +41,7 @@ Forex, or, argent et crypto · compatible avec tous les courtiers · signaux Tel
 
 - 🟢🔴 **Signal 1 h** (contrôle toutes les 5 min) : entrée, stop, prise de gain et heure de fermeture **en prix et en %**,
   la stratégie et son taux prouvé. Il part si le **vote de l'armée** (≥ 3 spécialistes d'accord, vote lui-même testé
-  ≥ 92 %) ou un **setup élite** (≥ 92 % sur ≥ 100 trades jamais vus) — **aucun signal sous 92 %** (exigence du trader) est actif, sans majorité contraire, un seul trade
+  ≥ 92 %) ou un **setup élite** (≥ 92 % sur ≥ 100 trades jamais vus) — **aucun signal sous 92 %**, et seulement sur une paire où la stratégie a prouvé ses 92 % (au moins 5 trades jamais vus) — exigence du trader est actif, sans majorité contraire, un seul trade
   à la fois par paire.
 - ✅🛑 **Résultat** de chaque signal et bilan réel ; une stratégie qui tombe sous 70 % en réel (après 20 trades) est retirée.
 - Rien d'autre : pas de briefing ni de résumé (variable `INFOS` = `1` pour remettre le conseil de 8 h / 14 h / 20 h et la veille de l'Éclaireur).

@@ -207,6 +207,16 @@ def council_votes(lab, kind, tf, sym, fx, retired):
     return votes
 
 
+def pair_proven(s, sym):
+    """Strategie prouvee sur cette paire : >= 5 trades jamais vus et >= 92 % (une perte toleree si peu de trades)."""
+    pa = (s.get("robustesse") or {}).get("par_actif", {}).get(sym)
+    if not pa or pa.get("trades", 0) < 5:
+        return False
+    n = pa["trades"]
+    losses = n - round(pa["reussite"] * n)
+    return losses <= max(1, int((1 - CFG["SIGNAL_MIN_WIN"]) * n))
+
+
 def is_elite(s):
     """Setup elite : >= 92 % sur >= 100 trades jamais vus, borne basse prudente >= 85 %, gain positif."""
     t = s["stats"]["test"]
@@ -253,6 +263,8 @@ def scan(st, lab, tf, now):
                     continue                        # ni vote de l'armee prouve >= 92 %, ni setup elite
                 if max(s["stats"]["test"]["win"] for s in (elite or strong.values())) < CFG["SIGNAL_MIN_WIN"]:
                     continue                        # exigence du trader : la strategie meneuse doit avoir >= 92 %
+                if not any(pair_proven(s, sym) for s in (elite or strong.values())):
+                    continue                        # ... et l'avoir prouve sur CETTE paire (>= 5 trades jamais vus)
                 if any(o["sym"] == sym for o in st["open"]):
                     continue                        # un seul trade a la fois par paire : pas d'empilement du meme risque
                 key = "%s|%s|%d|%d" % (sym, tf, dr, int(fx["ts"]))
