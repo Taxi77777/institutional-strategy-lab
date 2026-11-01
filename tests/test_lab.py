@@ -274,9 +274,27 @@ def test_dukascopy_monthly_hours_and_yearly_check(monkeypatch):
 
 
 def test_numerologie_causale():
-    """Specialiste numerologie : 18 indicateurs, sans regard vers le futur."""
+    """Specialiste numerologies (toutes traditions) : ~75 indicateurs, sans regard vers le futur."""
     from lab import extra as EX
     ts = 1.79e9 + np.arange(500) * 3600.0
     c = 1.08 + np.cumsum(np.random.default_rng(2).normal(0, 1e-4, 500))
     a, b = EX.numerologie(ts, c, np.full(500, 1e-3)), EX.numerologie(ts[:300], c[:300], np.full(300, 1e-3))
-    assert len(a) == 18 and all(np.allclose(a[k][:300], b[k], equal_nan=True) for k in a)
+    assert len(a) >= 70 and all(np.allclose(a[k][:300], b[k], equal_nan=True) for k in a)
+    assert set(np.unique(a["racine_numerique"])) <= set(range(1, 10))
+
+
+def test_numerologie_a_part(monkeypatch):
+    """La numerologie ne vote pas avec l'armee et signale a part (>= 92 % prouve sur la paire)."""
+    sent = []
+    monkeypatch.setattr(TG, "send", lambda m: sent.append(m) or True)
+    monkeypatch.setattr(live, "save_state", lambda st: None)
+    s = {"id": "n1", "agent": "numerologie", "dir": 1, "wilson_test": 0.9, "exit": config.EXITS[1], "conds": [],
+         "stats": {"test": {"win": 0.95, "n": 120, "avg": 0.1}},
+         "robustesse": {"par_actif": {"EURUSD": {"reussite": 0.95, "trades": 20}}}}
+    lab = {"classes": [{"kind": "fx", "tf": "1H", "armee": {}, "strategies": [s]}]}
+    fx = {"close": 100.0, "atr": 1.0, "ts": 1790000000.0, "last": {}}
+    assert live.council_votes(lab, "fx", "1H", "EURUSD", fx, set()) == {1: {}, -1: {}}
+    monkeypatch.setattr(live, "features", lambda *a, **k: fx)
+    monkeypatch.setattr(live, "UNIVERSE", {"fx": ["EURUSD"]})
+    st = live.load_state()
+    assert live.scan(st, lab, "1H", fx["ts"] + 3600 + 60) == 1 and "numérologie (à part)" in sent[-1]

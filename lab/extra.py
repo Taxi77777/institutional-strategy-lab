@@ -332,23 +332,40 @@ def weekend_vol(ts, c):
     return {"vol_weekend": out, "lundi": monday}
 
 
-SACRES = (7, 12, 19, 40, 72, 99)      # nombres presents dans les traditions monotheistes
+NUMEROLOGIES = {                     # nombres cles de chaque tradition (demande du trader : toutes les numerologies)
+    "monotheistes": (3, 7, 12, 19, 40, 72, 99, 153, 786),
+    "pythagore": (3, 6, 9, 11, 22, 33),          # chiffres et nombres maitres
+    "tesla": (3, 6, 9),
+    "chinoise": (4, 8, 9, 88),
+    "hindoue_bouddhiste": (9, 108),
+    "maya": (13, 20, 260),
+    "kabbale": (18, 26, 72),
+    "gann": (90, 144, 360),
+}
+NOMBRES = sorted({n for v in NUMEROLOGIES.values() for n in v})
 
 
 def numerologie(ts, c, atr):
-    """Test (demande du trader) : nombres des traditions monotheistes -> cycles de temps (heures, jours) et niveaux de
-       prix multiples de ces nombres en pips. Aucune preuve scientifique connue : le labo les garde seulement s'ils
-       passent les memes regles anti-hasard (>= 92 % sur des trades jamais vus)."""
+    """Test (demande du trader) : nombres de toutes les grandes numerologies -> cycles de temps (heures, jours), niveaux
+       de prix multiples de ces nombres en pips, racine numerique du prix et carre de 9 de Gann. Aucune preuve
+       scientifique connue : le labo les garde seulement s'ils passent les memes regles (>= 92 % sur chaque paire)."""
     out = {}
     hrs = (ts // 3600).astype(np.int64)
     days = (ts // 86400).astype(np.int64)
     lg = np.floor(np.log10(np.where(c > 0, c, np.nan)))
     pip = 10.0 ** (lg - 4)                           # ~1 pip (1,0850 -> 0,0001 ; 157,30 -> 0,01)
-    for n in SACRES:
+    for n in NOMBRES:
         out["cycle_heures_%d" % n] = (hrs % n) / float(n)
-        out["cycle_jours_%d" % n] = (days % n) / float(n)
+        if n <= 366:
+            out["cycle_jours_%d" % n] = (days % n) / float(n)
         g = n * pip
         out["niveau_%d_pips" % n] = _div(c - np.round(c / g) * g, atr)
+    p_int = np.nan_to_num(np.round(c / pip)).astype(np.int64)
+    out["racine_numerique"] = np.where(p_int > 0, 1 + (p_int - 1) % 9, 0).astype(float)    # Pythagore : 1..9
+    sq = np.sqrt(np.maximum(p_int, 0).astype(float))
+    out["gann_carre9_angle"] = (sq % 2.0) * 180.0                                           # angle sur le carre de 9
+    lvl = (np.round(sq * 4) / 4) ** 2 * pip                                                 # niveaux 45 degres
+    out["gann_carre9_dist"] = _div(c - lvl, atr)
     return out
 
 

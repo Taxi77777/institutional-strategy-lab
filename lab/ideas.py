@@ -75,7 +75,7 @@ def generate(feature_names, n=150, seed=0, memory=None, weights=None):
     """Idees de la semaine : les gagnantes passees, leurs mutations / croisements, puis des idees nouvelles,
        tirees plus souvent dans les familles que l'Eclaireur voit monter (weights)."""
     rng = random.Random(seed)
-    feats = [tuple(f) for f in feature_names if f[0] not in ("temps",)]
+    feats = [tuple(f) for f in feature_names if f[0] not in ("temps", "numerologie")]   # numerologie : strategie a part
     w = [float((weights or {}).get(f[0], 1.0)) for f in feats]
     mem = sorted((memory or {}).get("gagnantes", []), key=lambda x: -x.get("score", 0))[:40]
     specs = []

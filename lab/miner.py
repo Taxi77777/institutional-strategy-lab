@@ -238,7 +238,7 @@ def search(ds, log_every=50):
                     scored.append((st["avg"] - st["se"], (c_,), mm))
             scored.sort(key=lambda x: -x[0])
             level = scored[:beam]
-            singles = [x[1][0] for x in level] + ([] if agent == "multi_unites" else ctx)
+            singles = [x[1][0] for x in level] + ([] if agent in ("multi_unites", "numerologie") else ctx)
             allc = list(level)
             for _d in range(2, depth + 1):
                 nxt = []
@@ -270,7 +270,7 @@ def ichimoku_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=200):
     """Noyau Ichimoku : chaque strategie part d'une condition Ichimoku, confirmee par 1 ou 2 conditions des AUTRES
        specialistes (les pool_n meilleures seules, par sortie et sens). Comptee dans le test multiple (FDR)."""
     core = by_agent.get("ichimoku", [])
-    others = [c_ for ag, cl in by_agent.items() if ag != "ichimoku" for c_ in cl]
+    others = [c_ for ag, cl in by_agent.items() if ag not in ("ichimoku", "numerologie") for c_ in cl]
     if not core or not others:
         return 0, 0
     cm = {c_: cmask(ds, c_) for c_ in core}

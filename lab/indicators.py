@@ -27,7 +27,7 @@ AGENTS = {
     "chiffres_ronds": "Chiffres ronds (niveaux psychologiques)",
     "noyau_ichimoku": "Noyau Ichimoku + confirmations des autres spécialistes",
     "weekend": "Volatilité du week-end crypto",
-    "numerologie": "Numérologie des traditions monothéistes (test)",
+    "numerologie": "Numérologies (monothéistes, Pythagore, Tesla, chinoise, hindoue, maya, kabbale, Gann) — test",
 }
 HTF = ((3600, "1h"), (14400, "4h"), (86400, "jour"))
 NAN = np.nan

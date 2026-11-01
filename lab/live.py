@@ -200,6 +200,8 @@ def council_votes(lab, kind, tf, sym, fx, retired):
         for s in cl["strategies"]:
             if s["id"] in retired:
                 continue
+            if s.get("agent") == "numerologie":
+                continue                            # strategie a part : ne vote jamais avec l'armee
             if active(s, fx["last"]):
                 best = votes[s["dir"]].get(s["agent"])
                 if not best or s["wilson_test"] > best["wilson_test"]:
@@ -215,6 +217,30 @@ def pair_proven(s, sym):
     n = pa["trades"]
     losses = n - round(pa["reussite"] * n)
     return losses <= max(1, int((1 - CFG["SIGNAL_MIN_WIN"]) * n))
+
+
+def numerology_signals(st, lab, kind, tf, sym, fx):
+    """Strategie numerologie, a part : un signal seulement si une de ses strategies est active, >= 92 % prouve
+       (setup elite) et prouvee sur cette paire."""
+    sent = 0
+    for cl in lab["classes"]:
+        if cl["kind"] != kind or cl["tf"] != tf:
+            continue
+        for s in cl["strategies"]:
+            if s.get("agent") != "numerologie" or s["id"] in set(st["retired"]) or not active(s, fx["last"]):
+                continue
+            if not (is_elite(s) and pair_proven(s, sym) and s["stats"]["test"]["win"] >= CFG["SIGNAL_MIN_WIN"]):
+                continue
+            if any(o["sym"] == sym for o in st["open"]):
+                return sent
+            key = "num|%s|%s|%d|%d" % (sym, tf, s["dir"], int(fx["ts"]))
+            if key in st["alerts"]:
+                continue
+            st["alerts"][key] = time.time()
+            send_signal(st, kind, tf, sym, s["dir"], fx, s, {"numerologie": s}, {}, lab, elite=True)
+            sent += 1
+            return sent
+    return sent
 
 
 def is_elite(s):
@@ -242,6 +268,7 @@ def scan(st, lab, tf, now):
             late = 2400 if kind == "fx" else 600          # forex : Dukascopy publie chaque heure avec un leger retard
             if not fx or now - fx["ts"] - STEP[tf] > late:
                 continue                            # bougie trop ancienne : jamais de signal en retard
+            sent += numerology_signals(st, lab, kind, tf, sym, fx)      # strategie a part
             votes = council_votes(lab, kind, tf, sym, fx, set(st["retired"]))
             if kind == "cr":
                 ob = data.order_book(sym)
@@ -289,7 +316,9 @@ def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab, elite=Fal
              100 * CFG["MIN_WIN"], TG.esc(IND.AGENTS.get(lead.get("agent", ""), lead.get("agent", "")))),
          "%s <b>%s %s</b>%s" % ("🟢" if dr > 0 else "🔴", "ACHETER" if dr > 0 else "VENDRE", TG.esc(data.label(sym, kind)),
                                 "" if dr > 0 else "  <i>(tu gagnes si le prix baisse)</i>"),
-         ("⭐ <b>Setup élite</b> (prouvé seul à plus de 92 %%) · bougies %s" % tf.lower() if elite else
+         ("🔢 <b>Stratégie numérologie (à part)</b> · prouvée à plus de 92 %% · bougies %s" % tf.lower()
+          if lead.get("agent") == "numerologie" else
+          "⭐ <b>Setup élite</b> (prouvé seul à plus de 92 %%) · bougies %s" % tf.lower() if elite else
           "🪖 Armée : <b>%d spécialistes d'accord</b> · bougies %s" % (len(agents), tf.lower())), SEP,
          "💵 Entrée au prix du marché : <code>%s</code>  · à faire avant %s" % (fmt(px), paris(max(fx["ts"] + STEP[tf] + 600, time.time() + 600)).strftime("%H:%M")),
          "🛑 Sortie de sécurité : <code>%s</code>  (%+.2f %%)" % (fmt(sl), -dr * 100 * ex["sl"] * atr / px),
