@@ -39,6 +39,7 @@ CFG = {
     "MIN_TRADES_TEST": envf("MIN_TRADES_TEST", 30),
     "FDR": envf("FDR", 0.05),                # taux de fausses decouvertes toleré (Benjamini-Hochberg)
     "CONSENSUS": envf("CONSENSUS", 3),       # specialistes d'accord minimum pour un signal
+    "INFOS": envf("INFOS", 0),               # briefings / veille sur Telegram : coupes par defaut (signaux + resultats seulement)
     "ELITE_WIN": envf("ELITE_WIN", 0.90),    # setup elite : peut signaler seul (>= 90 % ...
     "ELITE_WILSON": envf("ELITE_WILSON", 0.85),  # ... borne basse prudente >= 85 % ...
     "ELITE_N": envf("ELITE_N", 100),         # ... sur au moins 100 trades jamais vus)

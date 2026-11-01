@@ -44,7 +44,7 @@ Forex, or, argent et crypto · compatible avec tous les courtiers · signaux Tel
   ≥ 80 %) ou un **setup élite** (≥ 90 % sur ≥ 100 trades jamais vus) est actif, sans majorité contraire, un seul trade
   à la fois par paire.
 - ✅🛑 **Résultat** de chaque signal et bilan réel ; une stratégie qui tombe sous 70 % en réel (après 20 trades) est retirée.
-- 🪖 **Conseil des spécialistes** à 8 h, 14 h et 20 h (Paris) · 🔭 **veille de l'Éclaireur** chaque matin.
+- Rien d'autre : pas de briefing ni de résumé (variable `INFOS` = `1` pour remettre le conseil de 8 h / 14 h / 20 h et la veille de l'Éclaireur).
 - Tant qu'aucune stratégie ne passe, l'armée reste silencieuse. C'est voulu.
 
 ## Fonctionnement (GitHub Actions)

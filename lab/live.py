@@ -465,12 +465,12 @@ def main():
                 TG.send("✅ <b>Labo institutionnel connecté</b> : l'armée des %d spécialistes enverra ses signaux 1 h ici." % len(IND.AGENTS))
                 save_state(st)
             par = paris(now)
-            if par.hour in (8, 14, 20) and par.minute < 30 and st["done"].get("brief") != "%s-%d" % (par.date(), par.hour):
+            if CFG["INFOS"] and par.hour in (8, 14, 20) and par.minute < 30 and st["done"].get("brief") != "%s-%d" % (par.date(), par.hour):
                 st["done"]["brief"] = "%s-%d" % (par.date(), par.hour)
                 briefing(st, lab, now)
                 save_state(st)
             q = int(now // 300)
-            if par.hour >= 9 and st["done"].get("veille_essai") != str(par.date()) and now % 300 < 60:
+            if CFG["INFOS"] and par.hour >= 9 and st["done"].get("veille_essai") != str(par.date()) and now % 300 < 60:
                 st["done"]["veille_essai"] = str(par.date())
                 if scout_digest(st, now):
                     save_state(st)
