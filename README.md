@@ -1,6 +1,6 @@
 # 🪖 Institutional Strategy Lab — l'armée des spécialistes
 
-**Recherche automatique et continue de stratégies 1 heure à 80–95 % de réussite, prouvées sur des données jamais vues.
+**Recherche automatique et continue de stratégies 1 heure à plus de 92 % de réussite, prouvées sur des données jamais vues.
 Forex, or, argent et crypto · compatible avec tous les courtiers · signaux Telegram · 100 % gratuit.**
 
 ## Le principe
@@ -24,7 +24,7 @@ Forex, or, argent et crypto · compatible avec tous les courtiers · signaux Tel
    tests multiples (Benjamini-Hochberg) ; trades sans chevauchement, frais inclus, exécution prudente ; robustesse
    (majorité des actifs gagnants, ≥ 75 % sur chaque moitié de la période jamais vue) ; contrôle : sur des prix au
    hasard le labo ne trouve rien (testé).
-6. **Règle de sélection** : ≥ 80 % de réussite (objectif 95 %), ≥ 30 trades jamais vus **et** gain moyen positif après frais.
+6. **Règle de sélection** : **≥ 92 % de réussite** (exigence du trader, objectif 95 %), ≥ 30 trades jamais vus **et** gain moyen positif après frais.
    Pas de prise de gain sous 0,5 ATR (sur des prix au hasard elle « réussit » déjà ~87 %).
 
 ## Données (gratuites, sans inscription)
@@ -56,7 +56,7 @@ Forex, or, argent et crypto · compatible avec tous les courtiers · signaux Tel
 - **Armée en direct** : tourne depuis le dépôt `crypto-signals-timesfm` (workflow *Armée*), qui a le jeton Telegram, et
   recharge chaque heure les stratégies publiées ici.
 
-Réglages (variables GitHub, facultatives) : `MIN_WIN` (0.80), `CONSENSUS` (3), `BEAM` (60), `TIMEFRAMES` (1H).
+Réglages (variables GitHub, facultatives) : `MIN_WIN` (0.92), `CONSENSUS` (3), `BEAM` (60), `TIMEFRAMES` (1H).
 
 ## ⚠️ Honnêteté
 

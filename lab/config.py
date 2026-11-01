@@ -34,7 +34,7 @@ UNIVERSE = {
 
 CFG = {
     "TIMEFRAMES": envl("TIMEFRAMES", "1H"),           # demande du trader : 1 heure uniquement
-    "MIN_WIN": envf("MIN_WIN", 0.80),        # taux de reussite minimum (donnees jamais vues)
+    "MIN_WIN": envf("MIN_WIN", 0.92),        # exigence du trader : le labo ne garde que les strategies >= 92 % (jamais vues)
     "TARGET_WIN": envf("TARGET_WIN", 0.95),  # objectif affiche
     "MIN_TRADES_TEST": envf("MIN_TRADES_TEST", 30),
     "FDR": envf("FDR", 0.05),                # taux de fausses decouvertes toleré (Benjamini-Hochberg)
