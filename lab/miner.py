@@ -387,7 +387,7 @@ def run_class(ds):
         if i not in keep:
             continue
         t = ev["test"]
-        need = CFG["MIN_TRADES_TEST_15M"] if ds["tf"] != "1H" else CFG["MIN_TRADES_TEST"]     # 5 / 15 / 30 min : 200 trades
+        need = CFG["MIN_TRADES_TEST"]
         if t.get("n", 0) >= need and t["win"] >= CFG["MIN_WIN"] and t["avg"] > 0:
             rob = robustness(ds, cd)
             if not rob["ok"]:
@@ -481,7 +481,7 @@ def run_all(fetch=None, fetch_daily=None, kinds=None, tfs=None):
     return out
 
 
-ORDER = ["fx-15M", "fx-5M", "fx-30M", "fx-1H", "cr-15M", "cr-30M", "cr-1H", "cr-5M"]   # forex 15 min en priorite
+ORDER = ["fx-1H", "cr-1H"]
 
 
 def merge(parts_dir="parts", old_path="strategies.json"):
@@ -532,7 +532,7 @@ def merge(parts_dir="parts", old_path="strategies.json"):
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
-    if len(sys.argv) >= 4 and sys.argv[1] == "part":          # python -m lab.miner part fx 15M
+    if len(sys.argv) >= 4 and sys.argv[1] == "part":          # python -m lab.miner part fx 1H
         kind, tf = sys.argv[2], sys.argv[3].upper()
         res = run_all(kinds=[kind], tfs=[tf])
         res["memoire"] = IDEAS.load_memory()

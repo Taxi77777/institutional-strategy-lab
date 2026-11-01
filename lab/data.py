@@ -16,10 +16,10 @@ log = logging.getLogger("lab")
 SESSION = requests.Session()
 SESSION.headers.update({"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) strategy-lab/1.0", "Accept": "*/*"})
 HOSTS = ("https://query2.finance.yahoo.com", "https://query1.finance.yahoo.com")
-TF = {"5M": ("5m", "60d", 300), "15M": ("15m", "60d", 900), "30M": ("30m", "60d", 1800), "1H": ("60m", "730d", 3600)}
+TF = {"1H": ("60m", "730d", 3600)}
 # historique long de la recherche (jours) : meme nombre de bougies environ pour chaque unite de temps
-FX_DAYS = {"5M": ("FX_DAYS_5M", 90), "15M": ("FX_DAYS", 540), "30M": ("FX_DAYS_30M", 540), "1H": ("FX_DAYS_1H", 1095)}
-CR_DAYS = {"5M": ("CR_DAYS_5M", 80), "15M": ("CR_DAYS_15M", 240), "30M": ("CR_DAYS_30M", 480), "1H": ("CR_DAYS_1H", 1095)}
+FX_DAYS = {"1H": ("FX_DAYS_1H", 1095)}        # forex : 3 ans de bougies 1 h Dukascopy
+CR_DAYS = {"1H": ("CR_DAYS_1H", 1095)}        # crypto : 3 ans de bougies 1 h Coinbase
 
 
 def ysym(sym, kind):

@@ -1,7 +1,7 @@
-"""L'armee en direct : toutes les 15 minutes, les 20 specialistes regardent chaque actif ; un signal ne part que si
-au moins CONSENSUS specialistes ont une strategie VALIDEE par le labo (>= 80 % sur donnees jamais vues) active dans
-le meme sens, sans majorite contraire. Briefing commun (« conseil des 20 ») a 8 h, 14 h et 20 h (Paris).
-Signaux uniquement : aucun ordre n'est passe. Niveaux en prix ET en % pour s'appliquer chez n'importe quel courtier."""
+"""L'armee en direct : controle toutes les 5 minutes des bougies 1 heure (forex : Dukascopy + temps reel TrueFX ;
+crypto : Coinbase). Un signal part si le vote de l'armee (>= CONSENSUS specialistes d'accord, vote teste >= 80 %)
+ou un setup elite (>= 90 % sur >= 100 trades jamais vus) est actif, sans majorite contraire, un seul trade par paire.
+Briefing commun (« conseil des specialistes ») a 8 h, 14 h et 20 h (Paris), veille de l'Eclaireur chaque matin."""
 import datetime
 import json
 import logging
@@ -21,8 +21,8 @@ FUND = {}
 log = logging.getLogger("lab")
 PARIS = ZoneInfo("Europe/Paris")
 STATE_FILE = "lab_state.json"
-STEP = {"5M": 300, "15M": 900, "30M": 1800, "1H": 3600}
-KEEP = {"5M": 12000, "15M": 4500, "30M": 2500, "1H": 2500}
+STEP = {"1H": 3600}
+KEEP = {"1H": 2500}
 CACHE = {}
 STOP = [False]
 SEP = "━━━━━━━━━━━━━━━"
@@ -302,6 +302,9 @@ def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab, elite=Fal
 def track(st, now):
     still = []
     for o in st["open"]:
+        if o.get("tf") not in STEP:                 # trade d'une ancienne unite de temps (15 min retire) : abandonne
+            log.info("trade %s %s abandonne (unite retiree)", o.get("sym"), o.get("tf"))
+            continue
         try:
             a = hist(o["sym"], o["kind"], o["tf"])
         except Exception:
@@ -344,7 +347,7 @@ def track(st, now):
     st["open"] = still
 
 
-# ------------------------------------------------------------------ le conseil des 20 (briefing)
+# ------------------------------------------------------------------ le conseil des specialistes (briefing)
 READ = {
     "tendance": lambda g: np.sign(g(("tendance", "ema50"))), "ichimoku": lambda g: (1 if g(("ichimoku", "au_dessus_nuage_9_26")) > 0 else -1 if g(("ichimoku", "sous_nuage_9_26")) < 0 else 0),
     "momentum": lambda g: (1 if g(("momentum", "rsi14")) > 55 else -1 if g(("momentum", "rsi14")) < 45 else 0),
@@ -391,7 +394,7 @@ def scout_digest(st, now):
 
 
 def briefing(st, lab, now):
-    L = ["🪖 <b>CONSEIL DES 20 SPÉCIALISTES</b> · %s" % paris(now).strftime("%d/%m %H:%M"), SEP]
+    L = ["🪖 <b>CONSEIL DES %d SPÉCIALISTES</b> · %s · bougies 1 h" % (len(IND.AGENTS), paris(now).strftime("%d/%m %H:%M")), SEP]
     n_strat = sum(len(c["strategies"]) for c in lab["classes"])
     if n_strat:
         L.append("🧪 Labo : <b>%d stratégies validées</b> (≥ %.0f %% de réussite sur des données jamais vues)" % (n_strat, 100 * CFG["MIN_WIN"]))
@@ -459,7 +462,7 @@ def main():
         now = time.time()
         try:
             if not TG.CHAT["id"] and TG.pair_check(st):
-                TG.send("✅ <b>Labo institutionnel connecté</b> : l'armée des 20 spécialistes enverra ses signaux ici.")
+                TG.send("✅ <b>Labo institutionnel connecté</b> : l'armée des %d spécialistes enverra ses signaux 1 h ici." % len(IND.AGENTS))
                 save_state(st)
             par = paris(now)
             if par.hour in (8, 14, 20) and par.minute < 30 and st["done"].get("brief") != "%s-%d" % (par.date(), par.hour):
@@ -474,7 +477,7 @@ def main():
             if q != done15 and now % 300 >= 40:          # controle toutes les 5 minutes
                 done15 = q
                 lab = load_strategies()
-                for tf_ in CFG["TIMEFRAMES"]:            # 15 minutes (demande du trader)
+                for tf_ in CFG["TIMEFRAMES"]:            # 1 heure (demande du trader)
                     scan(st, lab, tf_, now)
                 st.setdefault("diag", {})["truefx"] = {"mode": data.TRUEFX["mode"], "paires_temps_reel": data.TRUEFX["paires"]}
                 save_state(st)

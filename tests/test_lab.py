@@ -12,7 +12,7 @@ from lab import config, indicators as IND, live, miner, telegram as TG  # noqa: 
 
 def synth(seed, n=2600, edge=False):
     rng = np.random.default_rng(seed)
-    t = np.arange(n) * 900 + 1790000000
+    t = np.arange(n) * 3600 + 1790000000
     r = rng.normal(0, 0.003, n)
     if edge:
         for i in range(3, n):
@@ -28,13 +28,13 @@ def fast(monkeypatch, tmp_path):
     monkeypatch.setitem(config.CFG, "PAUSE", 0)
     monkeypatch.setitem(config.CFG, "SIMS", 500)
     monkeypatch.setitem(config.CFG, "BEAM", 15)
-    monkeypatch.setitem(config.CFG, "MIN_TRADES_TEST_15M", 30)     # petites donnees de test
+    monkeypatch.setitem(config.CFG, "MIN_TRADES_TEST", 30)         # petites donnees de test
     monkeypatch.setitem(config.CFG, "STATE_DIR", str(tmp_path))
     monkeypatch.chdir(tmp_path)
 
 
 def run(edge):
-    ds = miner.build("cr", "15M", lambda s, k, tf: synth(sum(map(ord, s)), edge=edge), symbols=["BTC", "ETH", "SOL"], macro={})
+    ds = miner.build("cr", "1H", lambda s, k, tf: synth(sum(map(ord, s)), edge=edge), symbols=["BTC", "ETH", "SOL"], macro={})
     return ds, miner.run_class(ds)
 
 
@@ -69,15 +69,15 @@ def test_signal_message_and_tracking(monkeypatch):
              "stats": {"test": {"win": 0.86, "n": 50, "avg": 0.12}}, "mc": {"p_gain": 0.9}}
     fx = {"close": 100.0, "atr": 1.0, "ts": 1790000000.0}
     st = live.load_state()
-    lab = {"classes": [{"kind": "cr", "tf": "15M", "armee": {"achat": {"win": 0.9, "n": 40}}, "strategies": [strat]}]}
+    lab = {"classes": [{"kind": "cr", "tf": "1H", "armee": {"achat": {"win": 0.9, "n": 40}}, "strategies": [strat]}]}
     agents = {"momentum": strat, "tendance": strat, "carnet": {"agent": "carnet", "wilson_test": 0}}
-    live.send_signal(st, "cr", "15M", "BTC", 1, fx, strat, agents, {}, lab)
+    live.send_signal(st, "cr", "1H", "BTC", 1, fx, strat, agents, {}, lab)
     m = sent[0]
     assert m.startswith("🪙 <b>CRYPTO</b>") and "ACHETER BTC" in m and "3 spécialistes" in m and "Sortie de sécurité" in m
     o = st["open"][0]
-    bars = np.array([[o["t_entry"] + k * 900, 100, 100.6, 99.9, 100.4, 1] for k in range(3)])
+    bars = np.array([[o["t_entry"] + k * 3600, 100, 100.6, 99.9, 100.4, 1] for k in range(3)])
     monkeypatch.setattr(live, "hist", lambda s, k, tf: bars)
-    live.track(st, o["t_entry"] + 3 * 900)
+    live.track(st, o["t_entry"] + 3 * 3600)
     assert "GAGNANT" in sent[-1] and st["track"][0]["win"] and not st["open"]
 
 
@@ -126,17 +126,17 @@ def test_inventor_generates_applies_and_remembers():
 def test_merge_parallel_parts(tmp_path, monkeypatch):
     """Fusion des recherches paralleles : forex 15 min en premier, classe manquante gardee de l'ancienne version."""
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setitem(config.CFG, "TIMEFRAMES", ["15M", "5M", "1H"])
+    monkeypatch.setitem(config.CFG, "TIMEFRAMES", ["1H"])
     (tmp_path / "parts").mkdir()
     cls = lambda k, tf, n: {"kind": k, "tf": tf, "strategies": [{"conds": []}] * n, "conditions": 1, "combinaisons": 2,
                              "candidates": 3}
-    for k, tf, n in (("cr", "1H", 0), ("fx", "5M", 1), ("fx", "15M", 2)):
+    for k, tf, n in (("cr", "1H", 0), ("fx", "1H", 2)):
         (tmp_path / "parts" / ("%s_%s.json" % (k, tf))).write_text(json.dumps(
             {"regle": {"x": 1}, "classes": [cls(k, tf, n)], "memoire": {"gagnantes": [{"nom": "a", "score": 0.8 + n / 100}]}}))
-    (tmp_path / "strategies.json").write_text(json.dumps({"classes": [cls("fx", "1H", 4), cls("fx", "15M", 9)]}))
+    (tmp_path / "strategies.json").write_text(json.dumps({"classes": [cls("fx", "1H", 4), cls("fx", "15M", 9)]}))   # 15 min retire
     out = miner.merge()
-    assert [(c["kind"], c["tf"]) for c in out["classes"]] == [("fx", "15M"), ("fx", "5M"), ("fx", "1H"), ("cr", "1H")]
-    assert out["classes"][0]["strategies"] == [{"conds": []}] * 2 and out["total"]["strategies"] == 7
+    assert [(c["kind"], c["tf"]) for c in out["classes"]] == [("fx", "1H"), ("cr", "1H")]
+    assert out["classes"][0]["strategies"] == [{"conds": []}] * 2 and out["total"]["strategies"] == 2
     assert json.load(open(tmp_path / "ideas.json"))["gagnantes"][0]["score"] == pytest.approx(0.82)
 
 
@@ -167,7 +167,7 @@ def test_truefx_realtime_minutes(monkeypatch):
         text = "EUR/USD,%d,1.08,512,1.08,515,1.09,1.07,1.08\nUSD/JPY,%d,157.,612,157.,615,158,156,157\n" % (now * 1000, now * 1000)
     monkeypatch.setattr(data.SESSION, "get", lambda *a, **k: R())
     assert data.poll_truefx() == 2
-    m = data.truefx_minutes("EURUSD", 900)
+    m = data.truefx_minutes("EURUSD", 900)          # pas de 15 min ici : debut de la premiere bougie complete
     assert m and m[-1][4] == 1.08512 and m[-1][5] == 0.0
     assert data.truefx_minutes("GBPUSD", 900) == []
 

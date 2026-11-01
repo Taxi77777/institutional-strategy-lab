@@ -37,7 +37,6 @@ CFG = {
     "MIN_WIN": envf("MIN_WIN", 0.80),        # taux de reussite minimum (donnees jamais vues)
     "TARGET_WIN": envf("TARGET_WIN", 0.95),  # objectif affiche
     "MIN_TRADES_TEST": envf("MIN_TRADES_TEST", 30),
-    "MIN_TRADES_TEST_15M": envf("MIN_TRADES_TEST_15M", 200),   # 5 / 15 / 30 min : au moins 200 trades jamais vus
     "FDR": envf("FDR", 0.05),                # taux de fausses decouvertes toleré (Benjamini-Hochberg)
     "CONSENSUS": envf("CONSENSUS", 3),       # specialistes d'accord minimum pour un signal
     "ELITE_WIN": envf("ELITE_WIN", 0.90),    # setup elite : peut signaler seul (>= 90 % ...

@@ -1,73 +1,62 @@
-# 🪖 Institutional Strategy Lab — l'armée des 20 spécialistes
+# 🪖 Institutional Strategy Lab — l'armée des spécialistes
 
-**Recherche automatique de stratégies intraday à 80–95 % de réussite, validées sur des données jamais vues.
-Forex, or et crypto · compatible avec tous les courtiers · signaux Telegram · 100 % gratuit.**
+**Recherche automatique et continue de stratégies 1 heure à 80–95 % de réussite, prouvées sur des données jamais vues.
+Forex, or, argent et crypto · compatible avec tous les courtiers · signaux Telegram · 100 % gratuit.**
 
-## L'idée
+## Le principe
 
-Les institutions ont leurs algorithmes ; voici le tien, construit avec leur méthode :
-
-1. **20 spécialistes**, chacun avec sa famille d'indicateurs : Tendance · Ichimoku · Momentum · Oscillateurs ·
-   Volatilité · Bandes · Volume · VWAP · Volume profile · Fibonacci · AMD et sessions · Structure de marché ·
-   Chandeliers · Statisticien · Mathématicien · Retour à la moyenne · Horaires · Inter-marchés · Macro · Carnet d'ordres.
-2. **Plus de 600 variantes d'indicateurs** (divergences RSI / MACD / OBV, Supertrend, Hull, régressions, Hurst,
-   entropie, sweeps de liquidité, avance du marché meneur BTC / EURUSD / SPY…), découpées en **près de 3 000 conditions**, combinées par 2 et par 3 :
-   **des millions de combinaisons testées** à chaque recherche.
-3. **Méthode anti-hasard des fonds quantitatifs** :
-   - apprentissage sur les 60 % les plus anciens, validation sur les 20 % suivants, **verdict sur les 20 % les plus récents, jamais vus** ;
-   - correction des tests multiples (Benjamini-Hochberg) : sur des millions d'essais, le hasard « trouve » toujours quelque chose ;
-   - trades sans chevauchement, frais inclus, exécution prudente ;
-   - **purge et embargo** entre les périodes (López de Prado) : aucun trade appris ne « voit » la période suivante ;
-   - **robustesse** : gagnante sur la majorité des actifs pris un par un, et ≥ 75 % de réussite sur chaque moitié de la
-     période jamais vue (stabilité dans le temps) ;
-   - test de contrôle : sur des prix au hasard, le labo ne doit **rien** trouver (vérifié par les tests automatiques).
-4. **Règle de sélection** : taux de réussite **≥ 80 %** (objectif 95 %) **et** gain moyen positif après frais.
-   Un taux élevé avec un total perdant ne passe pas.
-5. **L'armée vote** : un signal part seulement si au moins **3 spécialistes** ont une stratégie validée active dans le
-   même sens, sans majorité contraire. Le vote lui-même est testé sur les données jamais vues.
-6. **Setup élite** : une stratégie prouvée à **≥ 90 % sur ≥ 100 trades jamais vus** (borne basse prudente ≥ 85 %) peut signaler seule, sans attendre 3 spécialistes.
-   Tant qu'aucune stratégie ne passe, l'armée reste silencieuse. C'est voulu.
-   En direct, l'armée lit les mêmes données que la recherche (Coinbase pour la crypto, volume forex neutralisé) : aucun écart entre ce qui a été testé et ce qui est surveillé.
-7. **L'Inventeur (21ᵉ agent)** cherche en permanence des idées : à chaque recherche il invente ~150 nouveaux indicateurs
-   en combinant ceux des spécialistes (accords, désaccords, accélérations, croisements, rangs), les fait tester avec les
-   mêmes règles, garde en mémoire (`ideas.json`) celles qui gagnent et les fait évoluer la semaine suivante
-   (mutation, croisement), comme une sélection naturelle.
-8. **Multi-unités (23ᵉ agent)** : tendance 1 h, 4 h et journalière (bougies clôturées uniquement), que chaque spécialiste peut ajouter à ses conditions — l'entrée en 15 min dans le sens de la tendance supérieure, comme les desks institutionnels.
-10. **Sources publiques reconnues (24ᵉ à 27ᵉ agents)** : les 61 figures de chandeliers de TA-Lib, les facteurs Alpha158 de Microsoft Qlib, les « 101 Formulaic Alphas » de WorldQuant (version série temporelle) et les Smart Money Concepts (swings confirmés, BOS / CHoCH, order blocks, FVG, liquidité) — formules réécrites, sans regard vers le futur (testé).
-11. **L'Éclaireur (28ᵉ agent)** : chaque jour, veille sur GitHub (projets de trading récents et populaires) et arXiv (dernières publications de finance quantitative). Il ne télécharge ni n'exécute aucun code : il repère les familles d'indicateurs qui montent, oriente l'Inventeur vers elles (`veille.json`) et envoie un résumé sur Telegram.
-9. **Favoris TradingView (22ᵉ agent)** : WaveTrend (VuManChu Cipher B), Squeeze Momentum, UT Bot, Chandelier Exit, QQE,
-   Range Filter, SSL Channel, Fisher Transform, Schaff Trend Cycle, Kalman, Fair Value Gaps, Nadaraya-Watson (version qui
-   ne repeint pas) — réécrits à partir de leurs formules publiques (aucune copie de script).
-9. **L'algorithme final** = le comité des stratégies validées et leur vote, régénéré chaque semaine dans
-   `strategies.json` : il devient plus fort à mesure que l'Inventeur trouve de meilleures idées et que les stratégies
-   qui faiblissent en réel sont retirées.
-
-## Ce que tu reçois sur Telegram
-
-- 🪖 **Conseil des 20** à 8 h, 14 h et 20 h (Paris) : pour BTC, ETH, SOL, EURUSD, GBPUSD, USDJPY, or et argent,
-  combien de spécialistes sont haussiers ou baissiers, et qui n'est pas d'accord.
-- 🟢🔴 **Signal** (contrôle toutes les 5 minutes, **bougies 15 minutes uniquement** ; forex : historique Dukascopy + prix interbancaires temps réel TrueFX) : catégorie, ACHETER / VENDRE, entrée au prix du marché, sortie de sécurité,
-  prise de gain et heure de fermeture **en prix et en %** (valable chez n'importe quel courtier), spécialistes d'accord et
-  pas d'accord, taux de réussite prouvé, 10 000 simulations Monte Carlo.
-- ✅🛑 **Résultat** de chaque signal et bilan réel de l'armée. Une stratégie qui tombe sous 70 % en réel (après 20 trades)
-  est retirée automatiquement.
+1. **Des spécialistes**, chacun avec sa famille d'indicateurs (~850 variantes au total) :
+   Tendance · Ichimoku · Momentum · Oscillateurs · Volatilité · Bandes · Volume · VWAP · Volume profile · Fibonacci ·
+   AMD et sessions · Structure de marché · Chandeliers · Statisticien · Mathématicien · Retour à la moyenne · Horaires ·
+   Inter-marchés · Macro · Carnet d'ordres · Favoris TradingView · Multi-unités (1 h / 4 h / jour) ·
+   Chandeliers TA-Lib (61 figures) · Alpha158 (Microsoft Qlib) · 101 Alphas (WorldQuant) · Smart Money Concepts ·
+   Dérivés crypto (financement des perpétuels) · Chiffres ronds · Volatilité du week-end.
+2. **Le noyau Ichimoku** : des stratégies qui partent toujours d'un signal Ichimoku — passé (Chikou), présent (Tenkan,
+   Kijun, prix face au nuage), futur (nuage projeté, déjà connu à la clôture) — confirmé par 1 ou 2 conditions des
+   meilleurs autres spécialistes.
+3. **L'Inventeur** crée ~250 nouveaux indicateurs à chaque recherche (accords, écarts, accélérations…), garde ceux qui
+   gagnent (`ideas.json`) et les fait évoluer.
+4. **L'Éclaireur** fait chaque jour la veille de GitHub et d'arXiv (`veille.json`) : il oriente l'Inventeur vers les
+   familles qui montent et envoie un résumé sur Telegram. Il ne télécharge ni n'exécute jamais de code. Les idées
+   étudiées et la décision du conseil sont notées dans `eclaireur_integre.json`.
+5. **Méthode anti-hasard des fonds quantitatifs** : apprentissage sur les 60 % les plus anciens, validation sur les 20 %
+   suivants, verdict sur les 20 % les plus récents jamais vus ; purge et embargo entre les périodes ; correction des
+   tests multiples (Benjamini-Hochberg) ; trades sans chevauchement, frais inclus, exécution prudente ; robustesse
+   (majorité des actifs gagnants, ≥ 75 % sur chaque moitié de la période jamais vue) ; contrôle : sur des prix au
+   hasard le labo ne trouve rien (testé).
+6. **Règle de sélection** : ≥ 80 % de réussite (objectif 95 %), ≥ 30 trades jamais vus **et** gain moyen positif après frais.
+   Pas de prise de gain sous 0,5 ATR (sur des prix au hasard elle « réussit » déjà ~87 %).
 
 ## Données (gratuites, sans inscription)
 
-Recherche **et signaux en direct** : **Dukascopy** pour tout le forex et les métaux (bougies 1 min regroupées en 5 min, 15 min, 30 min et 1 h, 3 ans en 1 h, avec le volume ; vérifié : Yahoo produisait de faux setups forex), **Coinbase** (crypto, 8 mois en
-15 min, 3 ans en 1 h), Yahoo Finance (forex 1 h sur 2 ans, et en direct). En 5, 15 et 30 min, une stratégie doit réussir sur au moins
-**200 trades jamais vus**. Carnets d'ordres publics Coinbase et Bitstamp (crypto, en
-direct uniquement : aucun historique gratuit n'existe), S&P 500 et VIX pour le régime de marché.
+- **Forex et métaux : Dukascopy** (banque suisse), 3 ans de bougies 1 h pour la recherche ; en direct, les heures
+  publiées par Dukascopy complétées par le **temps réel TrueFX** (10 grandes paires, ou plus avec un compte TrueFX gratuit
+  dans les secrets `TRUEFX_USER` / `TRUEFX_PASS`). Yahoo n'est plus utilisé pour le forex : un test sur 2 ans a montré
+  qu'il produisait de faux setups (`validation.json`).
+- **Crypto : Coinbase** (3 ans en 1 h, recherche et direct), taux de financement Kraken Futures (secours Hyperliquid),
+  carnets d'ordres Coinbase / Bitstamp en direct.
+- S&P 500 et VIX pour le régime de marché.
 
-## Installation (déjà faite)
+## Ce que tu reçois sur Telegram
 
-- **Recherche** : *Actions* → **Labo - recherche de strategies** (**tourne sans arrêt** : chaque recherche relance la suivante avec de nouvelles idées ; mettre la variable `CONTINU` à `stop` pour l'arrêter).
-  Publie `strategies.json` (l'algorithme) et `ideas.json` (la mémoire de l'Inventeur).
-- **Armée en direct** : tourne depuis le dépôt `crypto-signals-timesfm` (workflow *Armee des 20*), qui a déjà le jeton
-  Telegram ; elle recharge chaque heure les stratégies publiées ici. Le workflow `live.yml` de ce dépôt reste disponible à
-  la main si on y ajoute le secret `TELEGRAM_BOT_TOKEN`.
+- 🟢🔴 **Signal 1 h** (contrôle toutes les 5 min) : entrée, stop, prise de gain et heure de fermeture **en prix et en %**,
+  la stratégie et son taux prouvé. Il part si le **vote de l'armée** (≥ 3 spécialistes d'accord, vote lui-même testé
+  ≥ 80 %) ou un **setup élite** (≥ 90 % sur ≥ 100 trades jamais vus) est actif, sans majorité contraire, un seul trade
+  à la fois par paire.
+- ✅🛑 **Résultat** de chaque signal et bilan réel ; une stratégie qui tombe sous 70 % en réel (après 20 trades) est retirée.
+- 🪖 **Conseil des spécialistes** à 8 h, 14 h et 20 h (Paris) · 🔭 **veille de l'Éclaireur** chaque matin.
+- Tant qu'aucune stratégie ne passe, l'armée reste silencieuse. C'est voulu.
 
-Réglages (variables GitHub, facultatives) : `MIN_WIN` (0.80), `CONSENSUS` (3), `BEAM` (40), `TIMEFRAMES` (15M,5M,30M,1H).
+## Fonctionnement (GitHub Actions)
+
+- **Labo - recherche de stratégies** (`mine.yml`) : forex 1 h et crypto 1 h en parallèle, chaque recherche relance la
+  suivante sans arrêt (variable `CONTINU` = `stop` pour arrêter), prix Dukascopy gardés en cache ; publie `strategies.json`.
+- **Éclaireur** (`scout.yml`) : veille quotidienne. **Vérification courtier** (`validate.yml`) : rejoue la meilleure
+  stratégie sur Dukascopy et Yahoo. **Tests** (`tests.yml`).
+- **Armée en direct** : tourne depuis le dépôt `crypto-signals-timesfm` (workflow *Armée*), qui a le jeton Telegram, et
+  recharge chaque heure les stratégies publiées ici.
+
+Réglages (variables GitHub, facultatives) : `MIN_WIN` (0.80), `CONSENSUS` (3), `BEAM` (60), `TIMEFRAMES` (1H).
 
 ## ⚠️ Honnêteté
 
