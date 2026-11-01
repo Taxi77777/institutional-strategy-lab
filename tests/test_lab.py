@@ -244,3 +244,23 @@ def test_ichimoku_core_candidates():
         assert cd["agent"] == "noyau_ichimoku" and "ichimoku" in ags and len(ags) >= 2
     F, _ = IND.compute(synth(5), "fx")
     assert {"etat_nuage_9_26", "signal_complet_9_26", "tk_croisement_9_26"} <= set(F["ichimoku"])
+
+
+def test_dukascopy_monthly_hours_and_yearly_check(monkeypatch):
+    """10 ans : fichiers mensuels de bougies 1 h decodes ; validation par annee presente dans la robustesse."""
+    import lzma, struct
+    from lab import data
+    recs = b"".join(struct.pack(">5if", h * 3600, 108500, 108510, 108490, 108520, 1.0) for h in range(24 * 28))
+    blob = lzma.compress(recs, format=lzma.FORMAT_ALONE)
+    class R:
+        status_code, content = 200, blob
+    monkeypatch.delenv("DUKA_CACHE", raising=False)
+    monkeypatch.setattr(data.SESSION, "get", lambda *a, **k: R())
+    rows = data._duka_month("EURUSD", 2020, 2)
+    assert len(rows) == 24 * 28 and rows[0][1] == pytest.approx(1.085) and rows[0][2] == pytest.approx(1.0852)
+    monkeypatch.setattr(data, "dukascopy", lambda *a, **k: None)
+    a = data.dukascopy_hours("EURUSD", 120)
+    assert a.shape[1] == 6 and np.all(np.diff(a[:, 0]) > 0) and np.all(a[:, 5] == 0)
+    ds, res = run(True)
+    if res["strategies"]:
+        assert "annees_reussies" in res["strategies"][0]["robustesse"]

@@ -274,7 +274,6 @@ def ichimoku_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=200):
     if not core or not others:
         return 0, 0
     cm = {c_: cmask(ds, c_) for c_ in core}
-    om = {c_: cmask(ds, c_) for c_ in others}
     tested, before = 0, len(cands)
     for (eid, dr), (r, win, valid) in ds["R"].items():
         base = valid & tr
@@ -287,12 +286,13 @@ def ichimoku_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=200):
         sc1.sort(key=lambda x: -x[0])
         level = sc1[:beam]
         pool = []
-        for c_, m in om.items():
-            st = stats(r, win, m & base)
+        for c_ in others:                               # masques calcules a la volee : memoire maitrisee (10 ans)
+            st = stats(r, win, cmask(ds, c_) & base)
             tested += 1
             if st["n"] >= min_n:
                 pool.append((st["avg"] - st["se"], c_))
         pool = [c_ for _, c_ in sorted(pool, key=lambda x: -x[0])[:pool_n]]
+        om = {c_: cmask(ds, c_) for c_ in pool}
         allc = []
         for _d in range(2, depth + 1):
             nxt = []
@@ -359,8 +359,20 @@ def robustness(ds, cand):
     idx = np.flatnonzero(m)
     halves = [idx[:len(idx) // 2], idx[len(idx) // 2:]]
     wins = [float(win[h_].mean()) if len(h_) else 0.0 for h_ in halves]
-    ok = (tot == 0 or pos / tot >= 0.5) and min(wins) >= CFG["MIN_WIN"] - 0.05
-    return {"ok": bool(ok), "actifs_gagnants": "%d/%d" % (pos, tot), "reussite_moities": [round(w, 3) for w in wins]}
+    # validation glissante : la regle figee doit reussir CHAQUE annee jamais vue (>= 5 trades), une seule annee
+    # faible toleree sur quatre ; une strategie chanceuse sur une periode ne passe plus
+    yrs = (ds["ts"][idx] // (365.25 * 86400)).astype(int)
+    per_year = {}
+    for y in np.unique(yrs):
+        sel = idx[yrs == y]
+        if len(sel) >= 5:
+            per_year[int(1970 + y)] = (round(float(win[sel].mean()), 3), int(len(sel)), float(r[sel].mean()))
+    good = sum(1 for w, n, a in per_year.values() if w >= CFG["MIN_WIN"] - 0.05 and a > 0)
+    years_ok = len(per_year) < 2 or good >= max(1, int(np.ceil(0.75 * len(per_year))))
+    ok = (tot == 0 or pos / tot >= 0.5) and min(wins) >= CFG["MIN_WIN"] - 0.05 and years_ok
+    return {"ok": bool(ok), "actifs_gagnants": "%d/%d" % (pos, tot), "reussite_moities": [round(w, 3) for w in wins],
+            "par_annee": {str(y): {"reussite": w, "trades": n} for y, (w, n, a) in per_year.items()},
+            "annees_reussies": "%d/%d" % (good, len(per_year))}
 
 
 def bh(pvals, q):

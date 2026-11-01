@@ -18,7 +18,7 @@ SESSION.headers.update({"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) strategy-
 HOSTS = ("https://query2.finance.yahoo.com", "https://query1.finance.yahoo.com")
 TF = {"1H": ("60m", "730d", 3600)}
 # historique long de la recherche (jours) : meme nombre de bougies environ pour chaque unite de temps
-FX_DAYS = {"1H": ("FX_DAYS_1H", 1095)}        # forex : 3 ans de bougies 1 h Dukascopy
+FX_DAYS = {"1H": ("FX_DAYS_1H", 3650)}        # forex : 10 ans de bougies 1 h Dukascopy
 CR_DAYS = {"1H": ("CR_DAYS_1H", 1095)}        # crypto : 3 ans de bougies 1 h Coinbase
 
 
@@ -150,6 +150,74 @@ def dukascopy(sym, step, days):
         raise RuntimeError("Dukascopy %s : historique indisponible" % sym)
     a = _resample(np.array(rows, dtype=float), step)
     a[:, 5] = 0.0                   # meme vue que le direct temps reel (TrueFX : pas de volume) -> aucun ecart
+    return a
+
+
+def _duka_month(sym, year, month):
+    """Bougies 1 h d'un mois termine (un seul petit fichier Dukascopy par mois), gardees en cache disque."""
+    root = os.environ.get("DUKA_CACHE", "")
+    path = os.path.join(root, sym, "%04d-%02d_H1.bi5" % (year, month)) if root else None
+    content = None
+    if path and os.path.exists(path):
+        with open(path, "rb") as f:
+            content = f.read() or None
+    else:
+        try:
+            r = SESSION.get("https://datafeed.dukascopy.com/datafeed/%s/%04d/%02d/BID_candles_hour_1.bi5" % (
+                sym, year, month - 1), timeout=30)
+            if r.status_code in (200, 404):
+                content = r.content if r.status_code == 200 else b""
+                if path:
+                    os.makedirs(os.path.dirname(path), exist_ok=True)
+                    with open(path, "wb") as f:
+                        f.write(content)
+                content = content or None
+        except Exception:
+            content = None
+    if not content:
+        return None
+    try:
+        raw = lzma.decompress(content, format=lzma.FORMAT_ALONE)
+    except Exception:
+        return None
+    pt = DUKA_POINT.get(sym[3:], DUKA_POINT.get(sym[:3], 1e-5))
+    t0 = int(datetime.datetime(year, month, 1, tzinfo=datetime.timezone.utc).timestamp())
+    rows = []
+    for off in range(0, len(raw) - 23, 24):
+        t, o, c, lo, hi, v = struct.unpack(">5if", raw[off:off + 24])
+        rows.append((t0 + t, o * pt, hi * pt, lo * pt, c * pt, 0.0))
+    return rows
+
+
+def dukascopy_hours(sym, days):
+    """Historique long 1 h : mois termines (fichiers mensuels) + mois en cours (bougies 1 min des jours passes)."""
+    today = datetime.datetime.now(datetime.timezone.utc).date()
+    start = today - datetime.timedelta(days=days)
+    months = []
+    y, m = start.year, start.month
+    while (y, m) < (today.year, today.month):
+        months.append((y, m))
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    rows = []
+    with cf.ThreadPoolExecutor(8) as ex:
+        res = list(ex.map(lambda ym: _duka_month(sym, *ym), months))
+    if sum(1 for x in res if x) < max(1, len(months) // 2):
+        raise RuntimeError("fichiers mensuels Dukascopy indisponibles pour %s" % sym)
+    for x in res:
+        rows += x or []
+    first = datetime.date(today.year, today.month, 1)
+    cur = (today - first).days
+    if cur > 0:
+        try:
+            recent = dukascopy(sym, 3600, cur)
+        except Exception:
+            recent = None                                # debut de mois / week-end : rien a ajouter
+        if recent is not None and len(recent):
+            last = max(r[0] for r in rows) if rows else 0
+            rows += [tuple(r) for r in recent if r[0] > last]
+    a = np.array(sorted({int(r[0]): r for r in rows}.values()), dtype=float)
+    a = a[a[:, 0] >= int(datetime.datetime(start.year, start.month, start.day, tzinfo=datetime.timezone.utc).timestamp())]
+    a[:, 5] = 0.0
     return a
 
 
@@ -328,12 +396,16 @@ def coinbase(sym, step, days):
 
 
 def long_bars(sym, kind, tf):
-    """Historique long pour la recherche : Dukascopy (forex, 15 min), Coinbase (crypto) ; Yahoo en secours."""
+    """Historique long pour la recherche : Dukascopy (forex, 10 ans), Coinbase (crypto, 3 ans) ; Yahoo en secours."""
     step = TF[tf][2]
     try:
         if kind == "fx" and tf in FX_DAYS:
             v, d = FX_DAYS[tf]
-            return dukascopy(sym, step, int(os.environ.get(v, d)))
+            try:
+                return dukascopy_hours(sym, int(os.environ.get(v, d)))       # 10 ans en ~120 fichiers par paire
+            except Exception as ex:
+                log.warning("Dukascopy mensuel %s : %s (fichiers journaliers)", sym, ex)
+                return dukascopy(sym, step, int(os.environ.get(v, d)))
         if kind == "cr" and tf in CR_DAYS:
             v, d = CR_DAYS[tf]
             return coinbase(sym, step, int(os.environ.get(v, d)))
