@@ -298,3 +298,12 @@ def test_numerologie_a_part(monkeypatch):
     monkeypatch.setattr(live, "UNIVERSE", {"fx": ["EURUSD"]})
     st = live.load_state()
     assert live.scan(st, lab, "1H", fx["ts"] + 3600 + 60) == 1 and "numérologie (à part)" in sent[-1]
+
+
+def test_recherche_dediee_numerologie(monkeypatch):
+    """Recherche parallele : AGENTS_ONLY=numerologie ne produit que des candidates numerologie."""
+    monkeypatch.setenv("AGENTS_ONLY", "numerologie")
+    ds = miner.build("cr", "1H", lambda s, k, tf: synth(sum(map(ord, s)), edge=True), symbols=["BTC", "ETH"], macro={})
+    cands, tested, _ = miner.search(ds)
+    assert tested > 0 and all(cd["agent"] == "numerologie" for cd in cands)
+    assert all(c_[0] == "numerologie" for cd in cands for c_ in cd["conds"])

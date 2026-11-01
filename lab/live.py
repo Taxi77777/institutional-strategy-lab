@@ -80,6 +80,7 @@ def save_state(st):
 STRAT_URL = os.environ.get("LAB_STRATEGIES_URL",
                            "https://raw.githubusercontent.com/Taxi77777/institutional-strategy-lab/main/strategies.json")
 LAB_CACHE = {"ts": 0, "v": None}
+NUM_URL = STRAT_URL.replace("strategies.json", "strategies_numerologie.json")
 
 
 def load_strategies():
@@ -99,6 +100,20 @@ def load_strategies():
                 v = json.load(f)
         except Exception:
             v = {"classes": []}
+    try:                                            # recherche parallele numerologie (strategies a part)
+        rn = data.SESSION.get(NUM_URL, params={"t": int(time.time() // 3600)}, timeout=20)
+        num = rn.json() if rn.ok else {}
+    except Exception:
+        num = {}
+    for c in (num.get("classes", []) if isinstance(num, dict) else []):
+        ss = [s for s in c.get("strategies", []) if s.get("agent") == "numerologie"]
+        if not ss:
+            continue
+        tgt = next((x for x in v["classes"] if x["kind"] == c["kind"] and x["tf"] == c["tf"]), None)
+        if tgt is None:
+            v["classes"].append({"kind": c["kind"], "tf": c["tf"], "strategies": ss, "armee": {}})
+        else:
+            tgt["strategies"] = [s for s in tgt["strategies"] if s.get("agent") != "numerologie"] + ss
     LAB_CACHE.update(ts=time.time(), v=v)
     return v
 

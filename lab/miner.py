@@ -220,6 +220,9 @@ def search(ds, log_every=50):
     by_agent = {}
     for c_ in conds:
         by_agent.setdefault(c_[0], []).append(c_)
+    only = os.environ.get("AGENTS_ONLY", "").strip()
+    if only:                                               # recherche parallele dediee (ex. numerologie, a part)
+        by_agent = {ag: cl for ag, cl in by_agent.items() if ag in only.split(",")}
     ctx = by_agent.get("multi_unites", [])
     ctx_masks = {c_: cmask(ds, c_) for c_ in ctx}         # contexte 1 h / 4 h / jour, partage par tous les specialistes
     for agent, cl in by_agent.items():
@@ -259,7 +262,7 @@ def search(ds, log_every=50):
             for sc, combo, _mm in allc:
                 if sc > 0:
                     cands.append({"agent": agent, "exit": eid, "dir": dr, "conds": combo})
-    nt, nc = ichimoku_core(ds, by_agent, cands, beam, depth, min_n, tr)
+    nt, nc = ichimoku_core(ds, by_agent, cands, beam, depth, min_n, tr) if not only else (0, 0)
     tested += nt
     log.info("%s %s : %d conditions, %d combinaisons testees, %d candidates (dont %d noyau Ichimoku)",
              ds["kind"], ds["tf"], len(conds), tested, len(cands), nc)
@@ -482,7 +485,7 @@ def run_all(fetch=None, fetch_daily=None, kinds=None, tfs=None):
     for kind in kinds or [k for k in ("cr", "fx", "stocks") if UNIVERSE[k]]:
         for tf in tfs or CFG["TIMEFRAMES"]:
             specs = []
-            ds = build(kind, tf, fetch, macro=macro, idea_specs=specs)
+            ds = build(kind, tf, fetch, macro=macro, idea_specs=None if os.environ.get("AGENTS_ONLY") else specs)
             if not ds:
                 continue
             all_specs.update({IDEAS.name(sp): sp for sp in specs})
@@ -497,8 +500,9 @@ def run_all(fetch=None, fetch_daily=None, kinds=None, tfs=None):
     used = {nm for c in out["classes"] for s in c["strategies"] for ag, nm, _a, _b in s["conds"] if ag == "inventeur"}
     out["idees"] = {nm: all_specs[nm] for nm in used if nm in all_specs}
     out["inventeur"] = {"idees_testees": len(all_specs), "idees_gagnantes": len(used)}
-    with open(IDEAS.MEMORY, "w") as f:
-        json.dump(memory, f, indent=1)
+    if not os.environ.get("AGENTS_ONLY"):
+        with open(IDEAS.MEMORY, "w") as f:
+            json.dump(memory, f, indent=1)
     return out
 
 
@@ -541,7 +545,7 @@ def merge(parts_dir="parts", old_path="strategies.json"):
     out["inventeur"] = {"idees_testees": tested, "idees_gagnantes": len(used)}
     with open(old_path, "w") as f:
         json.dump(out, f, indent=1)
-    if mem:
+    if mem and old_path == "strategies.json":
         old_mem = IDEAS.load_memory()
         for g in old_mem.get("gagnantes", []):
             if g["nom"] not in mem or g["score"] > mem[g["nom"]]["score"]:
@@ -561,7 +565,7 @@ if __name__ == "__main__":
         with open(os.path.join("parts", "%s_%s.json" % (kind, tf)), "w") as f:
             json.dump(res, f, indent=1)
     elif len(sys.argv) >= 2 and sys.argv[1] == "merge":
-        res = merge()
+        res = merge(old_path=sys.argv[2] if len(sys.argv) >= 3 else "strategies.json")
     else:
         res = run_all()
         with open("strategies.json", "w") as f:
