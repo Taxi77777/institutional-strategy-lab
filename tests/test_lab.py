@@ -271,3 +271,12 @@ def test_dukascopy_monthly_hours_and_yearly_check(monkeypatch):
     ds, res = run(True)
     if res["strategies"]:
         assert "annees_reussies" in res["strategies"][0]["robustesse"]
+
+
+def test_numerologie_causale():
+    """Specialiste numerologie : 18 indicateurs, sans regard vers le futur."""
+    from lab import extra as EX
+    ts = 1.79e9 + np.arange(500) * 3600.0
+    c = 1.08 + np.cumsum(np.random.default_rng(2).normal(0, 1e-4, 500))
+    a, b = EX.numerologie(ts, c, np.full(500, 1e-3)), EX.numerologie(ts[:300], c[:300], np.full(300, 1e-3))
+    assert len(a) == 18 and all(np.allclose(a[k][:300], b[k], equal_nan=True) for k in a)

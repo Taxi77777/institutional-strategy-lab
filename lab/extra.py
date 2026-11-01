@@ -332,12 +332,33 @@ def weekend_vol(ts, c):
     return {"vol_weekend": out, "lundi": monday}
 
 
+SACRES = (7, 12, 19, 40, 72, 99)      # nombres presents dans les traditions monotheistes
+
+
+def numerologie(ts, c, atr):
+    """Test (demande du trader) : nombres des traditions monotheistes -> cycles de temps (heures, jours) et niveaux de
+       prix multiples de ces nombres en pips. Aucune preuve scientifique connue : le labo les garde seulement s'ils
+       passent les memes regles anti-hasard (>= 92 % sur des trades jamais vus)."""
+    out = {}
+    hrs = (ts // 3600).astype(np.int64)
+    days = (ts // 86400).astype(np.int64)
+    lg = np.floor(np.log10(np.where(c > 0, c, np.nan)))
+    pip = 10.0 ** (lg - 4)                           # ~1 pip (1,0850 -> 0,0001 ; 157,30 -> 0,01)
+    for n in SACRES:
+        out["cycle_heures_%d" % n] = (hrs % n) / float(n)
+        out["cycle_jours_%d" % n] = (days % n) / float(n)
+        g = n * pip
+        out["niveau_%d_pips" % n] = _div(c - np.round(c / g) * g, atr)
+    return out
+
+
 def compute_extra(o, h, l, c, v, atr, ts=None):
     has_vol = np.nansum(v) > 0
     out = {"chandeliers": candles(o, h, l, c), "alpha158": alpha158(o, h, l, c, v, has_vol),
            "wq101": wq101(o, h, l, c, v, has_vol, atr), "smc": smc(o, h, l, c, atr),
            "chiffres_ronds": round_numbers(h, l, c, atr)}
     if ts is not None:
+        out["numerologie"] = numerologie(ts, c, atr)
         wk = weekend_vol(ts, c)
         if np.isfinite(wk["vol_weekend"]).sum() > 0:     # seulement les marches ouverts le week-end (crypto)
             out["weekend"] = wk
