@@ -41,7 +41,7 @@ Forex, or, argent et crypto · compatible avec tous les courtiers · signaux Tel
 
 - 🟢🔴 **Signal 1 h** (contrôle toutes les 5 min) : entrée, stop, prise de gain et heure de fermeture **en prix et en %**,
   la stratégie et son taux prouvé. Il part si le **vote de l'armée** (≥ 3 spécialistes d'accord, vote lui-même testé
-  ≥ 80 %) ou un **setup élite** (≥ 90 % sur ≥ 100 trades jamais vus) est actif, sans majorité contraire, un seul trade
+  ≥ 92 %) ou un **setup élite** (≥ 92 % sur ≥ 100 trades jamais vus) — **aucun signal sous 92 %** (exigence du trader) est actif, sans majorité contraire, un seul trade
   à la fois par paire.
 - ✅🛑 **Résultat** de chaque signal et bilan réel ; une stratégie qui tombe sous 70 % en réel (après 20 trades) est retirée.
 - Rien d'autre : pas de briefing ni de résumé (variable `INFOS` = `1` pour remettre le conseil de 8 h / 14 h / 20 h et la veille de l'Éclaireur).

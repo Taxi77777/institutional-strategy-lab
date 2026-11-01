@@ -208,7 +208,7 @@ def council_votes(lab, kind, tf, sym, fx, retired):
 
 
 def is_elite(s):
-    """Setup elite : >= 90 % sur >= 100 trades jamais vus, borne basse prudente >= 85 %, gain positif."""
+    """Setup elite : >= 92 % sur >= 100 trades jamais vus, borne basse prudente >= 85 %, gain positif."""
     t = s["stats"]["test"]
     return (t.get("win", 0) >= CFG["ELITE_WIN"] and t.get("n", 0) >= CFG["ELITE_N"] and t.get("avg", 0) > 0
             and s.get("wilson_test", 0) >= CFG["ELITE_WILSON"])
@@ -246,11 +246,13 @@ def scan(st, lab, tf, now):
                 strong = {a: s for a, s in agents.items() if a != "carnet"}
                 if not strong or len(votes[-dr]) >= len(agents):
                     continue                        # personne de solide, ou autant de specialistes contre
-                army_ok = (army and army.get("win", 0) >= CFG["MIN_WIN"] and army.get("avg", 0) > 0
+                army_ok = (army and army.get("win", 0) >= CFG["SIGNAL_MIN_WIN"] and army.get("avg", 0) > 0
                            and army.get("n", 0) >= 20 and len(agents) >= CFG["CONSENSUS"])
                 elite = [s for s in strong.values() if is_elite(s)]
                 if not army_ok and not elite:
-                    continue                        # ni vote de l'armee prouve, ni setup elite
+                    continue                        # ni vote de l'armee prouve >= 92 %, ni setup elite
+                if max(s["stats"]["test"]["win"] for s in (elite or strong.values())) < CFG["SIGNAL_MIN_WIN"]:
+                    continue                        # exigence du trader : la strategie meneuse doit avoir >= 92 %
                 if any(o["sym"] == sym for o in st["open"]):
                     continue                        # un seul trade a la fois par paire : pas d'empilement du meme risque
                 key = "%s|%s|%d|%d" % (sym, tf, dr, int(fx["ts"]))
@@ -275,7 +277,7 @@ def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab, elite=Fal
              100 * CFG["MIN_WIN"], TG.esc(IND.AGENTS.get(lead.get("agent", ""), lead.get("agent", "")))),
          "%s <b>%s %s</b>%s" % ("🟢" if dr > 0 else "🔴", "ACHETER" if dr > 0 else "VENDRE", TG.esc(data.label(sym, kind)),
                                 "" if dr > 0 else "  <i>(tu gagnes si le prix baisse)</i>"),
-         ("⭐ <b>Setup élite</b> (prouvé seul à plus de 90 %%) · bougies %s" % tf.lower() if elite else
+         ("⭐ <b>Setup élite</b> (prouvé seul à plus de 92 %%) · bougies %s" % tf.lower() if elite else
           "🪖 Armée : <b>%d spécialistes d'accord</b> · bougies %s" % (len(agents), tf.lower())), SEP,
          "💵 Entrée au prix du marché : <code>%s</code>  · à faire avant %s" % (fmt(px), paris(max(fx["ts"] + STEP[tf] + 600, time.time() + 600)).strftime("%H:%M")),
          "🛑 Sortie de sécurité : <code>%s</code>  (%+.2f %%)" % (fmt(sl), -dr * 100 * ex["sl"] * atr / px),
