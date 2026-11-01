@@ -25,6 +25,7 @@ AGENTS = {
     "smc": "Smart Money Concepts (BOS, CHoCH, order blocks, FVG)",
     "derives": "Dérivés crypto (taux de financement des perpétuels)",
     "chiffres_ronds": "Chiffres ronds (niveaux psychologiques)",
+    "noyau_ichimoku": "Noyau Ichimoku + confirmations des autres spécialistes",
     "weekend": "Volatilité du week-end crypto",
 }
 HTF = ((3600, "1h"), (14400, "4h"), (86400, "jour"))
@@ -211,6 +212,24 @@ def compute(arr, kind, refs=None, macro=None):
         F["ichimoku"]["sous_nuage_" + tag] = safe_div(c - bot, atr14)
         F["ichimoku"]["epaisseur_nuage_" + tag] = safe_div(top - bot, atr14)
         F["ichimoku"]["chikou_" + tag] = safe_div(c, shift(c, k_)) - 1
+        # signaux classiques (lecture d'un trader Ichimoku), tous connus a la cloture de la bougie
+        etat = np.where(c > top, 1.0, np.where(c < bot, -1.0, 0.0))
+        etat[~np.isfinite(top)] = NAN
+        tk = np.sign(ten - kij)
+        fa, fb = (ten + kij) / 2, mid(s_)                      # nuage futur (trace en avance, deja connu)
+        fut = np.sign(fa - fb)
+        chk = np.sign(c - shift(c, k_))
+        F["ichimoku"]["etat_nuage_" + tag] = etat
+        F["ichimoku"]["tk_sens_" + tag] = tk
+        F["ichimoku"]["tk_croisement_" + tag] = np.where((tk > 0) & (shift(tk, 1) <= 0), 1.0,
+                                                         np.where((tk < 0) & (shift(tk, 1) >= 0), -1.0, 0.0))
+        F["ichimoku"]["nuage_futur_" + tag] = fut
+        F["ichimoku"]["cassure_nuage_" + tag] = np.where((etat == 1) & (shift(etat, 1) < 1), 1.0,
+                                                         np.where((etat == -1) & (shift(etat, 1) > -1), -1.0, 0.0))
+        F["ichimoku"]["rebond_kijun_" + tag] = np.where((l <= kij) & (c > kij) & (tk > 0), 1.0,
+                                                        np.where((h >= kij) & (c < kij) & (tk < 0), -1.0, 0.0))
+        F["ichimoku"]["signal_complet_" + tag] = np.where((etat == 1) & (tk > 0) & (fut > 0) & (chk > 0), 1.0,
+                                                          np.where((etat == -1) & (tk < 0) & (fut < 0) & (chk < 0), -1.0, 0.0))
 
     # 3 momentum
     for p in G["rsi"]:

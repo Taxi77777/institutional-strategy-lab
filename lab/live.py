@@ -229,7 +229,7 @@ def scan(st, lab, tf, now):
                 continue
             finally:
                 time.sleep(CFG["PAUSE"])
-            late = 600
+            late = 2400 if kind == "fx" else 600          # forex : Dukascopy publie chaque heure avec un leger retard
             if not fx or now - fx["ts"] - STEP[tf] > late:
                 continue                            # bougie trop ancienne : jamais de signal en retard
             votes = council_votes(lab, kind, tf, sym, fx, set(st["retired"]))

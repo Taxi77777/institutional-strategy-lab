@@ -228,3 +228,19 @@ def test_round_numbers_and_weekend():
     day = (ts // 86400).astype(int)
     assert np.all(np.isnan(wk["vol_weekend"][(day + 3) % 7 >= 5]))          # jamais pendant le week-end en cours
     assert np.isfinite(wk["vol_weekend"]).sum() > 0
+
+
+def test_ichimoku_core_candidates():
+    """Noyau Ichimoku : chaque candidate part d'une condition Ichimoku confirmee par un AUTRE specialiste."""
+    ds = miner.build("cr", "1H", lambda s, k, tf: synth(sum(map(ord, s)), edge=True), symbols=["BTC", "ETH", "SOL"], macro={})
+    by = {}
+    for c_ in miner.conditions(ds):
+        by.setdefault(c_[0], []).append(c_)
+    cands = []
+    tested, n = miner.ichimoku_core(ds, by, cands, 10, 3, 60, ds["split"] == 0, pool_n=40)
+    assert tested > 100 and n == len(cands)
+    for cd in cands:
+        ags = {c_[0] for c_ in cd["conds"]}
+        assert cd["agent"] == "noyau_ichimoku" and "ichimoku" in ags and len(ags) >= 2
+    F, _ = IND.compute(synth(5), "fx")
+    assert {"etat_nuage_9_26", "signal_complet_9_26", "tk_croisement_9_26"} <= set(F["ichimoku"])

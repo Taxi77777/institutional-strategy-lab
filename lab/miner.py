@@ -259,8 +259,61 @@ def search(ds, log_every=50):
             for sc, combo, _mm in allc:
                 if sc > 0:
                     cands.append({"agent": agent, "exit": eid, "dir": dr, "conds": combo})
-    log.info("%s %s : %d conditions, %d combinaisons testees, %d candidates", ds["kind"], ds["tf"], len(conds), tested, len(cands))
+    nt, nc = ichimoku_core(ds, by_agent, cands, beam, depth, min_n, tr)
+    tested += nt
+    log.info("%s %s : %d conditions, %d combinaisons testees, %d candidates (dont %d noyau Ichimoku)",
+             ds["kind"], ds["tf"], len(conds), tested, len(cands), nc)
     return cands, tested, len(conds)
+
+
+def ichimoku_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=200):
+    """Noyau Ichimoku : chaque strategie part d'une condition Ichimoku, confirmee par 1 ou 2 conditions des AUTRES
+       specialistes (les pool_n meilleures seules, par sortie et sens). Comptee dans le test multiple (FDR)."""
+    core = by_agent.get("ichimoku", [])
+    others = [c_ for ag, cl in by_agent.items() if ag != "ichimoku" for c_ in cl]
+    if not core or not others:
+        return 0, 0
+    cm = {c_: cmask(ds, c_) for c_ in core}
+    om = {c_: cmask(ds, c_) for c_ in others}
+    tested, before = 0, len(cands)
+    for (eid, dr), (r, win, valid) in ds["R"].items():
+        base = valid & tr
+        sc1 = []
+        for c_, m in cm.items():
+            st = stats(r, win, m & base)
+            tested += 1
+            if st["n"] >= min_n:
+                sc1.append((st["avg"] - st["se"], (c_,), m & base))
+        sc1.sort(key=lambda x: -x[0])
+        level = sc1[:beam]
+        pool = []
+        for c_, m in om.items():
+            st = stats(r, win, m & base)
+            tested += 1
+            if st["n"] >= min_n:
+                pool.append((st["avg"] - st["se"], c_))
+        pool = [c_ for _, c_ in sorted(pool, key=lambda x: -x[0])[:pool_n]]
+        allc = []
+        for _d in range(2, depth + 1):
+            nxt = []
+            for sc, combo, mm in level:
+                for c2 in pool:
+                    if c2 in combo or c2[1] in {x[1] for x in combo}:
+                        continue
+                    m2 = mm & om[c2]
+                    st = stats(r, win, m2)
+                    tested += 1
+                    if st["n"] >= min_n and st["win"] >= CFG["MIN_WIN"] - 0.03:
+                        nxt.append((st["avg"] - st["se"], tuple(sorted(combo + (c2,))), m2))
+            uniq = {}
+            for x in sorted(nxt, key=lambda x: -x[0]):
+                uniq.setdefault(x[1], x)
+            level = list(uniq.values())[:beam]
+            allc += level
+        for sc, combo, _mm in allc:
+            if sc > 0:
+                cands.append({"agent": "noyau_ichimoku", "exit": eid, "dir": dr, "conds": combo})
+    return tested, len(cands) - before
 
 
 def full_mask(ds, conds):
