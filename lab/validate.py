@@ -36,6 +36,27 @@ def replay(a, s, kind="fx"):
     return a[:, 0][keep], r[keep], win[keep]
 
 
+SWAP = (("vah", "val"), ("haut", "bas"), ("haussier", "baissier"), ("au_dessus", "sous"), ("achat", "vente"))
+
+
+def mirror(s):
+    """Version miroir d'une strategie : sens inverse, conditions retournees (au-dessus <-> en dessous,
+       haut <-> bas, valeurs signees negatives <-> positives). Ex. : acheter une baisse dans une tendance haussiere
+       -> vendre un rebond dans une tendance baissiere."""
+    conds = []
+    for ag, nm, lo, hi in s["conds"]:
+        new = nm
+        for a_, b_ in SWAP:
+            if a_ in nm:
+                new = nm.replace(a_, b_)
+                break
+            if b_ in nm:
+                new = nm.replace(b_, a_)
+                break
+        conds.append([ag, new, -hi, -lo])
+    return dict(s, conds=conds, dir=-s["dir"], id=s["id"] + "_miroir")
+
+
 def summary(ts, r, w):
     if len(r) == 0:
         return {"n": 0}
@@ -45,6 +66,8 @@ def summary(ts, r, w):
 
 def main():
     s = strat_best()
+    if os.environ.get("VAL_MIRROR") == "1":
+        s = mirror(s)
     if os.environ.get("VAL_DIR") in ("1", "-1"):          # meme regle, sens force (achat 1 / vente -1)
         s = dict(s, dir=int(os.environ["VAL_DIR"]), id=s["id"] + ("_achat" if os.environ["VAL_DIR"] == "1" else "_vente"))
     kind = os.environ.get("VAL_KIND", "fx")

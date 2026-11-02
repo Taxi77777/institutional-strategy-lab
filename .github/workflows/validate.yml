@@ -23,6 +23,10 @@ on:
         description: "Sens force : 1 achat, -1 vente (vide = sens de la strategie)"
         required: false
         default: ""
+      mirror:
+        description: "1 = version miroir (sens inverse, conditions retournees)"
+        required: false
+        default: ""
 
 jobs:
   validate:
@@ -43,6 +47,7 @@ jobs:
           VAL_KIND: ${{ inputs.kind }}
           VAL_DAYS: ${{ inputs.days }}
           VAL_DIR: ${{ inputs.dir }}
+          VAL_MIRROR: ${{ inputs.mirror }}
           PYTHONUNBUFFERED: '1'
         run: python -m lab.validate
       - name: Publication
