@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 
 import numpy as np
 
-from . import data, ideas as IDEAS, indicators as IND, telegram as TG
+from . import data, ideas as IDEAS, indicators as IND, positionnement as POS, telegram as TG
 from .config import CFG, UNIVERSE
 from .miner import BENCH, align, macro_series, funding_refs
 
@@ -162,6 +162,9 @@ def macro():
 FEAT = {}
 
 
+POSC = {}
+
+
 def features(sym, kind, tf, now, specs=None):
     a = hist(sym, kind, tf)
     a = a[a[:, 0] + STEP[tf] <= now]                # bougies cloturees uniquement
@@ -187,6 +190,11 @@ def features(sym, kind, tf, now, specs=None):
                 pan[s2] = align(b2[:, 0], b2[:, 4], a[:, 0])
     pan[sym] = a[:, 4]
     refs["panier"] = pan
+    ps = POSC.get(kind)
+    if not ps or time.time() - ps[0] > 6 * 3600:      # COT / DVOL : rafraichis toutes les 6 h
+        ps = (time.time(), POS.sources(kind))
+        POSC[kind] = ps
+    refs.update(ps[1])
     mac = {k: align(v[0], v[1], a[:, 0]) for k, v in macro().items()}
     if kind == "cr":
         refs = dict(refs or {})

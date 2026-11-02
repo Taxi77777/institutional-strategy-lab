@@ -2,6 +2,8 @@
 Prix de reference neutres (aucun courtier) : les niveaux sont aussi donnes en % pour s'appliquer partout."""
 import concurrent.futures as cf
 import datetime
+import io
+import json
 import logging
 import lzma
 import struct
@@ -488,3 +490,83 @@ def funding(sym, days=1200):
         raise RuntimeError("funding %s indisponible" % sym)
     return np.array(sorted(set(rows)), dtype=float)
 
+
+
+# ---- positionnement des gros acteurs et peur des options (sources publiques, sans inscription) ----
+def _cached_get(name, url, keep=True, timeout=40):
+    """Telechargement avec cache disque (DUKA_CACHE) pour les fichiers termines (annees passees)."""
+    root = os.environ.get("DUKA_CACHE", "")
+    path = os.path.join(root, "_sources", name) if root and keep else None
+    if path and os.path.exists(path):
+        with open(path, "rb") as f:
+            return f.read()
+    r = SESSION.get(url, timeout=timeout, headers={"User-Agent": "strategy-lab/1.0"})
+    r.raise_for_status()
+    if path:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "wb") as f:
+            f.write(r.content)
+    return r.content
+
+
+def dvol(cur="BTC", days=1200):
+    """Indice de volatilite implicite Deribit (DVOL), bougies 1 h depuis 2021. Retourne (n, 2) : temps (debut de la
+       bougie, s), cloture."""
+    end = int(time.time() * 1000)
+    start = max(int((time.time() - days * 86400) * 1000), 1617235200000)
+    step = 40 * 86400 * 1000
+    rows = {}
+    t = start
+    while t < end:
+        u = min(t + step, end)
+        name = "dvol_%s_%d_%d.json" % (cur, t, u)
+        try:
+            raw = _cached_get(name, "https://www.deribit.com/api/v2/public/get_volatility_index_data?currency=%s"
+                              "&resolution=3600&start_timestamp=%d&end_timestamp=%d" % (cur, t, u),
+                              keep=u < end - 3 * 86400 * 1000)
+            for x in json.loads(raw).get("result", {}).get("data", []):
+                rows[int(x[0])] = float(x[4])
+        except Exception as ex:
+            log.warning("DVOL %s : %s", cur, ex)
+        t = u
+    return np.array(sorted((k / 1000.0, v) for k, v in rows.items()), dtype=float).reshape(-1, 2)
+
+
+COT_NAMES = {"EURO FX": "EUR", "JAPANESE YEN": "JPY", "BRITISH POUND": "GBP", "BRITISH POUND STERLING": "GBP",
+             "SWISS FRANC": "CHF", "CANADIAN DOLLAR": "CAD", "AUSTRALIAN DOLLAR": "AUD", "NZ DOLLAR": "NZD",
+             "NEW ZEALAND DOLLAR": "NZD", "USD INDEX": "USD", "U.S. DOLLAR INDEX": "USD", "BITCOIN": "BTC"}
+
+
+def cot(years=11):
+    """Rapport COT de la CFTC (traders in financial futures) : positions des fonds a levier et des gerants.
+       Retourne {devise: (n, 4) : disponibilite (s), net fonds / OI, net gerants / OI, net dealers / OI}.
+       Disponibilite prudente : rapport du mardi utilise a partir du lundi suivant 00 h UTC."""
+    import csv
+    import zipfile
+    this = datetime.date.today().year
+    out = {}
+    for y in range(this - years + 1, this + 1):
+        try:
+            raw = _cached_get("cot_fin_%d.zip" % y, "https://www.cftc.gov/files/dea/history/fut_fin_txt_%d.zip" % y,
+                              keep=y < this)
+            z = zipfile.ZipFile(io.BytesIO(raw))
+            text = z.read(z.namelist()[0]).decode("utf-8", "replace").splitlines()
+        except Exception as ex:
+            log.warning("COT %d : %s", y, ex)
+            continue
+        for row in csv.DictReader(text):
+            cur = COT_NAMES.get((row.get("Market_and_Exchange_Names") or "").split(" - ")[0].strip())
+            if not cur:
+                continue
+            try:
+                d = datetime.date.fromisoformat(row["Report_Date_as_YYYY-MM-DD"][:10])
+                oi = float(row["Open_Interest_All"])
+                f = lambda a, b: (float(row[a]) - float(row[b])) / oi if oi > 0 else np.nan  # noqa: E731
+                vals = (f("Lev_Money_Positions_Long_All", "Lev_Money_Positions_Short_All"),
+                        f("Asset_Mgr_Positions_Long_All", "Asset_Mgr_Positions_Short_All"),
+                        f("Dealer_Positions_Long_All", "Dealer_Positions_Short_All"))
+            except (KeyError, ValueError):
+                continue
+            avail = datetime.datetime(d.year, d.month, d.day, tzinfo=datetime.timezone.utc).timestamp() + 6 * 86400
+            out.setdefault(cur, {})[avail] = vals
+    return {k: np.array([(t,) + v[t] for t in sorted(v)], dtype=float) for k, v in out.items()}

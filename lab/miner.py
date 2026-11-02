@@ -19,7 +19,7 @@ import warnings
 
 import numpy as np
 
-from . import data, extra as EX, ideas as IDEAS, indicators as IND, sim
+from . import data, extra as EX, ideas as IDEAS, indicators as IND, positionnement as POS, sim
 from .config import CFG, EXITS, UNIVERSE
 
 log = logging.getLogger("lab")
@@ -83,10 +83,12 @@ def build(kind, tf, fetch=None, fetch_daily=None, symbols=None, macro=None, idea
     bench = raw.get(BENCH[kind])
     macro = macro if macro is not None else (macro_series(fetch_daily) if fetch_daily else {})
     X, R, TS, AID = {}, {}, [], []
+    pos = POS.sources(kind)
     for ai, (s, a) in enumerate(raw.items()):
         refs = {"bench": align(bench[:, 0], bench[:, 4], a[:, 0])} if bench is not None and s != BENCH[kind] else {}
         refs["sym"] = s                             # flux des operateurs : force des devises / panier, SMT
         refs["panier"] = {s2: align(b2[:, 0], b2[:, 4], a[:, 0]) for s2, b2 in raw.items()}
+        refs.update(pos)                            # COT de la CFTC, DVOL Deribit
         if kind == "cr":
             refs["funding"] = funding_refs(s, a[:, 0])
         mac = {k: align(v[0], v[1], a[:, 0]) for k, v in macro.items()}

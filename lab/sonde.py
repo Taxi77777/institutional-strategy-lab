@@ -36,5 +36,27 @@ def main():
         print("%-26s %s" % (nm, info), flush=True)
 
 
+def reel():
+    """Telechargement reel du COT et du DVOL tel que le labo l'utilise."""
+    import numpy as np
+    from lab import data, positionnement as PO
+    t = time.time()
+    cot = data.cot()
+    print("COT : %s (%.0f s)" % ({k: len(v) for k, v in cot.items()}, time.time() - t), flush=True)
+    for k, v in cot.items():
+        print("   %s derniere dispo %s fonds %.3f gerants %.3f" % (k, time.strftime("%Y-%m-%d", time.gmtime(v[-1, 0])),
+                                                                v[-1, 1], v[-1, 2]))
+    t = time.time()
+    dv = {c: data.dvol(c) for c in ("BTC", "ETH")}
+    print("DVOL : %s (%.0f s)" % ({k: (len(v), time.strftime("%Y-%m-%d", time.gmtime(v[0, 0])) if len(v) else "-")
+                                   for k, v in dv.items()}, time.time() - t), flush=True)
+    ts = np.arange(time.time() // 3600 * 3600 - 2000 * 3600, time.time() // 3600 * 3600, 3600.0)
+    c = np.exp(np.cumsum(np.random.default_rng(0).normal(0, 1e-3, len(ts))))
+    for sym, kind in (("EURUSD", "fx"), ("USDJPY", "fx"), ("ETH", "cr")):
+        F = PO.compute_positionnement(sym, kind, ts, c, {"cot": cot, "dvol": dv})
+        print("   %s : %s" % (sym, {k: round(float(x[-1]), 3) for k, x in F.items()}))
+
+
 if __name__ == "__main__":
     main()
+    reel()

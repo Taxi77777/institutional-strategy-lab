@@ -25,6 +25,7 @@ def synth(seed, n=2600, edge=False):
 
 @pytest.fixture(autouse=True)
 def fast(monkeypatch, tmp_path):
+    monkeypatch.setenv("POSITIONNEMENT", "0")                      # pas de COT / DVOL reseau pendant les tests
     monkeypatch.setitem(config.CFG, "PAUSE", 0)
     monkeypatch.setitem(config.CFG, "SIMS", 500)
     monkeypatch.setitem(config.CFG, "BEAM", 15)
@@ -381,3 +382,21 @@ def test_flux_operateurs_causal():
     F2, _ = IND.compute(a[:m], "fx", {"sym": "GBPUSD", "bench": b[:m, 4], "panier": {k: x[:m] for k, x in pan.items()}})
     for k, x in F2["flux"].items():
         assert np.allclose(np.nan_to_num(F["flux"][k][:m]), np.nan_to_num(x)), k
+
+
+def test_positionnement_causal():
+    """COT (publie avec retard) et DVOL alignes sur la derniere valeur connue : aucun regard vers le futur."""
+    from lab import positionnement as PO
+    a = synth(23)
+    ts, c = a[:, 0], a[:, 4]
+    wk = np.arange(ts[0] - 200 * 7 * 86400, ts[-1], 7 * 86400)
+    rng = np.random.default_rng(1)
+    cot = {k: np.c_[wk, rng.normal(0, .2, (len(wk), 3))] for k in ("BTC", "EUR", "USD")}
+    dv = {"BTC": np.c_[ts, 50 + rng.normal(0, 3, len(ts))]}
+    F = PO.compute_positionnement("ETH", "cr", ts, c, {"cot": cot, "dvol": dv})
+    G = PO.compute_positionnement("EURUSD", "fx", ts, c, {"cot": cot})
+    assert len(F) >= 6 and len(G) >= 8
+    m = 1800
+    F2 = PO.compute_positionnement("ETH", "cr", ts[:m], c[:m], {"cot": cot, "dvol": {"BTC": dv["BTC"][:m]}})
+    for k, x in F2.items():
+        assert np.allclose(np.nan_to_num(F[k][:m]), np.nan_to_num(x)), k
