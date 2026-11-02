@@ -174,8 +174,10 @@ def grands_traders(per=3):
             log.warning("GitHub %s : %s", name, ex)
         try:
             r = SESSION.get("https://hn.algolia.com/api/v1/search", timeout=20,
-                            params={"query": name, "tags": "story", "hitsPerPage": per})
+                            params={"query": '"%s" trading' % name, "tags": "story", "hitsPerPage": per})
             for it in (r.json().get("hits", []) if r.ok else []):
+                if name.split()[-1].lower() not in (it.get("title") or "").lower():
+                    continue
                 out.append({"source": "Hacker News (grands traders)", "titre": it.get("title", ""), "trader": name,
                             "url": it.get("url") or "https://news.ycombinator.com/item?id=%s" % it.get("objectID"),
                             "etoiles": it.get("points") or 0, "resume": "", "agents": ["traders"]})
