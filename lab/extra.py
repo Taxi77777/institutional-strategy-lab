@@ -88,6 +88,63 @@ def candles(o, h, l, c):
     return out
 
 
+# ------------------------------------------------------------------ TA-Lib complet (hors chandeliers)
+def talib_suite(o, h, l, c, v, atr, has_vol):
+    """Les indicateurs TA-Lib que le labo n'avait pas encore (force de tendance, cycles d'Ehlers, moyennes adaptatives,
+       regressions, SAR...), en plusieurs reglages. Prix -> ecart a la cloture en ATR ; le reste tel quel."""
+    out = {}
+    if talib is None:
+        return out
+    oo, hh, ll, cc = (np.ascontiguousarray(x, dtype=float) for x in (o, h, l, c))
+    vv = np.ascontiguousarray(v, dtype=float)
+    px = lambda x: _div(cc - x, atr)  # noqa: E731
+
+    def put(name, fn):
+        try:
+            x = fn()
+        except Exception:
+            return
+        if isinstance(x, tuple):
+            for k_, xx in enumerate(x):
+                out["%s_%d" % (name, k_)] = np.asarray(xx, dtype=float)
+        else:
+            out[name] = np.asarray(x, dtype=float)
+    for p in (7, 14, 28):
+        put("adx%d" % p, lambda p=p: talib.ADX(hh, ll, cc, p))
+        put("di_plus%d" % p, lambda p=p: talib.PLUS_DI(hh, ll, cc, p))
+        put("di_moins%d" % p, lambda p=p: talib.MINUS_DI(hh, ll, cc, p))
+        put("aroon_osc%d" % p, lambda p=p: talib.AROONOSC(hh, ll, p))
+        put("cmo%d" % p, lambda p=p: talib.CMO(cc, p))
+        put("trix%d" % p, lambda p=p: talib.TRIX(cc, p))
+        put("pente_regression%d" % p, lambda p=p: _div(talib.LINEARREG_SLOPE(cc, p), atr))
+        put("angle_regression%d" % p, lambda p=p: talib.LINEARREG_ANGLE(cc, p))
+        put("prevision_tsf%d" % p, lambda p=p: px(talib.TSF(cc, p)))
+        put("kama%d" % p, lambda p=p: px(talib.KAMA(cc, p)))
+        put("tema%d" % p, lambda p=p: px(talib.TEMA(cc, p)))
+        put("dema%d" % p, lambda p=p: px(talib.DEMA(cc, p)))
+        put("t3_%d" % p, lambda p=p: px(talib.T3(cc, p)))
+        put("natr%d" % p, lambda p=p: talib.NATR(hh, ll, cc, p))
+        if has_vol:
+            put("mfi%d" % p, lambda p=p: talib.MFI(hh, ll, cc, vv, p))
+    put("bop", lambda: talib.BOP(oo, hh, ll, cc))
+    put("ultosc", lambda: talib.ULTOSC(hh, ll, cc))
+    put("ppo", lambda: talib.PPO(cc))
+    put("apo", lambda: _div(talib.APO(cc), atr))
+    put("sar", lambda: px(talib.SAR(hh, ll)))
+    put("sar_rapide", lambda: px(talib.SAR(hh, ll, 0.04, 0.4)))
+    m, f = talib.MAMA(cc)
+    out["mama"], out["fama"], out["mama_fama"] = px(m), px(f), _div(m - f, atr)
+    put("ehlers_periode_cycle", lambda: talib.HT_DCPERIOD(cc))
+    put("ehlers_phase_cycle", lambda: talib.HT_DCPHASE(cc))
+    put("ehlers_mode_tendance", lambda: talib.HT_TRENDMODE(cc).astype(float))
+    s_, ls_ = talib.HT_SINE(cc)
+    out["ehlers_sinus"], out["ehlers_sinus_avance"], out["ehlers_croisement"] = s_, ls_, np.sign(s_ - ls_)
+    out["ehlers_tendance"] = px(talib.HT_TRENDLINE(cc))
+    if has_vol:
+        put("chaikin_adosc", lambda: talib.ADOSC(hh, ll, cc, vv))
+    return {k: x for k, x in out.items() if np.isfinite(x).sum() > 0}
+
+
 # ------------------------------------------------------------------ Alpha158 (Microsoft Qlib)
 def alpha158(o, h, l, c, v, has_vol):
     out = {}
@@ -371,7 +428,8 @@ def numerologie(ts, c, atr):
 
 def compute_extra(o, h, l, c, v, atr, ts=None):
     has_vol = np.nansum(v) > 0
-    out = {"chandeliers": candles(o, h, l, c), "alpha158": alpha158(o, h, l, c, v, has_vol),
+    out = {"chandeliers": candles(o, h, l, c), "talib": talib_suite(o, h, l, c, v, atr, has_vol),
+           "alpha158": alpha158(o, h, l, c, v, has_vol),
            "wq101": wq101(o, h, l, c, v, has_vol, atr), "smc": smc(o, h, l, c, atr),
            "chiffres_ronds": round_numbers(h, l, c, atr)}
     if ts is not None:

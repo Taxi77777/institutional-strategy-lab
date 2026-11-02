@@ -21,6 +21,7 @@ AGENTS = {
     "tradingview": "Favoris TradingView (WaveTrend, Squeeze, UT Bot, QQE…)",
     "multi_unites": "Multi-unités (tendance 1 h, 4 h, jour)",
     "chandeliers": "Chandeliers TA-Lib (61 figures)",
+    "talib": "TA-Lib complet (ADX, cycles d'Ehlers, KAMA, MAMA, T3, SAR, régressions…)",
     "alpha158": "Alpha158 (Microsoft Qlib)",
     "wq101": "101 Alphas (WorldQuant)",
     "smc": "Smart Money Concepts (BOS, CHoCH, order blocks, FVG)",
