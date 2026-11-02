@@ -368,3 +368,16 @@ def test_liquidite_causal():
     F2, _ = IND.compute(a[:1800], "cr")
     for k, x in F2["liquidite"].items():
         assert np.allclose(np.nan_to_num(F["liquidite"][k][:1800]), np.nan_to_num(x)), k
+
+
+def test_flux_operateurs_causal():
+    """Flux des operateurs (fixings, Gotobi, fin de mois, NFP, SMT, force, gaps) : aucun regard vers le futur."""
+    a, b = synth(21), synth(22)
+    pan = {"EURUSD": b[:, 4], "GBPUSD": a[:, 4], "EURGBP": b[:, 4] / a[:, 4]}
+    refs = {"sym": "GBPUSD", "bench": b[:, 4], "panier": pan}
+    F, _ = IND.compute(a, "fx", refs)
+    assert len(F["flux"]) >= 20
+    m = 1800
+    F2, _ = IND.compute(a[:m], "fx", {"sym": "GBPUSD", "bench": b[:m, 4], "panier": {k: x[:m] for k, x in pan.items()}})
+    for k, x in F2["flux"].items():
+        assert np.allclose(np.nan_to_num(F["flux"][k][:m]), np.nan_to_num(x)), k

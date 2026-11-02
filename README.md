@@ -5,7 +5,7 @@ Forex, or, argent et crypto · compatible avec tous les courtiers · signaux Tel
 
 ## Le principe
 
-1. **Des spécialistes**, chacun avec sa famille d'indicateurs (~1 000 à 1 075 variantes au total) :
+1. **Des spécialistes**, chacun avec sa famille d'indicateurs (~1 100 à 1 150 variantes au total) :
    Tendance · Ichimoku · Momentum · Oscillateurs · Volatilité · Bandes · Volume · VWAP · Volume profile · Fibonacci ·
    AMD et sessions · Structure de marché · Chandeliers · Statisticien · Mathématicien · Retour à la moyenne · Horaires ·
    Inter-marchés · Macro · Carnet d'ordres · Favoris TradingView · Multi-unités (1 h / 4 h / jour) ·
@@ -14,7 +14,13 @@ Forex, or, argent et crypto · compatible avec tous les courtiers · signaux Tel
    Concepts des maîtres (Hosoda, Sasaki, Péloille, Steidlmayer, Dalton, Shannon, Wyckoff, journée de tendance) ·
    **Grands traders** (Tortues, Linda Raschke, Toby Crabel, Larry Williams, Larry Connors, Alexander Elder, Tom DeMark,
    Bill Williams, Victor Sperandeo) : leurs règles publiques réécrites ; l'Éclaireur cherche chaque jour sur GitHub,
-   Hacker News et Reddit ce qui se publie sur leurs méthodes (`veille.json`, rubrique `grands_traders`).
+   Hacker News et Reddit ce qui se publie sur leurs méthodes (`veille.json`, rubrique `grands_traders`) ·
+   **Liquidité des opérateurs** (forex et crypto) : stops de la veille, de la semaine, du mois et des sessions Asie /
+   Londres / New York, chasses de stops, stops empilés, ouvertures institutionnelles (minuit New York, jour, semaine,
+   mois), niveaux de liquidation estimés, delta estimé (crypto), écarts Corwin-Schultz et Roll, illiquidité d'Amihud ·
+   **Flux des opérateurs** (acteurs obligés d'acheter ou de vendre à heure fixe) : fixing de Londres, jours Gotobi et
+   fixing de Tokyo, rééquilibrage de fin de mois / trimestre, NFP, 17 h New York, divergence SMT, force de chaque
+   devise sur toutes les paires (force relative au panier en crypto), gap du CME bitcoin, gap du lundi forex.
 2. **Le noyau Ichimoku** : des stratégies qui partent toujours d'un signal Ichimoku — passé (Chikou), présent (Tenkan,
    Kijun, prix face au nuage), futur (nuage projeté, déjà connu à la clôture) — confirmé par 1 ou 2 conditions des
    meilleurs autres spécialistes.

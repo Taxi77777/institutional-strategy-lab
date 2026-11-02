@@ -177,6 +177,16 @@ def features(sym, kind, tf, now, specs=None):
             refs = {"bench": align(b[:, 0], b[:, 4], a[:, 0])}
         except Exception:
             refs = None
+    refs = dict(refs or {})
+    refs["sym"] = sym                               # flux des operateurs : panier deja en cache (aucune requete de plus)
+    pan = {}
+    for (s2, k2, t2), cc in list(CACHE.items()):
+        if k2 == kind and t2 == tf and len(cc["a"]):
+            b2 = cc["a"][cc["a"][:, 0] + STEP[tf] <= now]
+            if len(b2):
+                pan[s2] = align(b2[:, 0], b2[:, 4], a[:, 0])
+    pan[sym] = a[:, 4]
+    refs["panier"] = pan
     mac = {k: align(v[0], v[1], a[:, 0]) for k, v in macro().items()}
     if kind == "cr":
         refs = dict(refs or {})

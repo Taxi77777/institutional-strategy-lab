@@ -85,6 +85,8 @@ def build(kind, tf, fetch=None, fetch_daily=None, symbols=None, macro=None, idea
     X, R, TS, AID = {}, {}, [], []
     for ai, (s, a) in enumerate(raw.items()):
         refs = {"bench": align(bench[:, 0], bench[:, 4], a[:, 0])} if bench is not None and s != BENCH[kind] else {}
+        refs["sym"] = s                             # flux des operateurs : force des devises / panier, SMT
+        refs["panier"] = {s2: align(b2[:, 0], b2[:, 4], a[:, 0]) for s2, b2 in raw.items()}
         if kind == "cr":
             refs["funding"] = funding_refs(s, a[:, 0])
         mac = {k: align(v[0], v[1], a[:, 0]) for k, v in macro.items()}

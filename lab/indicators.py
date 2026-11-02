@@ -8,6 +8,7 @@ from lab import extra as EX
 from lab import maitres as MA
 from lab import traders as TR
 from lab import liquidite as LQ
+from lab import flux as FL
 from numpy.lib.stride_tricks import sliding_window_view as swv
 
 NY = ZoneInfo("America/New_York")
@@ -33,6 +34,7 @@ AGENTS = {
     "weekend": "Volatilité du week-end crypto",
     "traders": "Grands traders (Tortues, Raschke, Crabel, L. Williams, Connors, Elder, DeMark, B. Williams, Sperandeo)",
     "liquidite": "Liquidité des opérateurs (stops veille / semaine / mois / sessions, chasses de stops, ouvertures institutionnelles, liquidations estimées, delta estimé, Corwin-Schultz, Roll, Amihud)",
+    "flux": "Flux des opérateurs (fixing de Londres, Gotobi / Tokyo, fin de mois, NFP, 17 h New York, SMT, force des devises, gaps CME / lundi)",
     "numerologie": "Numérologies (monothéistes, Pythagore, Tesla, chinoise, hindoue, maya, kabbale, Gann) — test",
 }
 HTF = ((3600, "1h"), (14400, "4h"), (86400, "jour"))
@@ -634,6 +636,8 @@ def compute(arr, kind, refs=None, macro=None):
     F["traders"] = TR.compute_traders(o, h, l, c, v, atr14, days)
     # liquidite : ou sont les stops, chasses de stops, mesures academiques de liquidite (lab/liquidite.py)
     F["liquidite"] = LQ.compute_liquidite(ts, h, l, c, v, atr14, o=o, kind=kind)
+    # flux des operateurs : acteurs obliges d'acheter / vendre a heure fixe (lab/flux.py)
+    F["flux"] = FL.compute_flux((refs or {}).get("sym"), kind, ts, o, h, l, c, atr14, refs)
     if refs and refs.get("funding"):                # crypto : financement des perpetuels (aligne, deja connu)
         F["derives"] = {k: np.asarray(x, dtype=float) for k, x in refs["funding"].items() if len(x) == n}
 

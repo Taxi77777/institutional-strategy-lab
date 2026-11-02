@@ -36,10 +36,14 @@ KEYWORDS = {
     "druckenmiller": "traders", "market wizards": "traders",
     "stop hunt": "liquidite", "liquidity pool": "liquidite", "liquidity sweep": "liquidite", "amihud": "liquidite",
     "bid-ask spread": "liquidite", "illiquidity": "liquidite", "market liquidity": "liquidite",
+    "fixing": "flux", "london fix": "flux", "gotobi": "flux", "rebalancing": "flux", "month-end": "flux",
+    "nonfarm": "flux", "nfp": "flux", "fomc": "flux", "smt": "flux", "currency strength": "flux",
+    "cme gap": "flux", "weekend gap": "flux", "dealer": "flux", "hedging flows": "flux",
 }
 GITHUB_QUERIES = ("trading strategy forex", "trading strategy crypto", "technical indicators",
                   "algorithmic trading intraday", "smart money concepts", "order flow trading",
-                  "liquidity sweep trading", "stop hunt liquidity")
+                  "liquidity sweep trading", "stop hunt liquidity",
+                  "fx fixing flows", "month end rebalancing fx", "cme gap bitcoin")
 
 
 def _agents(text):
