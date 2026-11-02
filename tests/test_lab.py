@@ -400,3 +400,11 @@ def test_positionnement_causal():
     F2 = PO.compute_positionnement("ETH", "cr", ts[:m], c[:m], {"cot": cot, "dvol": {"BTC": dv["BTC"][:m]}})
     for k, x in F2.items():
         assert np.allclose(np.nan_to_num(F[k][:m]), np.nan_to_num(x)), k
+
+
+def test_plafond_meilleures_pistes():
+    """Le labo publie le classement honnete des meilleures pistes qui ont echoue, avec la raison."""
+    _, res = run(True)
+    assert "plafond" in res
+    for r in res["plafond"]:
+        assert 0 <= r["test_win"] <= 1 and r["test_n"] >= 30 and r["raison"]

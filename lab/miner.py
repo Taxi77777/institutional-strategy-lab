@@ -420,9 +420,10 @@ def bh(pvals, q):
 
 def run_class(ds):
     cands, tested, ncond = search(ds)
-    evals = []
+    evals, allev = [], []
     for cd in cands:
         ev = evaluate(ds, cd)
+        allev.append((cd, ev))
         v = ev["validation"]
         if v.get("n", 0) >= 15 and v["win"] >= CFG["MIN_WIN"] and v["avg"] > 0:
             evals.append((cd, ev))
@@ -459,10 +460,43 @@ def run_class(ds):
             kept.append(st)
     final = kept
     army = army_test(ds, final)
+    plafond = near_misses(ds, allev, {id(cd) for cd, _ in evals}, {id(evals[i][0]) for i in keep})
     days = sorted(v[1] for v in ds["hist"].values())
     return {"kind": ds["kind"], "tf": ds["tf"], "symbols": ds["symbols"], "historique_jours": days[len(days) // 2] if days else 0,
             "bougies": int(sum(v[0] for v in ds["hist"].values())), "conditions": ncond, "combinaisons": tested,
-            "candidates": len(cands), "validees": len(evals), "apres_fdr": len(keep), "strategies": final, "armee": army}
+            "candidates": len(cands), "validees": len(evals), "apres_fdr": len(keep), "strategies": final, "armee": army,
+            "plafond": plafond}
+
+
+def near_misses(ds, allev, valid_ids, fdr_ids, top=8):
+    """Classement honnete des meilleures pistes qui ont echoue : taux sur les trades jamais vus (>= 30 trades, gain
+       moyen positif) et premiere regle qui les a eliminees. Sert a savoir ou en est la recherche."""
+    rows = []
+    for cd, ev in allev:
+        t = ev["test"]
+        if t.get("n", 0) >= CFG["MIN_TRADES_TEST"] and t.get("avg", 0) > 0:
+            rows.append((t["win"], t["n"], cd, ev))
+    rows.sort(key=lambda r: (-r[0], -r[1]))
+    out = []
+    for win, n, cd, ev in rows[:top]:
+        a_, v = ev["apprentissage"], ev["validation"]
+        if id(cd) not in valid_ids:
+            why = "validation : %.0f %% sur %d trades" % (100 * v.get("win", 0), v.get("n", 0))
+        elif id(cd) not in fdr_ids:
+            why = "hasard possible (correction des tests multiples)"
+        elif a_.get("n", 0) == 0 or a_["avg"] <= 0 or a_["win"] < CFG["SEARCH_FLOOR_2"]:
+            why = "apprentissage : %.0f %% sur %d trades" % (100 * a_.get("win", 0), a_.get("n", 0))
+        elif win < CFG["MIN_WIN"]:
+            why = "sous %.0f %% sur les trades jamais vus" % (100 * CFG["MIN_WIN"])
+        else:
+            rob = robustness(ds, cd)
+            why = "robustesse : %s" % ", ".join("%s=%s" % (k, v_) for k, v_ in rob.items() if k != "ok")[:160] \
+                if not rob["ok"] else "retenue"
+        out.append({"agent": cd["agent"], "dir": cd["dir"], "exit": cd["exit"], "conds": [list(c_[:2]) for c_ in cd["conds"]],
+                    "test_win": round(win, 4), "test_n": n, "test_avg": round(ev["test"]["avg"], 4),
+                    "apprentissage_win": round(a_.get("win", 0), 4), "validation_win": round(v.get("win", 0), 4),
+                    "raison": why})
+    return out
 
 
 def army_test(ds, final):
@@ -564,6 +598,8 @@ def merge(parts_dir="parts", old_path="strategies.json"):
                     f[n_] = max(f.get(n_, 0), c.get(n_, 0))
                 else:
                     f[n_] = f.get(n_, 0) + c.get(n_, 0)
+            f["plafond"] = sorted(f.get("plafond", []) + c.get("plafond", []),
+                                  key=lambda r: (-r["test_win"], -r["test_n"]))[:8]
             for side, a_ in c.get("armee", {}).items():
                 if side not in f["armee"] or a_.get("win", 0) > f["armee"][side].get("win", 0):
                     f["armee"][side] = a_

@@ -43,6 +43,10 @@ Forex, or, argent et crypto · compatible avec tous les courtiers · signaux Tel
 6. **Règle de sélection** : **≥ 92 % de réussite** (exigence du trader, objectif 99 à 100 %), ≥ 30 trades jamais vus **et** gain moyen positif après frais.
    Pas de prise de gain sous 0,5 ATR (sur des prix au hasard elle « réussit » déjà ~87 %).
 
+7. **Plafond** : `strategies.json` publie aussi, pour le forex et la crypto, les 8 meilleures pistes qui ont échoué
+   (`plafond`) avec leur taux sur les trades jamais vus et la règle qui les a éliminées : on sait toujours où en est la
+   recherche.
+
 ## Données (gratuites, sans inscription)
 
 - **Forex et métaux : Dukascopy** (banque suisse), 3 ans de bougies 1 h pour la recherche ; en direct, les heures
