@@ -163,6 +163,14 @@ def stats(r, win, m):
     return {"n": n, "win": float(win[m].mean()), "avg": avg, "se": sd / math.sqrt(n) if n > 1 else 1.0}
 
 
+def score(st):
+    """Classement des combinaisons : taux de reussite prouve (borne basse de Wilson), seulement si le gain moyen
+       est significativement positif ; sinon 0 (combinaison non retenue). Objectif du trader : le plus haut taux."""
+    if st.get("n", 0) == 0 or st["avg"] - st["se"] <= 0:
+        return 0.0
+    return wilson_low(int(round(st["win"] * st["n"])), st["n"])
+
+
 def thin(m, aid, ts, gap):
     """Trades sans chevauchement : apres un signal, on ignore l'actif pendant la duree du trade."""
     idx = np.flatnonzero(m)
@@ -237,8 +245,8 @@ def search(ds, log_every=50):
                 mm = m & base
                 st = stats(r, win, mm)
                 tested += 1
-                if st["n"] >= min_n and st["win"] >= CFG["MIN_WIN"] - 0.05:
-                    scored.append((st["avg"] - st["se"], (c_,), mm))
+                if st["n"] >= min_n and st["win"] >= min(CFG["SEARCH_FLOOR_1"], CFG["MIN_WIN"] - 0.05):
+                    scored.append((score(st), (c_,), mm))
             scored.sort(key=lambda x: -x[0])
             level = scored[:beam]
             singles = [x[1][0] for x in level] + ([] if agent in ("multi_unites", "numerologie") else ctx)
@@ -252,8 +260,8 @@ def search(ds, log_every=50):
                         m2 = mm & masks[c2]
                         st = stats(r, win, m2)
                         tested += 1
-                        if st["n"] >= min_n and st["win"] >= CFG["MIN_WIN"] - 0.03:
-                            nxt.append((st["avg"] - st["se"], tuple(sorted(combo + (c2,))), m2))
+                        if st["n"] >= min_n and st["win"] >= min(CFG["SEARCH_FLOOR_2"], CFG["MIN_WIN"] - 0.03):
+                            nxt.append((score(st), tuple(sorted(combo + (c2,))), m2))
                 uniq = {}
                 for x in sorted(nxt, key=lambda x: -x[0]):
                     uniq.setdefault(x[1], x)
@@ -285,7 +293,7 @@ def ichimoku_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=200):
             st = stats(r, win, m & base)
             tested += 1
             if st["n"] >= min_n:
-                sc1.append((st["avg"] - st["se"], (c_,), m & base))
+                sc1.append((score(st), (c_,), m & base))
         sc1.sort(key=lambda x: -x[0])
         level = sc1[:beam]
         pool = []
@@ -293,7 +301,7 @@ def ichimoku_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=200):
             st = stats(r, win, cmask(ds, c_) & base)
             tested += 1
             if st["n"] >= min_n:
-                pool.append((st["avg"] - st["se"], c_))
+                pool.append((score(st), c_))
         pool = [c_ for _, c_ in sorted(pool, key=lambda x: -x[0])[:pool_n]]
         om = {c_: cmask(ds, c_) for c_ in pool}
         allc = []
@@ -306,8 +314,8 @@ def ichimoku_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=200):
                     m2 = mm & om[c2]
                     st = stats(r, win, m2)
                     tested += 1
-                    if st["n"] >= min_n and st["win"] >= CFG["MIN_WIN"] - 0.03:
-                        nxt.append((st["avg"] - st["se"], tuple(sorted(combo + (c2,))), m2))
+                    if st["n"] >= min_n and st["win"] >= min(CFG["SEARCH_FLOOR_2"], CFG["MIN_WIN"] - 0.03):
+                        nxt.append((score(st), tuple(sorted(combo + (c2,))), m2))
             uniq = {}
             for x in sorted(nxt, key=lambda x: -x[0]):
                 uniq.setdefault(x[1], x)
