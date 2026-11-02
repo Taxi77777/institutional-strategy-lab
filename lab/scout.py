@@ -29,6 +29,11 @@ KEYWORDS = {
     "regime": "macro", "macro": "macro", "funding rate": "derives", "perpetual": "derives",
     "open interest": "derives", "factor": "alpha158", "alpha": "wq101", "cross-asset": "intermarche",
     "lead-lag": "intermarche", "multi-timeframe": "multi_unites", "higher timeframe": "multi_unites",
+    "turtle": "traders", "raschke": "traders", "holy grail": "traders", "crabel": "traders", "nr7": "traders",
+    "larry williams": "traders", "connors": "traders", "elder": "traders", "demark": "traders",
+    "td sequential": "traders", "alligator": "traders", "bill williams": "traders", "sperandeo": "traders",
+    "tudor jones": "traders", "seykota": "traders", "al brooks": "traders", "minervini": "traders",
+    "druckenmiller": "traders", "market wizards": "traders",
 }
 GITHUB_QUERIES = ("trading strategy forex", "trading strategy crypto", "technical indicators",
                   "algorithmic trading intraday", "smart money concepts", "order flow trading")
@@ -147,6 +152,48 @@ def hacker_news(n=20):
         return []
 
 
+def grands_traders(per=3):
+    """Le specialiste « grands traders » cherche sur internet (GitHub, Hacker News, Reddit) ce qui se publie sur les
+       methodes des meilleurs traders du monde (lab/traders.py). Il ne lit que titres et descriptions."""
+    from lab.traders import TRADERS
+    head = {"Accept": "application/vnd.github+json"}
+    if os.environ.get("GITHUB_TOKEN"):
+        head["Authorization"] = "Bearer " + os.environ["GITHUB_TOKEN"]
+    out = []
+    for name in TRADERS:
+        q = "%s strategy" % name
+        try:
+            r = SESSION.get("https://api.github.com/search/repositories", headers=head, timeout=20,
+                            params={"q": q, "sort": "stars", "order": "desc", "per_page": per})
+            for it in (r.json().get("items", []) if r.ok else []):
+                out.append({"source": "GitHub (grands traders)", "titre": it["full_name"], "url": it["html_url"],
+                            "etoiles": it.get("stargazers_count", 0), "trader": name,
+                            "resume": (it.get("description") or "")[:240],
+                            "agents": sorted(set(["traders"] + _agents(it.get("description"))))})
+        except Exception as ex:
+            log.warning("GitHub %s : %s", name, ex)
+        try:
+            r = SESSION.get("https://hn.algolia.com/api/v1/search", timeout=20,
+                            params={"query": name, "tags": "story", "hitsPerPage": per})
+            for it in (r.json().get("hits", []) if r.ok else []):
+                out.append({"source": "Hacker News (grands traders)", "titre": it.get("title", ""), "trader": name,
+                            "url": it.get("url") or "https://news.ycombinator.com/item?id=%s" % it.get("objectID"),
+                            "etoiles": it.get("points") or 0, "resume": "", "agents": ["traders"]})
+        except Exception as ex:
+            log.warning("Hacker News %s : %s", name, ex)
+        try:
+            r = SESSION.get("https://www.reddit.com/search.json", timeout=20, headers={"User-Agent": "strategy-lab-scout/1.0"},
+                            params={"q": q, "sort": "top", "t": "year", "limit": per})
+            for ch in (r.json().get("data", {}).get("children", []) if r.ok else []):
+                d = ch.get("data", {})
+                out.append({"source": "Reddit (grands traders)", "titre": d.get("title", ""), "trader": name,
+                            "url": "https://www.reddit.com" + d.get("permalink", ""), "etoiles": d.get("score", 0),
+                            "resume": d.get("selftext", "")[:240], "agents": ["traders"]})
+        except Exception as ex:
+            log.warning("Reddit %s : %s", name, ex)
+    return out
+
+
 def weights(items):
     """Poids par specialiste : 1 + 3 x part des trouvailles qui en parlent (borne 1..3)."""
     cnt = {}
@@ -160,10 +207,12 @@ def weights(items):
 def main():
     gh, ax = github(), arxiv()
     ss, rd, qs, hn = semantic_scholar(), reddit(), quant_stackexchange(), hacker_news()
-    items = gh + ax + ss + rd + qs + hn
+    gt = grands_traders()
+    items = gh + ax + ss + rd + qs + hn + gt
     out = {"date": datetime.date.today().isoformat(), "poids": weights(items),
            "trouvailles": sorted([it for it in items if it["agents"]], key=lambda x: -(x["etoiles"] or 0))[:60], "total": {"github": len(gh), "arxiv": len(ax), "semantic_scholar": len(ss), "reddit": len(rd),
-                     "quant_stackexchange": len(qs), "hacker_news": len(hn)}}
+                     "quant_stackexchange": len(qs), "hacker_news": len(hn), "grands_traders": len(gt)},
+           "grands_traders": sorted(gt, key=lambda x: -(x["etoiles"] or 0))[:40]}
     with open("veille.json", "w") as f:
         json.dump(out, f, indent=1, ensure_ascii=False)
     log.info("veille : %d GitHub, %d arXiv, poids %s", len(gh), len(ax), out["poids"])

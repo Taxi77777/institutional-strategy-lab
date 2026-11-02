@@ -348,3 +348,13 @@ def test_talib_complet_causal():
     F2, _ = IND.compute(a[:1800], "fx")
     for k, x in F2["talib"].items():
         assert np.allclose(np.nan_to_num(F["talib"][k][:1800]), np.nan_to_num(x)), k
+
+
+def test_grands_traders_causal():
+    """Specialiste grands traders : regles publiques, aucun regard vers le futur."""
+    a = synth(17)
+    F, _ = IND.compute(a, "cr")
+    assert len(F["traders"]) >= 25
+    F2, _ = IND.compute(a[:1800], "cr")
+    for k, x in F2["traders"].items():
+        assert np.allclose(np.nan_to_num(F["traders"][k][:1800]), np.nan_to_num(x)), k

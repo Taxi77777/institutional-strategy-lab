@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 import numpy as np
 from lab import extra as EX
 from lab import maitres as MA
+from lab import traders as TR
 from numpy.lib.stride_tricks import sliding_window_view as swv
 
 NY = ZoneInfo("America/New_York")
@@ -29,6 +30,7 @@ AGENTS = {
     "chiffres_ronds": "Chiffres ronds (niveaux psychologiques)",
     "noyau_ichimoku": "Noyau Ichimoku + confirmations des autres spécialistes",
     "weekend": "Volatilité du week-end crypto",
+    "traders": "Grands traders (Tortues, Raschke, Crabel, L. Williams, Connors, Elder, DeMark, B. Williams, Sperandeo)",
     "numerologie": "Numérologies (monothéistes, Pythagore, Tesla, chinoise, hindoue, maya, kabbale, Gann) — test",
 }
 HTF = ((3600, "1h"), (14400, "4h"), (86400, "jour"))
@@ -626,6 +628,8 @@ def compute(arr, kind, refs=None, macro=None):
     # concepts des maitres (Hosoda / Sasaki / Peloille, Steidlmayer / Dalton, Shannon, Wyckoff)
     for ag, feats in MA.compute_masters(ts, o, h, l, c, v, atr14, days).items():
         F[ag].update(feats)
+    # grands traders : regles publiques des meilleurs traders du monde (lab/traders.py)
+    F["traders"] = TR.compute_traders(o, h, l, c, v, atr14, days)
     if refs and refs.get("funding"):                # crypto : financement des perpetuels (aligne, deja connu)
         F["derives"] = {k: np.asarray(x, dtype=float) for k, x in refs["funding"].items() if len(x) == n}
 
