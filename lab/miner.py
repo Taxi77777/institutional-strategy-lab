@@ -83,6 +83,7 @@ def build(kind, tf, fetch=None, fetch_daily=None, symbols=None, macro=None, idea
     bench = raw.get(BENCH[kind])
     macro = macro if macro is not None else (macro_series(fetch_daily) if fetch_daily else {})
     X, R, TS, AID = {}, {}, [], []
+    total, off, CNT = sum(len(a) for a in raw.values()), 0, {}     # memoire : tableaux remplis sur place, sans copie
     pos = POS.sources(kind)
     for ai, (s, a) in enumerate(raw.items()):
         refs = {"bench": align(bench[:, 0], bench[:, 4], a[:, 0])} if bench is not None and s != BENCH[kind] else {}
@@ -105,7 +106,14 @@ def build(kind, tf, fetch=None, fetch_daily=None, symbols=None, macro=None, idea
         days = IND.day_index(a[:, 0], kind) if kind == "stocks" else None
         for agent, feats in F.items():
             for name, x in feats.items():
-                X.setdefault((agent, name), []).append(np.asarray(x, dtype=np.float32))
+                arr = X.get((agent, name))
+                if arr is None:
+                    arr = X[(agent, name)] = np.full(total, np.nan, dtype=np.float32)
+                    CNT[(agent, name)] = 0
+                arr[off:off + len(a)] = x
+                CNT[(agent, name)] += 1
+        del F
+        off += len(a)
         for e in EXITS:
             o = sim.outcomes(a, atr, e, days, CFG["COST_BPS"][kind])
             for dr in (1, -1):
@@ -113,7 +121,7 @@ def build(kind, tf, fetch=None, fetch_daily=None, symbols=None, macro=None, idea
         TS.append(a[:, 0])
         AID.append(np.full(len(a), ai))
     n_assets = len(raw)
-    X = {k: np.concatenate(v) for k, v in X.items() if len(v) == n_assets}
+    X = {k: v for k, v in X.items() if CNT[k] == n_assets}
     R = {k: tuple(np.concatenate([t[i] for t in v]) for i in range(3)) for k, v in R.items()}
     ts, aid = np.concatenate(TS), np.concatenate(AID)
     q1, q2 = np.quantile(ts, [0.6, 0.8])
