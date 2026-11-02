@@ -513,10 +513,10 @@ def dvol(cur="BTC", days=1200):
     """Indice de volatilite implicite Deribit (DVOL), bougies 1 h depuis 2021. Retourne (n, 2) : temps (debut de la
        bougie, s), cloture."""
     end = int(time.time() * 1000)
-    start = max(int((time.time() - days * 86400) * 1000), 1617235200000)
-    step = 40 * 86400 * 1000
+    base, step = 1617235200000, 40 * 86400 * 1000
+    start = max(int((time.time() - days * 86400) * 1000), base)
     rows = {}
-    t = start
+    t = base + (start - base) // step * step          # fenetres sur une grille fixe : le cache disque est reutilise
     while t < end:
         u = min(t + step, end)
         name = "dvol_%s_%d_%d.json" % (cur, t, u)
