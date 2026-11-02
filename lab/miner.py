@@ -388,7 +388,8 @@ def robustness(ds, cand):
             per_year[int(1970 + y)] = (round(float(win[sel].mean()), 3), int(len(sel)), float(r[sel].mean()))
     good = sum(1 for w, n, a in per_year.values() if w >= CFG["MIN_WIN"] - 0.05 and a > 0)
     years_ok = len(per_year) < 2 or good >= max(1, int(np.ceil(0.75 * len(per_year))))
-    ok = (tot == 0 or pos / tot >= 0.5) and min(wins) >= CFG["MIN_WIN"] - 0.05 and years_ok and not bad
+    # au moins 3 paires prouvees (>= 5 trades jamais vus chacune) : sinon le « 92 % sur chaque paire » serait vide
+    ok = tot >= 3 and pos / tot >= 0.5 and min(wins) >= CFG["MIN_WIN"] - 0.05 and years_ok and not bad
     return {"ok": bool(ok), "actifs_gagnants": "%d/%d" % (pos, tot), "reussite_moities": [round(w, 3) for w in wins],
             "par_actif": per_asset, "actifs_sous_seuil": bad,
             "par_annee": {str(y): {"reussite": w, "trades": n} for y, (w, n, a) in per_year.items()},
@@ -420,6 +421,9 @@ def run_class(ds):
             continue
         t = ev["test"]
         need = CFG["MIN_TRADES_TEST"]
+        a_ = ev["apprentissage"]
+        if a_.get("n", 0) == 0 or a_["avg"] <= 0 or a_["win"] < CFG["SEARCH_FLOOR_2"]:
+            continue                                # perdante pendant l'apprentissage : chance, pas une strategie
         if t.get("n", 0) >= need and t["win"] >= CFG["MIN_WIN"] and t["avg"] > 0:
             rob = robustness(ds, cd)
             if not rob["ok"]:
