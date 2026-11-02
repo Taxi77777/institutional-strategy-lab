@@ -1,4 +1,4 @@
-"""L'Eclaireur (28e specialiste) : veille quotidienne sur GitHub (projets de trading nouveaux et populaires) et arXiv
+"""L Eclaireur : veille quotidienne sur GitHub, arXiv, Semantic Scholar, Reddit, Quant StackExchange et Hacker News
 (dernieres publications de finance quantitative). Il ne telecharge ni n'execute jamais de code : il lit titres et
 descriptions, en tire les familles d'indicateurs a la mode pour orienter l'Inventeur, et publie un resume.
    python -m lab.scout  -> veille.json"""
@@ -83,6 +83,70 @@ def arxiv(n=40):
     return out
 
 
+def semantic_scholar(n=25):
+    """Publications academiques recentes (API publique Semantic Scholar, sans cle)."""
+    out = []
+    for q in ("intraday trading strategy", "forex technical analysis", "cryptocurrency trading signals", "ichimoku"):
+        try:
+            r = SESSION.get("https://api.semanticscholar.org/graph/v1/paper/search", timeout=20, params={
+                "query": q, "limit": n, "fields": "title,abstract,url,year,citationCount", "sort": "publicationDate:desc"})
+            for it in (r.json().get("data", []) if r.ok else []):
+                txt = "%s %s" % (it.get("title", ""), it.get("abstract") or "")
+                out.append({"source": "Semantic Scholar", "titre": it.get("title", ""), "url": it.get("url", ""),
+                            "etoiles": it.get("citationCount") or 0, "resume": (it.get("abstract") or "")[:240],
+                            "agents": _agents(txt)})
+        except Exception as ex:
+            log.warning("Semantic Scholar %s : %s", q, ex)
+    return out
+
+
+def reddit(n=25):
+    """Meilleurs sujets du mois sur r/algotrading et r/Forex (flux public)."""
+    out = []
+    for sub in ("algotrading", "Forex", "CryptoMarkets"):
+        try:
+            r = SESSION.get("https://www.reddit.com/r/%s/top.json" % sub, params={"t": "month", "limit": n}, timeout=20,
+                            headers={"User-Agent": "strategy-lab-scout/1.0"})
+            for ch in (r.json().get("data", {}).get("children", []) if r.ok else []):
+                d = ch.get("data", {})
+                txt = "%s %s" % (d.get("title", ""), d.get("selftext", "")[:500])
+                out.append({"source": "Reddit r/%s" % sub, "titre": d.get("title", ""),
+                            "url": "https://www.reddit.com" + d.get("permalink", ""), "etoiles": d.get("score", 0),
+                            "resume": d.get("selftext", "")[:240], "agents": _agents(txt)})
+        except Exception as ex:
+            log.warning("Reddit %s : %s", sub, ex)
+    return out
+
+
+def quant_stackexchange(n=30):
+    """Questions les plus votees du mois sur Quant StackExchange (API publique, sans cle)."""
+    try:
+        r = SESSION.get("https://api.stackexchange.com/2.3/questions", timeout=20, params={
+            "site": "quant", "sort": "votes", "order": "desc", "pagesize": n,
+            "fromdate": int(datetime.datetime.now().timestamp()) - 30 * 86400})
+        return [{"source": "Quant StackExchange", "titre": it.get("title", ""), "url": it.get("link", ""),
+                 "etoiles": it.get("score", 0), "resume": " ".join(it.get("tags", [])),
+                 "agents": _agents("%s %s" % (it.get("title", ""), " ".join(it.get("tags", []))))}
+                for it in (r.json().get("items", []) if r.ok else [])]
+    except Exception as ex:
+        log.warning("Quant StackExchange : %s", ex)
+        return []
+
+
+def hacker_news(n=20):
+    """Sujets Hacker News sur le trading (API publique Algolia)."""
+    try:
+        r = SESSION.get("https://hn.algolia.com/api/v1/search", timeout=20, params={
+            "query": "trading strategy", "tags": "story", "hitsPerPage": n})
+        return [{"source": "Hacker News", "titre": it.get("title", ""),
+                 "url": it.get("url") or "https://news.ycombinator.com/item?id=%s" % it.get("objectID"),
+                 "etoiles": it.get("points") or 0, "resume": "", "agents": _agents(it.get("title", ""))}
+                for it in (r.json().get("hits", []) if r.ok else [])]
+    except Exception as ex:
+        log.warning("Hacker News : %s", ex)
+        return []
+
+
 def weights(items):
     """Poids par specialiste : 1 + 3 x part des trouvailles qui en parlent (borne 1..3)."""
     cnt = {}
@@ -95,9 +159,11 @@ def weights(items):
 
 def main():
     gh, ax = github(), arxiv()
-    items = gh + ax
+    ss, rd, qs, hn = semantic_scholar(), reddit(), quant_stackexchange(), hacker_news()
+    items = gh + ax + ss + rd + qs + hn
     out = {"date": datetime.date.today().isoformat(), "poids": weights(items),
-           "trouvailles": [it for it in items if it["agents"]][:40], "total": {"github": len(gh), "arxiv": len(ax)}}
+           "trouvailles": sorted([it for it in items if it["agents"]], key=lambda x: -(x["etoiles"] or 0))[:60], "total": {"github": len(gh), "arxiv": len(ax), "semantic_scholar": len(ss), "reddit": len(rd),
+                     "quant_stackexchange": len(qs), "hacker_news": len(hn)}}
     with open("veille.json", "w") as f:
         json.dump(out, f, indent=1, ensure_ascii=False)
     log.info("veille : %d GitHub, %d arXiv, poids %s", len(gh), len(ax), out["poids"])

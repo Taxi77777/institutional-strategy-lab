@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 
 import numpy as np
 from lab import extra as EX
+from lab import maitres as MA
 from numpy.lib.stride_tricks import sliding_window_view as swv
 
 NY = ZoneInfo("America/New_York")
@@ -621,6 +622,9 @@ def compute(arr, kind, refs=None, macro=None):
 
     # 24-27 sources publiques reconnues : chandeliers TA-Lib, Alpha158 (Qlib), 101 Alphas (WorldQuant), SMC
     F.update(EX.compute_extra(o, h, l, c, v, atr14, ts))
+    # concepts des maitres (Hosoda / Sasaki / Peloille, Steidlmayer / Dalton, Shannon, Wyckoff)
+    for ag, feats in MA.compute_masters(ts, o, h, l, c, v, atr14, days).items():
+        F[ag].update(feats)
     if refs and refs.get("funding"):                # crypto : financement des perpetuels (aligne, deja connu)
         F["derives"] = {k: np.asarray(x, dtype=float) for k, x in refs["funding"].items() if len(x) == n}
 

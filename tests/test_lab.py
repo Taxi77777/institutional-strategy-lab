@@ -323,3 +323,18 @@ def test_merge_familles_de_sorties(tmp_path, monkeypatch):
     c = out["classes"][0]
     assert len(c["strategies"]) == 2 and c["strategies"][0]["stats"]["test"]["win"] == 0.96
     assert c["combinaisons"] == 10 and c["armee"]["vente"]["win"] == 0.96
+
+
+def test_concepts_des_maitres():
+    """Hosoda / Sasaki / Peloille, Steidlmayer / Dalton, Shannon, Wyckoff : presents et sans regard vers le futur."""
+    a = synth(11)
+    F, _ = IND.compute(a, "cr")
+    for ag, k in (("ichimoku", "temps_hosoda_cle"), ("ichimoku", "objectif_N"), ("ichimoku", "chikou_libre"),
+                  ("profil", "regle_80"), ("profil", "poc_veille_non_teste"), ("vwap", "vwap_ancre_semaine"),
+                  ("structure", "spring_upthrust")):
+        assert k in F[ag]
+    m = 1800
+    F2, _ = IND.compute(a[:m], "cr")
+    for ag in ("ichimoku", "profil", "vwap", "structure"):
+        for k, x in F2[ag].items():
+            assert np.allclose(np.nan_to_num(F[ag][k][:m]), np.nan_to_num(x)), (ag, k)
