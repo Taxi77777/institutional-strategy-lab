@@ -338,3 +338,13 @@ def test_concepts_des_maitres():
     for ag in ("ichimoku", "profil", "vwap", "structure"):
         for k, x in F2[ag].items():
             assert np.allclose(np.nan_to_num(F[ag][k][:m]), np.nan_to_num(x)), (ag, k)
+
+
+def test_talib_complet_causal():
+    """Suite TA-Lib complete : nombreux indicateurs, aucun regard vers le futur."""
+    a = synth(13)
+    F, _ = IND.compute(a, "fx")
+    assert len(F["talib"]) >= 40
+    F2, _ = IND.compute(a[:1800], "fx")
+    for k, x in F2["talib"].items():
+        assert np.allclose(np.nan_to_num(F["talib"][k][:1800]), np.nan_to_num(x)), k
