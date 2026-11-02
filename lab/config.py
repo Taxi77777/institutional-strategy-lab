@@ -39,7 +39,7 @@ CFG = {
     # combinaison a 92 % est faite d'indicateurs qui, seuls, font moins. La barre finale reste MIN_WIN.
     "SEARCH_FLOOR_1": envf("SEARCH_FLOOR_1", 0.75),
     "SEARCH_FLOOR_2": envf("SEARCH_FLOOR_2", 0.80),
-    "TARGET_WIN": envf("TARGET_WIN", 0.95),  # objectif affiche
+    "TARGET_WIN": envf("TARGET_WIN", 0.99),  # objectif du trader : 99 a 100 % (la plus haute passe toujours devant)
     "MIN_TRADES_TEST": envf("MIN_TRADES_TEST", 30),
     "FDR": envf("FDR", 0.05),                # taux de fausses decouvertes toleré (Benjamini-Hochberg)
     "CONSENSUS": envf("CONSENSUS", 3),       # specialistes d'accord minimum pour un signal
