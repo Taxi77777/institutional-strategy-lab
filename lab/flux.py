@@ -234,6 +234,167 @@ def gaps(ts, o, h, l, c, atr, kind):
     return {"gap_cme_dist": dist, "gap_cme_ouvert": open_}
 
 
+# ---- idees issues de la recherche approfondie (etudes publiques, voir eclaireur_integre.json) ----
+# FOMC : jour de decision (2e jour) des reunions PROGRAMMEES uniquement (connues a l'avance), source federalreserve.gov
+FOMC = ("2016-01-27 2016-03-16 2016-04-27 2016-06-15 2016-07-27 2016-09-21 2016-11-02 2016-12-14 "
+        "2017-02-01 2017-03-15 2017-05-03 2017-06-14 2017-07-26 2017-09-20 2017-11-01 2017-12-13 "
+        "2018-01-31 2018-03-21 2018-05-02 2018-06-13 2018-08-01 2018-09-26 2018-11-08 2018-12-19 "
+        "2019-01-30 2019-03-20 2019-05-01 2019-06-19 2019-07-31 2019-09-18 2019-10-30 2019-12-11 "
+        "2020-01-29 2020-04-29 2020-06-10 2020-07-29 2020-09-16 2020-11-05 2020-12-16 "
+        "2021-01-27 2021-03-17 2021-04-28 2021-06-16 2021-07-28 2021-09-22 2021-11-03 2021-12-15 "
+        "2022-01-26 2022-03-16 2022-05-04 2022-06-15 2022-07-27 2022-09-21 2022-11-02 2022-12-14 "
+        "2023-02-01 2023-03-22 2023-05-03 2023-06-14 2023-07-26 2023-09-20 2023-11-01 2023-12-13 "
+        "2024-01-31 2024-03-20 2024-05-01 2024-06-12 2024-07-31 2024-09-18 2024-11-07 2024-12-18 "
+        "2025-01-29 2025-03-19 2025-05-07 2025-06-18 2025-07-30 2025-09-17 2025-10-29 2025-12-10 "
+        "2026-01-28 2026-03-18 2026-04-29 2026-06-17 2026-07-29 2026-09-16 2026-10-28 2026-12-09 "
+        "2027-01-27 2027-03-17 2027-04-28 2027-06-09 2027-07-28 2027-09-15 2027-10-27 2027-12-08").split()
+# heures locales des places (devise -> fenetre en heures UTC hors heure d'ete ; Europe et New York ajustees)
+LOCAL = {"JPY": "tokyo", "AUD": "tokyo", "NZD": "tokyo", "EUR": "europe", "CHF": "europe", "GBP": "europe",
+         "USD": "new_york", "CAD": "new_york"}
+
+
+def _usd_side(sym):
+    """+1 si une hausse du dollar fait monter la paire (USDxxx), -1 si elle la fait baisser (xxxUSD), 0 sinon."""
+    if not sym or len(sym) != 6:
+        return 0
+    return 1 if sym.startswith("USD") else (-1 if sym.endswith("USD") else 0)
+
+
+def _ts(d, hh, mm=0):
+    return datetime.datetime(d.year, d.month, d.day, hh, mm, tzinfo=datetime.timezone.utc).timestamp()
+
+
+def _easter(y):
+    a, b, c = y % 19, y // 100, y % 100
+    d, e = b // 4, b % 4
+    f = (b + 8) // 25
+    g = (b - f + 1) // 3
+    h = (19 * a + b - d - g + 15) % 30
+    i, k = c // 4, c % 4
+    l_ = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * l_) // 451
+    mo = (h + l_ - 7 * m + 114) // 31
+    return datetime.date(y, mo, (h + l_ - 7 * m + 114) % 31 + 1)
+
+
+def _holidays(y):
+    """Jours feries des grandes places : {date: ensemble des devises dont la place est fermee}."""
+    out = {}
+
+    def add(d, *cur):
+        out.setdefault(d, set()).update(cur)
+    e = _easter(y)
+    add(e - datetime.timedelta(days=2), "USD", "GBP", "EUR", "CHF", "AUD", "NZD", "CAD")      # vendredi saint
+    add(e + datetime.timedelta(days=1), "GBP", "EUR", "CHF", "AUD", "NZD", "CAD")             # lundi de Paques
+    for md in ((12, 24), (12, 25), (12, 26), (12, 31), (1, 1)):
+        add(datetime.date(y, *md), "USD", "GBP", "EUR", "CHF", "JPY", "AUD", "NZD", "CAD")
+    jul4 = datetime.date(y, 7, 4)
+    add(jul4 + datetime.timedelta(days={5: -1, 6: 1}.get(jul4.weekday(), 0)), "USD")
+    nov1 = datetime.date(y, 11, 1)
+    add(nov1 + datetime.timedelta(days=(3 - nov1.weekday()) % 7 + 21), "USD")                  # Thanksgiving
+    for md in ((4, 29), (5, 3), (5, 4), (5, 5)):
+        add(datetime.date(y, *md), "JPY")                                                       # Golden Week
+    may1 = datetime.date(y, 5, 1)
+    add(may1 + datetime.timedelta(days=(7 - may1.weekday()) % 7), "GBP")                         # 1er lundi de mai
+    for m_ in (5, 8):                                                                           # derniers lundis
+        last = datetime.date(y + (m_ == 12), m_ % 12 + 1, 1) - datetime.timedelta(days=1)
+        add(last - datetime.timedelta(days=last.weekday()), "GBP")
+    return out
+
+
+def recherche(sym, kind, ts, o, h, l, c, atr):
+    n = len(c)
+    out = {}
+    days = _days_range(ts)
+    dts = [datetime.date.fromordinal(int(t // 86400) + 719163) for t in ts]
+    hour = (ts // H % 24).astype(int)
+    _day, ny, uk = _clock(ts)                      # l'Europe continentale change d'heure aux memes dates que Londres
+    usd = _usd_side(sym)
+    # 1. « W » du dollar (Krohn, Mueller, Whelan) : fixing BCE 14 h 15 heure de Francfort
+    bce = [_ts(d, 14, 15) - (1 + _offsets(d.toordinal() - 719163)[1]) * H for d in days if d.weekday() < 5]
+    out["heures_fixing_bce"], out["mouvement_avant_bce"] = _event_window(ts, c, atr, bce, 7, 4)
+    fra = (ts / H + 1 + uk) % 24                   # heure de Francfort
+    ny_h = (ts / H + ny) % 24
+    w = np.where((fra >= 7) & (fra < 14.25), 1.0, np.where((ny_h >= 11) & (ny_h < 17), -1.0, 0.0))
+    if usd:
+        out["biais_w_dollar"] = w * usd
+    # 2. une devise baisse pendant ses propres heures (Breedon et Ranaldo)
+    if kind == "fx" and sym and len(sym) == 6:
+        def active(cur):
+            z = LOCAL.get(cur)
+            if z == "tokyo":
+                return (hour >= 0) & (hour < 6)
+            if z == "europe":
+                return (fra >= 8) & (fra < 13)
+            if z == "new_york":
+                return (ny_h >= 8) & (ny_h < 16)
+            return np.zeros(n, bool)
+        out["biais_session_locale"] = active(sym[3:]).astype(float) - active(sym[:3]).astype(float)
+    # 3. jour de la Fed (Mueller, Tahbaz-Salehi, Vedolin) : 14 h New York le jour de decision
+    fomc = []
+    for s in FOMC:
+        d = datetime.date.fromisoformat(s)
+        fomc.append(_ts(d, 14) - _offsets(d.toordinal() - 719163)[0] * H)
+    out["heures_fomc"], out["mouvement_fomc"] = _event_window(ts, c, atr, fomc, 14, 10)
+    fdays = {datetime.date.fromisoformat(s) for s in FOMC}
+    jf = np.array([1.0 if d in fdays else 0.0 for d in dts])
+    out["jour_fomc"] = jf
+    if usd:
+        out["biais_fomc_vendeur_dollar"] = np.where((jf == 1) & (out["heures_fomc"] <= 0), -usd, 0.0)
+    # 4. or et argent : hausse de la nuit, baisse entre les fixings LBMA de Londres (10 h 30 et 15 h 00)
+    if sym in ("XAUUSD", "XAGUSD"):
+        lon = (ts / H + uk) % 24
+        out["seance_or"] = np.where((lon >= 10.5) & (lon < 15), -1.0, np.where((lon >= 15) | (lon < 10.5), 1.0, 0.0))
+        am = [_ts(d, 10, 30) - _offsets(d.toordinal() - 719163)[1] * H for d in days if d.weekday() < 5]
+        pm = [_ts(d, 15) - _offsets(d.toordinal() - 719163)[1] * H for d in days if d.weekday() < 5]
+        out["heures_fixing_lbma_matin"], _m = _event_window(ts, c, atr, am, 4, 4)
+        out["heures_fixing_lbma_soir"], out["mouvement_avant_lbma_soir"] = _event_window(ts, c, atr, pm, 5, 4)
+    # 5. momentum de la premiere heure de la journee UTC (Shen, Urquhart, Wang ; Elaut et al.)
+    mom = np.full(n, NAN)
+    day = (ts // 86400).astype(np.int64)
+    uniq, start = np.unique(day, return_index=True)
+    for k in range(len(uniq)):
+        s, e = start[k], (start[k + 1] if k + 1 < len(start) else n)
+        if hour[s] == 0 and e - s > 1 and np.isfinite(atr[s]) and atr[s] > 0:
+            mom[s + 1:e] = (c[s] - o[s]) / atr[s]
+    out["momentum_premiere_heure"] = mom
+    out["heures_avant_minuit_utc"] = (24 - hour).astype(float)
+    if kind == "cr":
+        # echeance mensuelle CME (dernier vendredi, reglement BRR 15-16 h Londres), options Deribit (vendredi 8 h UTC),
+        # fenetre de valeur liquidative des ETF (15-16 h New York), seance cash americaine (9 h 30 - 16 h New York)
+        lastfri = {}
+        for d in days:
+            last = datetime.date(d.year + (d.month == 12), d.month % 12 + 1, 1) - datetime.timedelta(days=1)
+            lastfri[(d.year, d.month)] = last - datetime.timedelta(days=(last.weekday() - 4) % 7)
+        out["jours_avant_echeance_cme"] = np.array([float((lastfri[(d.year, d.month)] - d).days) for d in dts])
+        lon = (ts / H + uk) % 24
+        out["reglement_cme"] = np.array([1.0 if d == lastfri[(d.year, d.month)] else 0.0 for d in dts]) * \
+            ((lon >= 15) & (lon < 16))
+        fr8 = [_ts(d, 8) for d in days if d.weekday() == 4]
+        rel, _m = _event_window(ts, c, atr, fr8, 48, 12)
+        out["heures_echeance_deribit"] = rel
+        typ = np.zeros(n)
+        for i, d in enumerate(dts):
+            nxt = d + datetime.timedelta(days=(4 - d.weekday()) % 7)
+            if np.isfinite(rel[i]):
+                typ[i] = 1.0 + (nxt == lastfri[(nxt.year, nxt.month)]) + (nxt == lastfri[(nxt.year, nxt.month)]
+                                                                            and nxt.month in (3, 6, 9, 12))
+        out["type_echeance_deribit"] = typ
+        wd = ((ts // 86400 + 3) % 7).astype(int)
+        out["fenetre_nav_etf"] = ((ny_h >= 15) & (ny_h < 16) & (wd < 5)).astype(float)
+        out["seance_cash_usa"] = ((ny_h >= 9.5) & (ny_h < 16) & (wd < 5)).astype(float)
+    # 6. jours feries des grandes places (liquidite faible, faux breakouts)
+    hol = {}
+    for y in sorted({d.year for d in days}):
+        for d, cur in _holidays(y).items():
+            hol.setdefault(d, set()).update(cur)
+    out["places_fermees"] = np.array([float(len(hol.get(d, ()))) for d in dts])
+    if kind == "fx" and sym and len(sym) == 6:
+        out["ferie_devise_paire"] = np.array([float(sym[:3] in hol.get(d, ()) or sym[3:] in hol.get(d, ()))
+                                              for d in dts])
+    return out
+
+
 def compute_flux(sym, kind, ts, o, h, l, c, atr, refs=None):
     warnings.filterwarnings("ignore", category=RuntimeWarning, module=__name__)
     refs = refs or {}
@@ -241,4 +402,5 @@ def compute_flux(sym, kind, ts, o, h, l, c, atr, refs=None):
     F.update(smt(c, refs.get("bench")))
     F.update(force(sym, kind, refs.get("panier"), len(c)))
     F.update(gaps(ts, o, h, l, c, atr, kind))
+    F.update(recherche(sym, kind, ts, o, h, l, c, atr))
     return F

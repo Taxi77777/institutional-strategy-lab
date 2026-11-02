@@ -20,7 +20,10 @@ Forex, or, argent et crypto · compatible avec tous les courtiers · signaux Tel
    mois), niveaux de liquidation estimés, delta estimé (crypto), écarts Corwin-Schultz et Roll, illiquidité d'Amihud ·
    **Flux des opérateurs** (acteurs obligés d'acheter ou de vendre à heure fixe) : fixing de Londres, jours Gotobi et
    fixing de Tokyo, rééquilibrage de fin de mois / trimestre, NFP, 17 h New York, divergence SMT, force de chaque
-   devise sur toutes les paires (force relative au panier en crypto), gap du CME bitcoin, gap du lundi forex.
+   devise sur toutes les paires (force relative au panier en crypto), gap du CME bitcoin, gap du lundi forex ; et, issus
+   d'une recherche approfondie des études publiées : « W » du dollar autour du fixing BCE, devise qui baisse pendant ses
+   propres heures, jour de la Fed (dates officielles), séances de l'or et fixings LBMA, momentum de la première heure,
+   échéances CME / Deribit et fenêtre des ETF bitcoin, jours fériés des grandes places.
 2. **Le noyau Ichimoku** : des stratégies qui partent toujours d'un signal Ichimoku — passé (Chikou), présent (Tenkan,
    Kijun, prix face au nuage), futur (nuage projeté, déjà connu à la clôture) — confirmé par 1 ou 2 conditions des
    meilleurs autres spécialistes.
