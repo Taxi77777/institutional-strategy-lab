@@ -5,7 +5,7 @@ Forex, or, argent et crypto · compatible avec tous les courtiers · signaux Tel
 
 ## Le principe
 
-1. **Des spécialistes**, chacun avec sa famille d'indicateurs (~1 100 à 1 150 variantes au total) :
+1. **Des spécialistes**, chacun avec sa famille d'indicateurs (~1 150 à 1 200 variantes au total) :
    Tendance · Ichimoku · Momentum · Oscillateurs · Volatilité · Bandes · Volume · VWAP · Volume profile · Fibonacci ·
    AMD et sessions · Structure de marché · Chandeliers · Statisticien · Mathématicien · Retour à la moyenne · Horaires ·
    Inter-marchés · Macro · Carnet d'ordres · Favoris TradingView · Multi-unités (1 h / 4 h / jour) ·
@@ -23,7 +23,10 @@ Forex, or, argent et crypto · compatible avec tous les courtiers · signaux Tel
    devise sur toutes les paires (force relative au panier en crypto), gap du CME bitcoin, gap du lundi forex ; et, issus
    d'une recherche approfondie des études publiées : « W » du dollar autour du fixing BCE, devise qui baisse pendant ses
    propres heures, jour de la Fed (dates officielles), séances de l'or et fixings LBMA, momentum de la première heure,
-   échéances CME / Deribit et fenêtre des ETF bitcoin, jours fériés des grandes places.
+   échéances CME / Deribit et fenêtre des ETF bitcoin, jours fériés des grandes places ·
+   **Positionnement des gros acteurs** : rapport COT de la CFTC (fonds à levier, gérants, dealers sur les contrats de
+   devises et de bitcoin, chaque semaine, utilisé avec un retard prudent) et peur des options bitcoin / ether (DVOL de
+   Deribit, prime de peur contre la volatilité observée).
 2. **Le noyau Ichimoku** : des stratégies qui partent toujours d'un signal Ichimoku — passé (Chikou), présent (Tenkan,
    Kijun, prix face au nuage), futur (nuage projeté, déjà connu à la clôture) — confirmé par 1 ou 2 conditions des
    meilleurs autres spécialistes.
