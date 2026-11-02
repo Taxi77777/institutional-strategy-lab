@@ -45,6 +45,8 @@ def summary(ts, r, w):
 
 def main():
     s = strat_best()
+    if os.environ.get("VAL_DIR") in ("1", "-1"):          # meme regle, sens force (achat 1 / vente -1)
+        s = dict(s, dir=int(os.environ["VAL_DIR"]), id=s["id"] + ("_achat" if os.environ["VAL_DIR"] == "1" else "_vente"))
     kind = os.environ.get("VAL_KIND", "fx")
     days = int(os.environ.get("VAL_DAYS", "730"))
     out = {"genere": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"), "strategie": s["id"],

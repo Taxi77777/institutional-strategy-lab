@@ -19,6 +19,10 @@ on:
         description: "Jours d'historique"
         required: false
         default: "730"
+      dir:
+        description: "Sens force : 1 achat, -1 vente (vide = sens de la strategie)"
+        required: false
+        default: ""
 
 jobs:
   validate:
@@ -38,6 +42,7 @@ jobs:
           VAL_FILE: ${{ inputs.file }}
           VAL_KIND: ${{ inputs.kind }}
           VAL_DAYS: ${{ inputs.days }}
+          VAL_DIR: ${{ inputs.dir }}
           PYTHONUNBUFFERED: '1'
         run: python -m lab.validate
       - name: Publication
