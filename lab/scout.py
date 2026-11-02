@@ -34,9 +34,12 @@ KEYWORDS = {
     "td sequential": "traders", "alligator": "traders", "bill williams": "traders", "sperandeo": "traders",
     "tudor jones": "traders", "seykota": "traders", "al brooks": "traders", "minervini": "traders",
     "druckenmiller": "traders", "market wizards": "traders",
+    "stop hunt": "liquidite", "liquidity pool": "liquidite", "liquidity sweep": "liquidite", "amihud": "liquidite",
+    "bid-ask spread": "liquidite", "illiquidity": "liquidite", "market liquidity": "liquidite",
 }
 GITHUB_QUERIES = ("trading strategy forex", "trading strategy crypto", "technical indicators",
-                  "algorithmic trading intraday", "smart money concepts", "order flow trading")
+                  "algorithmic trading intraday", "smart money concepts", "order flow trading",
+                  "liquidity sweep trading", "stop hunt liquidity")
 
 
 def _agents(text):
