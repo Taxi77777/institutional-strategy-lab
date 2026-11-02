@@ -69,3 +69,6 @@ EXITS = [
     {"id": "e7", "tp": 2.0, "sl": 4.0, "h": 96},
     # pas de sortie a gain < 0,5 ATR : sur des prix au hasard elle « reussit » deja ~87 % (faux taux, teste)
 ]
+_ids = [x.strip().lower() for x in os.environ.get("EXIT_IDS", "").split(",") if x.strip()]
+if _ids:                                    # recherche parallele : une famille de sorties par job
+    EXITS = [e for e in EXITS if e["id"] in _ids]

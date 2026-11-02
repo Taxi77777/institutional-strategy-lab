@@ -307,3 +307,19 @@ def test_recherche_dediee_numerologie(monkeypatch):
     cands, tested, _ = miner.search(ds)
     assert tested > 0 and all(cd["agent"] == "numerologie" for cd in cands)
     assert all(c_[0] == "numerologie" for cd in cands for c_ in cd["conds"])
+
+
+def test_merge_familles_de_sorties(tmp_path, monkeypatch):
+    """Recherches paralleles par familles de sorties : les strategies d'une meme classe s'additionnent."""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setitem(config.CFG, "TIMEFRAMES", ["1H"])
+    (tmp_path / "parts").mkdir()
+    st = lambda w: {"conds": [], "wilson_test": w, "stats": {"test": {"win": w}}}
+    for sh, w in (("e1e2e3", 0.93), ("e6e7", 0.96)):
+        (tmp_path / "parts" / ("fx_1H_%s.json" % sh)).write_text(json.dumps({"regle": {}, "classes": [
+            {"kind": "fx", "tf": "1H", "strategies": [st(w)], "conditions": 10, "combinaisons": 5, "candidates": 2,
+             "validees": 1, "apres_fdr": 1, "armee": {"vente": {"win": w, "n": 30}}}]}))
+    out = miner.merge()
+    c = out["classes"][0]
+    assert len(c["strategies"]) == 2 and c["strategies"][0]["stats"]["test"]["win"] == 0.96
+    assert c["combinaisons"] == 10 and c["armee"]["vente"]["win"] == 0.96

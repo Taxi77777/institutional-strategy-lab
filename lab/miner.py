@@ -388,7 +388,8 @@ def robustness(ds, cand):
             per_year[int(1970 + y)] = (round(float(win[sel].mean()), 3), int(len(sel)), float(r[sel].mean()))
     good = sum(1 for w, n, a in per_year.values() if w >= CFG["MIN_WIN"] - 0.05 and a > 0)
     years_ok = len(per_year) < 2 or good >= max(1, int(np.ceil(0.75 * len(per_year))))
-    ok = (tot == 0 or pos / tot >= 0.5) and min(wins) >= CFG["MIN_WIN"] - 0.05 and years_ok and not bad
+    # au moins 3 paires prouvees (>= 5 trades jamais vus chacune) : sinon le « 92 % sur chaque paire » serait vide
+    ok = tot >= 3 and pos / tot >= 0.5 and min(wins) >= CFG["MIN_WIN"] - 0.05 and years_ok and not bad
     return {"ok": bool(ok), "actifs_gagnants": "%d/%d" % (pos, tot), "reussite_moities": [round(w, 3) for w in wins],
             "par_actif": per_asset, "actifs_sous_seuil": bad,
             "par_annee": {str(y): {"reussite": w, "trades": n} for y, (w, n, a) in per_year.items()},
@@ -420,6 +421,9 @@ def run_class(ds):
             continue
         t = ev["test"]
         need = CFG["MIN_TRADES_TEST"]
+        a_ = ev["apprentissage"]
+        if a_.get("n", 0) == 0 or a_["avg"] <= 0 or a_["win"] < CFG["SEARCH_FLOOR_2"]:
+            continue                                # perdante pendant l'apprentissage : chance, pas une strategie
         if t.get("n", 0) >= need and t["win"] >= CFG["MIN_WIN"] and t["avg"] > 0:
             rob = robustness(ds, cd)
             if not rob["ok"]:
@@ -533,12 +537,30 @@ def merge(parts_dir="parts", old_path="strategies.json"):
                if UNIVERSE.get(c["kind"]) and c["tf"] in CFG["TIMEFRAMES"]}           # (sauf marches / unites retires)
     out = {"genere": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"), "regle": None, "idees": {}}
     mem, tested = {}, 0
+    fresh = {}
     for p in parts:
         out["regle"] = p["regle"]
         for c in p["classes"]:
-            classes["%s-%s" % (c["kind"], c["tf"])] = c
+            k = "%s-%s" % (c["kind"], c["tf"])
+            if k not in fresh:                          # premiere part de cette classe
+                fresh[k] = dict(c, strategies=list(c["strategies"]), armee=dict(c.get("armee", {})))
+                continue
+            f = fresh[k]                                # autres familles de sorties : on additionne
+            f["strategies"] += c["strategies"]
+            for n_ in ("conditions", "combinaisons", "candidates", "validees", "apres_fdr"):
+                if n_ == "conditions":
+                    f[n_] = max(f.get(n_, 0), c.get(n_, 0))
+                else:
+                    f[n_] = f.get(n_, 0) + c.get(n_, 0)
+            for side, a_ in c.get("armee", {}).items():
+                if side not in f["armee"] or a_.get("win", 0) > f["armee"][side].get("win", 0):
+                    f["armee"][side] = a_
         out["idees"].update(p.get("idees", {}))
         tested += p.get("inventeur", {}).get("idees_testees", 0)
+    for k, f in fresh.items():
+        f["strategies"].sort(key=lambda s: (-s.get("stats", {}).get("test", {}).get("win", 0), -s.get("wilson_test", 0)))
+        classes[k] = f
+    for p in parts:
         for g in p.get("memoire", {}).get("gagnantes", []):
             if g["nom"] not in mem or g["score"] > mem[g["nom"]]["score"]:
                 mem[g["nom"]] = g
@@ -570,7 +592,8 @@ if __name__ == "__main__":
         res = run_all(kinds=[kind], tfs=[tf])
         res["memoire"] = IDEAS.load_memory()
         os.makedirs("parts", exist_ok=True)
-        with open(os.path.join("parts", "%s_%s.json" % (kind, tf)), "w") as f:
+        shard = os.environ.get("EXIT_IDS", "").replace(",", "")
+        with open(os.path.join("parts", "%s_%s%s.json" % (kind, tf, "_" + shard if shard else "")), "w") as f:
             json.dump(res, f, indent=1)
     elif len(sys.argv) >= 2 and sys.argv[1] == "merge":
         res = merge(old_path=sys.argv[2] if len(sys.argv) >= 3 else "strategies.json")

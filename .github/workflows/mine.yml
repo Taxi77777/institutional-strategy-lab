@@ -18,9 +18,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:                     # 1 heure uniquement (demande du trader)
-          - {kind: fx, tf: 1H}
-          - {kind: cr, tf: 1H}
+        include:                     # 1 heure ; chaque marche coupe en 3 familles de sorties (3x plus rapide)
+          - {kind: fx, tf: 1H, shard: a, exits: "e1,e2,e3"}
+          - {kind: fx, tf: 1H, shard: b, exits: "e4,e5"}
+          - {kind: fx, tf: 1H, shard: c, exits: "e6,e7"}
+          - {kind: cr, tf: 1H, shard: a, exits: "e1,e2,e3"}
+          - {kind: cr, tf: 1H, shard: b, exits: "e4,e5"}
+          - {kind: cr, tf: 1H, shard: c, exits: "e6,e7"}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -31,19 +35,20 @@ jobs:
         if: matrix.kind == 'fx'
         with:
           path: .duka_cache
-          key: duka-${{ matrix.tf }}-${{ github.run_id }}
+          key: duka-${{ matrix.tf }}-${{ matrix.shard }}-${{ github.run_id }}
           restore-keys: duka-${{ matrix.tf }}-
-      - name: Recherche ${{ matrix.kind }} ${{ matrix.tf }}
+      - name: Recherche ${{ matrix.kind }} ${{ matrix.tf }} (sorties ${{ matrix.exits }})
         env:
           MIN_WIN: ${{ vars.MIN_WIN }}
           CONSENSUS: ${{ vars.CONSENSUS }}
           BEAM: ${{ vars.BEAM || '60' }}
           DUKA_CACHE: .duka_cache
+          EXIT_IDS: ${{ matrix.exits }}
           PYTHONUNBUFFERED: '1'
         run: python -m lab.miner part ${{ matrix.kind }} ${{ matrix.tf }}
       - uses: actions/upload-artifact@v4
         with:
-          name: part-${{ matrix.kind }}-${{ matrix.tf }}
+          name: part-${{ matrix.kind }}-${{ matrix.tf }}-${{ matrix.shard }}
           path: parts/
           retention-days: 7
 

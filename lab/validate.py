@@ -13,21 +13,25 @@ log = logging.getLogger("lab")
 
 
 def strat_best():
-    with open("strategies.json") as f:
+    """Strategie a verifier : VAL_STRAT (identifiant) dans VAL_FILE, sinon la meilleure forex 1 h."""
+    with open(os.environ.get("VAL_FILE", "strategies.json")) as f:
         lab = json.load(f)
+    sid = os.environ.get("VAL_STRAT", "")
+    if sid:
+        return next(s for c in lab["classes"] for s in c["strategies"] if s["id"] == sid)
     cl = next(c for c in lab["classes"] if c["kind"] == "fx" and c["tf"] == "1H")
     return max(cl["strategies"], key=lambda s: (s["stats"]["test"]["win"], s["wilson_test"]))
 
 
-def replay(a, s):
-    F, atr = IND.compute(a, "fx")
+def replay(a, s, kind="fx"):
+    F, atr = IND.compute(a, kind)
     m = np.ones(len(a), dtype=bool)
     for ag, nm, lo, hi in s["conds"]:
         x = F.get(ag, {}).get(nm)
         if x is None:
             return None
         m &= (x > lo) & (x <= hi)
-    r, win, valid = sim.outcomes(a, atr, s["exit"], None, CFG["COST_BPS"]["fx"])[s["dir"]]
+    r, win, valid = sim.outcomes(a, atr, s["exit"], None, CFG["COST_BPS"][kind])[s["dir"]]
     keep = thin(m & valid, np.zeros(len(a), dtype=int), a[:, 0], s["exit"]["h"] * 3600)
     return a[:, 0][keep], r[keep], win[keep]
 
@@ -41,15 +45,24 @@ def summary(ts, r, w):
 
 def main():
     s = strat_best()
+    kind = os.environ.get("VAL_KIND", "fx")
     days = int(os.environ.get("VAL_DAYS", "730"))
     out = {"genere": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"), "strategie": s["id"],
-           "conds": s["conds"], "exit": s["exit"], "labo_test": s["stats"]["test"], "jours": days, "sources": {}}
-    for src in ("dukascopy", "yahoo"):
+           "conds": s["conds"], "exit": s["exit"], "labo_test": s["stats"]["test"], "marche": kind, "jours": days,
+           "sources": {}}
+    srcs = ("dukascopy", "yahoo") if kind == "fx" and not os.environ.get("VAL_STRAT") else \
+        (("dukascopy",) if kind == "fx" else ("coinbase",))
+    for src in srcs:
         allt, allr, allw, per = [], [], [], {}
-        for sym in UNIVERSE["fx"]:
+        for sym in UNIVERSE[kind]:
             try:
-                a = data.dukascopy(sym, 3600, days) if src == "dukascopy" else data.bars(sym, "fx", "1H")
-                res = replay(np.asarray(a, dtype=float), s)
+                if src == "dukascopy":
+                    a = data.dukascopy_hours(sym, days) if days > 800 else data.dukascopy(sym, 3600, days)
+                elif src == "coinbase":
+                    a = data.coinbase(sym, 3600, days)
+                else:
+                    a = data.bars(sym, "fx", "1H")
+                res = replay(np.asarray(a, dtype=float), s, kind)
             except Exception as ex:
                 log.warning("%s %s : %s", src, sym, ex)
                 continue
@@ -63,10 +76,12 @@ def main():
             out["sources"][src] = {"erreur": "aucune donnee"}
             continue
         t, r, w = np.concatenate(allt), np.concatenate(allr), np.concatenate(allw)
-        cut = np.quantile(t, 0.8)
-        out["sources"][src] = {"total": summary(t, r, w), "derniers_20pct": summary(t[t >= cut], r[t >= cut], w[t >= cut]),
+        yrs = (t // (365.25 * 86400)).astype(int)
+        out["sources"][src] = {"total": summary(t, r, w),
+                               "par_annee": {str(1970 + y): summary(t[yrs == y], r[yrs == y], w[yrs == y]) for y in np.unique(yrs)},
                                "par_paire": per}
-    with open("validation.json", "w") as f:
+    name = "validation.json" if not os.environ.get("VAL_STRAT") else "validation_%s_%s.json" % (s["id"], kind)
+    with open(name, "w") as f:
         json.dump(out, f, indent=1)
     log.info("termine : %s", {k: v.get("total") for k, v in out["sources"].items()})
 

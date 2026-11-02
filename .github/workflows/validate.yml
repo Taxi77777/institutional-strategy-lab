@@ -2,6 +2,23 @@ name: Labo - verification sur donnees courtier
 
 on:
   workflow_dispatch:
+    inputs:
+      strat:
+        description: "Identifiant de la strategie (vide = meilleure forex 1 h)"
+        required: false
+        default: ""
+      file:
+        description: "Fichier de strategies"
+        required: false
+        default: "strategies.json"
+      kind:
+        description: "Marche rejoue (fx ou cr)"
+        required: false
+        default: "fx"
+      days:
+        description: "Jours d'historique"
+        required: false
+        default: "730"
 
 jobs:
   validate:
@@ -17,6 +34,10 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Verification
         env:
+          VAL_STRAT: ${{ inputs.strat }}
+          VAL_FILE: ${{ inputs.file }}
+          VAL_KIND: ${{ inputs.kind }}
+          VAL_DAYS: ${{ inputs.days }}
           PYTHONUNBUFFERED: '1'
         run: python -m lab.validate
       - name: Publication
@@ -24,10 +45,10 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           for i in 1 2 3 4 5; do
-            cp validation.json /tmp/v.json
+            mkdir -p /tmp/v && cp validation*.json /tmp/v/
             git fetch -q origin main && git reset -q --hard origin/main
-            cp /tmp/v.json validation.json
-            git add validation.json
+            cp /tmp/v/*.json .
+            git add validation*.json
             git diff --cached --quiet && exit 0
             git commit -qm "labo : verification sur donnees courtier [skip ci]"
             git push -q origin HEAD:main && exit 0
