@@ -4,7 +4,8 @@
    - Market / volume profile (Peter Steidlmayer, James Dalton) : POC de la veille non teste (« naked POC »),
      migration de la zone de valeur, regle des 80 %, cassure de l'equilibre initial (initial balance) ;
    - VWAP ancre (Brian Shannon) : depuis le debut de la semaine et depuis le dernier swing ;
-   - Wyckoff : spring et upthrust (fausse cassure puis retour), effort contre resultat.
+   - Wyckoff : spring et upthrust (fausse cassure puis retour), effort contre resultat ;
+   - journee de tendance (trend day) : seance qui s'etire, ouverture a un extreme, prix a l'autre.
    Tout est causal : chaque valeur n'utilise que des bougies deja cloturees."""
 import numpy as np
 
@@ -203,6 +204,34 @@ def wyckoff(h, l, c, v, p=20):
     return out
 
 
+def trend_day(o, h, l, c, days, k=10):
+    """Journee de tendance (idee publique QuantRocket « trend day ») : la seance en cours, jusqu'a la bougie actuelle,
+       s'etire-t-elle plus que d'habitude, avec l'ouverture a un extreme et le prix a l'autre ?"""
+    n = len(c)
+    pos, amp, td = np.full(n, NAN), np.full(n, NAN), np.zeros(n)
+    uniq, start = np.unique(days, return_index=True)
+    ranges = []                                   # amplitudes des seances terminees
+    for d in range(len(uniq)):
+        s, e = start[d], (start[d + 1] if d + 1 < len(start) else n)
+        hi, lo = -np.inf, np.inf
+        ref = np.mean(ranges[-k:]) if len(ranges) >= 3 else NAN
+        for i in range(s, e):
+            hi, lo = max(hi, h[i]), min(lo, l[i])
+            rg = hi - lo
+            if rg <= 0:
+                continue
+            pos[i] = (c[i] - lo) / rg
+            op = (o[s] - lo) / rg
+            if np.isfinite(ref) and ref > 0:
+                amp[i] = rg / ref
+                if amp[i] >= 1.0:
+                    td[i] = 1.0 if (op <= 0.15 and pos[i] >= 0.75) else (-1.0 if (op >= 0.85 and pos[i] <= 0.25) else 0.0)
+        ranges.append(h[s:e].max() - l[s:e].min())
+    return {"jour_position": pos, "jour_ampleur": amp, "jour_tendance": td}
+
+
 def compute_masters(ts, o, h, l, c, v, atr, days):
+    st = wyckoff(h, l, c, v)
+    st.update(trend_day(o, h, l, c, days))
     return {"ichimoku": ichimoku_masters(h, l, c, atr), "profil": profile_masters(o, h, l, c, v, atr, days),
-            "vwap": anchored_vwap(ts, h, l, c, v, atr), "structure": wyckoff(h, l, c, v)}
+            "vwap": anchored_vwap(ts, h, l, c, v, atr), "structure": st}

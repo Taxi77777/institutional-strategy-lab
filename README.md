@@ -5,12 +5,13 @@ Forex, or, argent et crypto · compatible avec tous les courtiers · signaux Tel
 
 ## Le principe
 
-1. **Des spécialistes**, chacun avec sa famille d'indicateurs (~850 variantes au total) :
+1. **Des spécialistes**, chacun avec sa famille d'indicateurs (~1 000 variantes au total) :
    Tendance · Ichimoku · Momentum · Oscillateurs · Volatilité · Bandes · Volume · VWAP · Volume profile · Fibonacci ·
    AMD et sessions · Structure de marché · Chandeliers · Statisticien · Mathématicien · Retour à la moyenne · Horaires ·
    Inter-marchés · Macro · Carnet d'ordres · Favoris TradingView · Multi-unités (1 h / 4 h / jour) ·
    Chandeliers TA-Lib (61 figures) · Alpha158 (Microsoft Qlib) · 101 Alphas (WorldQuant) · Smart Money Concepts ·
-   Dérivés crypto (financement des perpétuels) · Chiffres ronds · Volatilité du week-end.
+   Dérivés crypto (financement des perpétuels) · Chiffres ronds · Volatilité du week-end · Suite TA-Lib complète (58) ·
+   Concepts des maîtres (Hosoda, Sasaki, Péloille, Steidlmayer, Dalton, Shannon, Wyckoff, journée de tendance).
 2. **Le noyau Ichimoku** : des stratégies qui partent toujours d'un signal Ichimoku — passé (Chikou), présent (Tenkan,
    Kijun, prix face au nuage), futur (nuage projeté, déjà connu à la clôture) — confirmé par 1 ou 2 conditions des
    meilleurs autres spécialistes.
