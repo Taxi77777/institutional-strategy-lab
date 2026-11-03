@@ -26,7 +26,7 @@ def _rsum(x, p):
         cnt = np.cumsum(np.r_[0, np.isfinite(x).astype(int)])
         s = cs[p:] - cs[:-p]
         k = cnt[p:] - cnt[:-p]
-        out[p - 1:] = np.where(k >= p * 0.8, s, NAN)
+        out[p - 1:] = np.where(k >= p * 0.5, s, NAN)
     return out
 
 

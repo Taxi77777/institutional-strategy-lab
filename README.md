@@ -26,7 +26,13 @@ Forex, or, argent et crypto · compatible avec tous les courtiers · signaux Tel
    échéances CME / Deribit et fenêtre des ETF bitcoin, jours fériés des grandes places ·
    **Positionnement des gros acteurs** : rapport COT de la CFTC (fonds à levier, gérants, dealers sur les contrats de
    devises et de bitcoin, chaque semaine, utilisé avec un retard prudent) et peur des options bitcoin / ether (DVOL de
-   Deribit, prime de peur contre la volatilité observée).
+   Deribit, prime de peur contre la volatilité observée) ·
+   **Order flow** : vrai delta crypto (Binance : acheteurs − vendeurs agressifs), delta estimé forex (volume des ticks
+   Dukascopy), delta cumulé, divergences, absorption, déséquilibres empilés, épuisement et checklist d'entrée en 4 étapes
+   (zone d'unité supérieure → arrivée du prix → divergence du delta → déclenchement) ·
+   **Smart Money / ICT avancé** : order blocks validés, breakers, FVG / iFVG, chasse de liquidité → MSS → OTE, killzones,
+   et le **noyau Liquidité / Order Block** (chaque piste part d'un setup de liquidité, confirmé par les autres) ·
+   **Belkhayate** : Timing et centre de gravité calculé sans repaint (1 h et 4 h).
 2. **Le noyau Ichimoku** : des stratégies qui partent toujours d'un signal Ichimoku — passé (Chikou), présent (Tenkan,
    Kijun, prix face au nuage), futur (nuage projeté, déjà connu à la clôture) — confirmé par 1 ou 2 conditions des
    meilleurs autres spécialistes.
