@@ -43,7 +43,41 @@ def exact_align(src_ts, val, ts):
     return np.where(np.abs(src_ts[idx] - ts) < 1, val[idx], np.nan)
 
 
-def orderflow_refs(sym, kind, ts, flow=None):
+def currency_flow(cur, ts, live=False):
+    """Flux reel d'une devise (volume, volume acheteur dans le sens de la devise) : euro = EURUSDT Binance + EURUSD
+       Kraken ; or = PAXG Binance ; livre, dollars australien / neo-zelandais, yen, dollar canadien, franc suisse =
+       Kraken. Dollar americain = reference (None)."""
+    from lab import kraken_fx as KF
+    days = int((ts[-1] - ts[0]) / 86400) + 2
+    vol, buy = np.zeros(len(ts)), np.zeros(len(ts))
+    found = False
+    srcs = []
+    if cur in data.FX_CRYPTO_PROXY:
+        srcs.append(("binance", data.FX_CRYPTO_PROXY[cur], 1))
+    srcs += [("kraken", p, sg) for p, (c, sg) in KF.PAIRS.items() if c == cur]
+    for kind, name, sg in srcs:
+        try:
+            f = data.binance_flow(name, days=days) if kind == "binance" else (KF.live_flow(name) if live else KF.history(name))
+        except Exception as ex:
+            log.warning("flux %s %s : %s", cur, name, ex)
+            continue
+        if len(f) == 0:
+            continue
+        v, b = exact_align(f[:, 0], f[:, 1], ts), exact_align(f[:, 0], f[:, 2], ts)
+        ok = np.isfinite(v) & (v > 0)
+        if not ok.any():
+            continue
+        found = True
+        b_cur = b if sg > 0 else v - b              # USDJPY achete = yen vendu : acheteurs de la devise = vendeurs
+        vol += np.where(ok, v, 0.0)
+        buy += np.where(ok, b_cur, 0.0)
+    if not found:
+        return None
+    vol[vol <= 0] = np.nan
+    return {"vol": vol, "buy": buy}
+
+
+def orderflow_refs(sym, kind, ts, flow=None, live=False):
     """Order flow : crypto -> volume et volume acheteur Binance ; forex -> volume des ticks Dukascopy (delta estime)."""
     if os.environ.get("ORDERFLOW", "1") == "0":
         return None
@@ -55,14 +89,8 @@ def orderflow_refs(sym, kind, ts, flow=None):
             return {"vol": exact_align(bf[:, 0], bf[:, 1], ts), "buy": exact_align(bf[:, 0], bf[:, 2], ts)}
         tv = data.VOLUME.get(sym)
         res = {"vol": exact_align(tv[0], tv[1], ts), "buy": None} if tv is not None else None
-        px = data.FX_CRYPTO_PROXY.get(sym[:3])          # EURUSDT / PAXG sur Binance : vrai volume acheteur / vendeur
-        if px and res is not None:
-            try:
-                bf = data.binance_flow(px, days=int((ts[-1] - ts[0]) / 86400) + 2)
-                if len(bf):
-                    res["proxy"] = {"vol": exact_align(bf[:, 0], bf[:, 1], ts), "buy": exact_align(bf[:, 0], bf[:, 2], ts)}
-            except Exception as ex:
-                log.warning("order flow Binance %s : %s", px, ex)
+        if res is not None and len(sym) == 6:         # flux reel de chaque devise (Binance + Kraken)
+            res["devises"] = {"base": currency_flow(sym[:3], ts, live), "cotee": currency_flow(sym[3:], ts, live)}
         return res
     except Exception as ex:
         log.warning("order flow %s : %s", sym, ex)

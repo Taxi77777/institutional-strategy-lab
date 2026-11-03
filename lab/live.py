@@ -358,7 +358,7 @@ def features(sym, kind, tf, now, specs=None):
             OFC[sym] = of
         refs["orderflow"] = orderflow_refs(sym, kind, a[:, 0], flow=of[1]) if of[1] is not None else None
     else:
-        refs["orderflow"] = orderflow_refs(sym, kind, a[:, 0])
+        refs["orderflow"] = orderflow_refs(sym, kind, a[:, 0], live=True)
     mac = {k: align(v[0], v[1], a[:, 0]) for k, v in macro().items()}
     if kind == "cr":
         refs = dict(refs or {})

@@ -1,0 +1,45 @@
+name: Order flow devises (Kraken)
+
+# Reconstruit puis complete l'historique des transactions (avec leur sens) des devises principales sur Kraken :
+# euro, livre, dollar australien, dollar neo-zelandais, yen, dollar canadien, franc suisse. Sert a l'order flow forex.
+on:
+  schedule:
+    - cron: '9 */6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: kraken-fx
+  cancel-in-progress: false
+
+jobs:
+  collecte:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Collecte des transactions Kraken
+        env:
+          KRAKEN_BUDGET_S: '18500'
+          PYTHONUNBUFFERED: '1'
+        run: python -m lab.kraken_fx
+      - name: Publication
+        if: always()
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          mkdir -p /tmp/kr && cp -r donnees/kraken/. /tmp/kr/ 2>/dev/null || exit 0
+          for i in 1 2 3 4 5; do
+            git fetch -q origin main && git reset -q --hard origin/main
+            mkdir -p donnees/kraken && cp -r /tmp/kr/. donnees/kraken/
+            git add donnees/kraken
+            git diff --cached --quiet && exit 0
+            git commit -qm "order flow devises : transactions Kraken [skip ci]"
+            git push -q origin HEAD:main && exit 0
+            sleep 5
+          done

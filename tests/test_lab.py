@@ -668,20 +668,30 @@ def test_heatmap_carnet(monkeypatch, tmp_path):
     assert (tmp_path / "heatmap.jsonl").read_text().count("\n") == 1
 
 
-def test_order_flow_forex_proxy_binance():
-    """Forex : vrai delta EURUSDT (Binance) ajoute pour les paires en euro, sans regard vers le futur."""
-    from lab import orderflow as OF
+def test_order_flow_flux_des_devises(monkeypatch, tmp_path):
+    """Forex : flux reel de chaque devise (Binance / Kraken) applique aux paires ; yen inverse (USDJPY) ;
+       transactions Kraken agregees par heure ; aucun regard vers le futur."""
+    from lab import orderflow as OF, kraken_fx as KF
+    rows = KF.aggregate([["150", "2", 7200.5, "b"], ["150", "1", 7300.0, "s"], ["150", "4", 10800.0, "b"]], {})
+    assert rows[7200] == [3.0, 2.0, 2] and rows[10800] == [4.0, 4.0, 1]
     a = synth(33)
     ts, o, h, l, c, v = (a[:, i] for i in range(6))
-    F, atr = IND.compute(a, "fx")
     rng = np.random.default_rng(3)
-    vol, pv = rng.uniform(100, 200, len(c)), rng.uniform(1e5, 2e5, len(c))
-    pb = pv * rng.uniform(0.3, 0.7, len(c))
-    G = OF.compute_orderflow("fx", ts, o, h, l, c, atr, F, {"vol": vol, "buy": None, "proxy": {"vol": pv, "buy": pb}})
-    assert "delta_reel_binance" in G and "divergence_binance_24h" in G
+    vol, buy = rng.uniform(1e5, 2e5, len(c)), None
+    monkeypatch.setattr(miner.data, "binance_flow", lambda name, days=0: np.empty((0, 3)))
+    kv = rng.uniform(10, 20, len(c))
+    monkeypatch.setattr(KF, "history", lambda pair: np.c_[ts, kv, kv * 0.8] if pair == "USDJPY" else np.empty((0, 3)))
+    jpy = miner.currency_flow("JPY", ts)
+    assert jpy is not None and np.allclose(jpy["buy"], kv * 0.2)          # USDJPY achete a 80 % = yen vendu a 80 %
+    assert miner.currency_flow("USD", ts) is None
+    F, atr = IND.compute(a, "fx")
+    flow = {"vol": vol, "buy": buy, "devises": {"base": None, "cotee": jpy}}
+    G = OF.compute_orderflow("fx", ts, o, h, l, c, atr, F, flow)
+    assert "ecart_flux_devises_24h" in G and np.nanmean(G["ecart_flux_devises_24h"]) > 0.5   # yen vendu : USDJPY pousse
     m = 1800
     Fm, atm = IND.compute(a[:m], "fx")
     G2 = OF.compute_orderflow("fx", ts[:m], o[:m], h[:m], l[:m], c[:m], atm, Fm,
-                              {"vol": vol[:m], "buy": None, "proxy": {"vol": pv[:m], "buy": pb[:m]}})
+                              {"vol": vol[:m], "buy": None, "devises": {"base": None,
+                                                                         "cotee": {k: x[:m] for k, x in jpy.items()}}})
     for k, x in G2.items():
         assert np.allclose(np.nan_to_num(G[k][:m]), np.nan_to_num(x)), k

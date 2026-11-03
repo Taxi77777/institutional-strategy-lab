@@ -1,8 +1,10 @@
 """Specialiste Order flow (demande du trader), crypto ET forex :
    - crypto : VRAI delta = volume des acheteurs agressifs - volume des vendeurs agressifs (Binance, bougies 1 h) ;
    - forex : pas de bourse centrale, donc pas de vrai delta gratuit ; delta ESTIME a partir du volume des ticks
-     Dukascopy et de la position de la cloture dans la bougie (methode classique « close location value ») ; en plus,
-     pour les paires en euro et l'or, le VRAI delta de EURUSDT / PAXG cotes sur Binance (idee du trader).
+     Dukascopy et de la position de la cloture dans la bougie (methode classique « close location value ») ; en plus
+     (idee du trader), le VRAI flux de chaque devise principale cotee sur les plateformes crypto : euro (EURUSDT
+     Binance + EURUSD Kraken), livre, dollars australien / neo-zelandais, yen, dollar canadien, franc suisse (Kraken),
+     or (PAXG Binance) ; applique a toutes les paires (ex. GBPJPY = flux livre - flux yen).
    Indicateurs : delta, delta cumule 24 h / 72 h, divergences delta / prix (globale et aux creux / sommets), absorption,
    desequilibres empiles, epuisement, volume relatif ; et la CHECKLIST D'ENTREE ORDER FLOW des pros :
    1) zone d'une unite superieure (plus bas / haut de la veille ou de la semaine, order block, FVG),
@@ -125,15 +127,22 @@ def compute_orderflow(kind, ts, o, h, l, c, atr, F, flow):
     valid = np.isfinite(vol)
     for k in out:
         out[k] = np.where(valid, out[k], NAN)                       # volume inconnu : aucun signal d'order flow
-    px = flow.get("proxy")                                          # forex : vrai delta de la paire cotee sur Binance
-    if px and px.get("vol") is not None and len(px["vol"]) == n:
-        pv = np.asarray(px["vol"], dtype=float).copy()
-        pv[~(pv > 0)] = NAN
-        pd = 2 * np.asarray(px["buy"], dtype=float) - pv
-        out["delta_reel_binance"] = _div(pd, pv)
-        for p in (24, 72):
-            out["delta_cumule_binance_%dh" % p] = _div(_rsum(pd, p), _rsum(pv, p))
-        cb = out["delta_cumule_binance_24h"]
-        out["divergence_binance_24h"] = np.where(np.isfinite(ret24) & np.isfinite(cb), (np.sign(cb) - np.sign(ret24)) / 2,
-                                                 NAN)
+    dv = flow.get("devises") or {}                                  # forex : flux reel de chaque devise
+    cum = {}
+    for side in ("base", "cotee"):
+        d_ = dv.get(side)
+        if d_ is None or len(d_.get("vol", [])) != n:
+            continue
+        pv = np.asarray(d_["vol"], dtype=float)
+        pd = 2 * np.asarray(d_["buy"], dtype=float) - pv
+        out["flux_devise_%s" % side] = _div(pd, pv)
+        cum[side] = _div(_rsum(pd, 24), _rsum(pv, 24))
+        out["flux_devise_%s_24h" % side] = cum[side]
+    if dv:
+        b_ = cum.get("base", np.zeros(n) if dv.get("base") is None else None)
+        q_ = cum.get("cotee", np.zeros(n) if dv.get("cotee") is None else None)
+        if b_ is not None and q_ is not None and ("base" in cum or "cotee" in cum):
+            out["ecart_flux_devises_24h"] = b_ - q_               # > 0 : la devise de base est achetee plus que l'autre
+            out["divergence_flux_devises_24h"] = np.where(np.isfinite(ret24) & np.isfinite(out["ecart_flux_devises_24h"]),
+                                                          (np.sign(out["ecart_flux_devises_24h"]) - np.sign(ret24)) / 2, NAN)
     return out
