@@ -492,7 +492,7 @@ def near_misses(ds, allev, valid_ids, fdr_ids, top=8):
             rob = robustness(ds, cd)
             why = "robustesse : %s" % ", ".join("%s=%s" % (k, v_) for k, v_ in rob.items() if k != "ok")[:160] \
                 if not rob["ok"] else "retenue"
-        out.append({"agent": cd["agent"], "dir": cd["dir"], "exit": cd["exit"], "conds": [list(c_[:2]) for c_ in cd["conds"]],
+        out.append({"agent": cd["agent"], "dir": cd["dir"], "exit": cd["exit"], "conds": [list(c_) for c_ in cd["conds"]],
                     "test_win": round(win, 4), "test_n": n, "test_avg": round(ev["test"]["avg"], 4),
                     "apprentissage_win": round(a_.get("win", 0), 4), "validation_win": round(v.get("win", 0), 4),
                     "raison": why})
