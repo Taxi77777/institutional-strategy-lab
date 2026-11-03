@@ -12,6 +12,8 @@ def outcomes(arr, atr, exit_, days=None, cost_bps=0.0):
     out = {}
     entry = np.full(n, np.nan)
     entry[:-1] = o[1:]
+    if exit_.get("trail"):
+        return _trailing(arr, atr, exit_, days, cost_bps, entry)
     for dr in (1, -1):
         risk = sl_k * atr
         tp = entry + dr * tp_k * atr
@@ -39,6 +41,45 @@ def outcomes(arr, atr, exit_, days=None, cost_bps=0.0):
         r = np.maximum(r, -1.5)
         cost = entry * cost_bps / 1e4 / risk
         r = r - cost
+        valid = np.isfinite(r) & np.isfinite(atr) & (atr > 0)
+        out[dr] = (np.where(valid, r, 0.0), valid & (r > 0), valid)
+    return out
+
+
+def _trailing(arr, atr, exit_, days, cost_bps, entry):
+    """Vraie tendance : pas d'objectif fixe. Stop de depart a sl x ATR, puis stop suiveur a trail x ATR sous le plus
+       haut cours de cloture (au-dessus du plus bas en vente), deplace seulement a la cloture de chaque bougie ;
+       sortie au stop (gap : a l'ouverture) ou a la duree maxi. On laisse courir les gains."""
+    o, h, l, c = arr[:, 1], arr[:, 2], arr[:, 3], arr[:, 4]
+    n = len(c)
+    sl_k, tr_k, H = exit_["sl"], exit_["trail"], int(exit_["h"])
+    out = {}
+    for dr in (1, -1):
+        risk = sl_k * atr
+        stop = entry - dr * risk
+        r = np.full(n, np.nan)
+        done = np.zeros(n, dtype=bool)
+        last_close = np.full(n, np.nan)
+        for k in range(1, H + 1):
+            j = np.arange(n) + k
+            ok = j < n
+            jj = np.where(ok, j, n - 1)
+            if days is not None:
+                ok &= days[jj] == days[np.minimum(np.arange(n) + 1, n - 1)]
+            hk, lk, ck, ov = h[jj], l[jj], c[jj], o[jj]
+            ok_ = ok & ~done
+            hit = ok_ & ((dr > 0) & (lk <= stop) | (dr < 0) & (hk >= stop))
+            fill = (np.where(dr > 0, np.minimum(ov, stop), np.maximum(ov, stop)) if k > 1 else stop)
+            r = np.where(hit, (fill - entry) * dr / risk, r)
+            done |= hit
+            upd = ok & ~done
+            new = ck - dr * tr_k * atr
+            stop = np.where(upd, np.maximum(stop, new) if dr > 0 else np.minimum(stop, new), stop)
+            last_close = np.where(ok, ck, last_close)
+        timeout = ~done & np.isfinite(last_close)
+        r = np.where(timeout, (last_close - entry) * dr / risk, r)
+        r = np.maximum(r, -1.5)
+        r = r - entry * cost_bps / 1e4 / risk
         valid = np.isfinite(r) & np.isfinite(atr) & (atr > 0)
         out[dr] = (np.where(valid, r, 0.0), valid & (r > 0), valid)
     return out

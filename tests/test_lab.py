@@ -470,3 +470,48 @@ def test_mode_gros_gains(monkeypatch):
     tots = [s["stats"]["test"]["avg"] * s["stats"]["test"]["n"] for s in res["strategies"]]
     assert tots == sorted(tots, reverse=True)
     assert all("test_pf" in r for r in res["plafond"])
+
+
+def test_vraie_tendance_stop_suiveur(monkeypatch):
+    """Vraie tendance : stop suiveur, pas d'objectif ; au hasard pas d'avantage, en tendance de gros gains ;
+       en direct le stop se deplace (message Telegram) puis la sortie se fait au stop suiveur."""
+    from lab import sim
+    rng = np.random.default_rng(4)
+    n = 6000
+    c = 100 * np.exp(np.cumsum(rng.normal(0, 2e-3, n)))
+    o = np.r_[c[0], c[:-1]]
+    a = np.c_[np.arange(n) * 3600.0, o, np.maximum(o, c) * 1.001, np.minimum(o, c) * 0.999, c, np.zeros(n)]
+    atr = np.full(n, 0.35)
+    e = {"id": "t", "tp": 99, "sl": 1.0, "trail": 1.5, "h": 72}
+    r, w, v = sim.outcomes(a, atr, e, None, 0.0)[1]
+    assert abs(r[v].mean()) < 0.15 and r[v].max() > 3          # au hasard : rien de gratuit, mais des gains qui courent
+    up = np.linspace(100, 130, 300)
+    a2 = np.c_[np.arange(300) * 3600.0, up, up + 0.05, up - 0.05, up, np.zeros(300)]
+    r2, w2, v2 = sim.outcomes(a2, np.full(300, 0.2), e, None, 0.0)[1]
+    assert r2[v2][:100].min() > 3                              # tendance reguliere : on laisse courir (> 3 x le risque)
+    # direct
+    sent = []
+    monkeypatch.setattr(TG, "send", lambda txt, *a_, **k: sent.append(txt))
+    monkeypatch.setattr(live, "save_state", lambda st: None)
+    t0 = 1790000000.0
+    bars = np.c_[t0 + np.arange(6) * 3600, [1.00, 1.01, 1.02, 1.03, 1.03, 1.03], [1.011, 1.021, 1.031, 1.035, 1.032, 1.031],
+                 [0.999, 1.009, 1.019, 1.029, 1.0, 1.0], [1.01, 1.02, 1.03, 1.03, 1.01, 1.01], np.zeros(6)]
+    monkeypatch.setattr(live, "hist", lambda *x: bars)
+    st = {"open": [{"kind": "fx", "tf": "1H", "sym": "EURUSD", "dir": 1, "entry": 1.0, "sl": 0.99, "sl0": 0.99,
+                    "sl_sent": 0.99, "tp": 99, "trail": 1.0, "atr": 0.01, "t_entry": t0, "t_exit": t0 + 100 * 3600,
+                    "ids": ["x"], "agents": ["liquidite"]}], "alerts": {}, "retired": [], "live": {}, "track": []}
+    live.track(st, t0 + 4 * 3600)                              # 4 bougies cloturees, prix monte : le stop suit
+    assert any("Déplace ton stop" in m for m in sent) and st["open"][0]["sl"] > 1.0
+    live.track(st, t0 + 6 * 3600)                              # retour sous le stop suiveur : sortie gagnante
+    assert st["open"] == [] and st["track"][-1]["win"]
+
+
+def test_labo_en_mode_tendance(monkeypatch):
+    """Le labo complet tourne avec les sorties « vraie tendance » (stop suiveur) et les regles gros gains."""
+    monkeypatch.setitem(config.CFG, "MODE", "tendance")
+    monkeypatch.setitem(config.CFG, "MIN_PF", 1.1)
+    monkeypatch.setattr(miner, "EXITS", config.EXITS_TREND[:2])
+    ds, res = run(True)
+    assert "plafond" in res
+    for s in res["strategies"]:
+        assert s["exit"].get("trail") and s["stats"]["test"]["avg"] > 0
