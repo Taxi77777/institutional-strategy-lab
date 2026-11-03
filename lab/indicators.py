@@ -35,7 +35,7 @@ AGENTS = {
     "noyau_ichimoku": "Noyau Ichimoku + confirmations des autres spécialistes",
     "noyau_liquidite": "Noyau Liquidité / Order Block (chasse de stops, order block, FVG) + confirmations",
     "weekend": "Volatilité du week-end crypto",
-    "traders": "Grands traders (Tortues, Raschke, Crabel, L. Williams, Connors, Elder, DeMark, B. Williams, Sperandeo)",
+    "traders": "Grands traders (Tortues, Raschke, Crabel, L. Williams, Connors, Elder, DeMark, B. Williams, Sperandeo, Belkhayate)",
     "liquidite": "Liquidité des opérateurs (stops veille / semaine / mois / sessions, chasses de stops, ouvertures institutionnelles, liquidations estimées, delta estimé, Corwin-Schultz, Roll, Amihud)",
     "flux": "Flux des opérateurs (fixing de Londres, Gotobi / Tokyo, fin de mois, NFP, 17 h New York, SMT, force des devises, gaps CME / lundi)",
     "positionnement": "Positionnement des gros acteurs (COT de la CFTC) et peur des options (DVOL Deribit)",

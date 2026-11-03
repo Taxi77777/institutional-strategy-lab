@@ -33,7 +33,7 @@ KEYWORDS = {
     "larry williams": "traders", "connors": "traders", "elder": "traders", "demark": "traders",
     "td sequential": "traders", "alligator": "traders", "bill williams": "traders", "sperandeo": "traders",
     "tudor jones": "traders", "seykota": "traders", "al brooks": "traders", "minervini": "traders",
-    "druckenmiller": "traders", "market wizards": "traders",
+    "druckenmiller": "traders", "market wizards": "traders", "belkhayate": "traders",
     "stop hunt": "liquidite", "liquidity pool": "liquidite", "liquidity sweep": "liquidite", "amihud": "liquidite",
     "bid-ask spread": "liquidite", "illiquidity": "liquidite", "market liquidity": "liquidite",
     "fixing": "flux", "london fix": "flux", "gotobi": "flux", "rebalancing": "flux", "month-end": "flux",
