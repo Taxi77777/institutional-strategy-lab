@@ -11,6 +11,7 @@ from lab import liquidite as LQ
 from lab import flux as FL
 from lab import positionnement as PO
 from lab import smc_avance as SA
+from lab import orderflow as OF
 from numpy.lib.stride_tricks import sliding_window_view as swv
 
 NY = ZoneInfo("America/New_York")
@@ -39,6 +40,7 @@ AGENTS = {
     "liquidite": "Liquidité des opérateurs (stops veille / semaine / mois / sessions, chasses de stops, ouvertures institutionnelles, liquidations estimées, delta estimé, Corwin-Schultz, Roll, Amihud)",
     "flux": "Flux des opérateurs (fixing de Londres, Gotobi / Tokyo, fin de mois, NFP, 17 h New York, SMT, force des devises, gaps CME / lundi)",
     "positionnement": "Positionnement des gros acteurs (COT de la CFTC) et peur des options (DVOL Deribit)",
+    "orderflow": "Order flow (delta réel crypto / estimé forex, delta cumulé, divergences, absorption, checklist d'entrée)",
     "numerologie": "Numérologies (monothéistes, Pythagore, Tesla, chinoise, hindoue, maya, kabbale, Gann) — test",
 }
 HTF = ((3600, "1h"), (14400, "4h"), (86400, "jour"))
@@ -644,6 +646,7 @@ def compute(arr, kind, refs=None, macro=None):
     F["liquidite"] = LQ.compute_liquidite(ts, h, l, c, v, atr14, o=o, kind=kind)
     # flux des operateurs : acteurs obliges d'acheter / vendre a heure fixe (lab/flux.py)
     F["flux"] = FL.compute_flux((refs or {}).get("sym"), kind, ts, o, h, l, c, atr14, refs)
+    F["orderflow"] = OF.compute_orderflow(kind, ts, o, h, l, c, atr14, F, (refs or {}).get("orderflow"))
     F["positionnement"] = PO.compute_positionnement((refs or {}).get("sym"), kind, ts, c, refs)
     if refs and refs.get("funding"):                # crypto : financement des perpetuels (aligne, deja connu)
         F["derives"] = {k: np.asarray(x, dtype=float) for k, x in refs["funding"].items() if len(x) == n}

@@ -28,6 +28,7 @@ def synth(seed, n=2600, edge=False):
 @pytest.fixture(autouse=True)
 def fast(monkeypatch, tmp_path):
     monkeypatch.setenv("POSITIONNEMENT", "0")                      # pas de COT / DVOL reseau pendant les tests
+    monkeypatch.setenv("ORDERFLOW", "0")                           # pas de Binance reseau pendant les tests
     monkeypatch.setitem(config.CFG, "SEULEMENT_ACTIVEES", 0)       # anciens tests : messages de l'armee actifs
     monkeypatch.setitem(config.CFG, "MODE", "win")
     monkeypatch.setitem(config.CFG, "PAUSE", 0)
@@ -616,3 +617,28 @@ def test_smc_ict_avance_causal():
     F2, _ = IND.compute(a[:1800], "fx")
     for k, x in F2["smc"].items():
         assert np.allclose(np.nan_to_num(F["smc"][k][:1800]), np.nan_to_num(x)), k
+
+
+def test_order_flow_crypto_et_forex():
+    """Order flow : vrai delta (crypto), delta estime (forex), checklist d'entree ; aucun regard vers le futur ;
+       volume inconnu -> aucun signal."""
+    from lab import orderflow as OF
+    a = synth(31)
+    ts, o, h, l, c, v = (a[:, i] for i in range(6))
+    F, atr = IND.compute(a, "cr")
+    rng = np.random.default_rng(2)
+    vol = rng.uniform(100, 200, len(c))
+    buy = vol * rng.uniform(0.3, 0.7, len(c))
+    for flow in ({"vol": vol, "buy": buy}, {"vol": vol, "buy": None}):
+        G = OF.compute_orderflow("cr", ts, o, h, l, c, atr, F, flow)
+        assert len(G) >= 12 and "modele_order_flow" in G
+        m = 1800
+        Fm, atm = IND.compute(a[:m], "cr")
+        G2 = OF.compute_orderflow("cr", ts[:m], o[:m], h[:m], l[:m], c[:m], atm, Fm,
+                                  {"vol": vol[:m], "buy": None if flow["buy"] is None else buy[:m]})
+        for k, x in G2.items():
+            assert np.allclose(np.nan_to_num(G[k][:m]), np.nan_to_num(x)), k
+    vol2 = vol.copy()
+    vol2[-1] = np.nan
+    G3 = OF.compute_orderflow("fx", ts, o, h, l, c, atr, F, {"vol": vol2, "buy": None})
+    assert all(not np.isfinite(x[-1]) for x in G3.values())

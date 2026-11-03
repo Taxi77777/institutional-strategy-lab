@@ -35,6 +35,33 @@ def align(src_ts, src_val, ts):
     return out
 
 
+def exact_align(src_ts, val, ts):
+    """Valeur de la bougie de meme heure exactement (NaN si absente) : pas de report d'une autre bougie."""
+    if src_ts is None or len(src_ts) == 0:
+        return np.full(len(ts), np.nan)
+    idx = np.clip(np.searchsorted(src_ts, ts), 0, len(src_ts) - 1)
+    return np.where(np.abs(src_ts[idx] - ts) < 1, val[idx], np.nan)
+
+
+def orderflow_refs(sym, kind, ts, flow=None):
+    """Order flow : crypto -> volume et volume acheteur Binance ; forex -> volume des ticks Dukascopy (delta estime)."""
+    if os.environ.get("ORDERFLOW", "1") == "0":
+        return None
+    try:
+        if kind == "cr":
+            bf = flow if flow is not None else data.binance_flow(sym)
+            if len(bf) == 0:
+                return None
+            return {"vol": exact_align(bf[:, 0], bf[:, 1], ts), "buy": exact_align(bf[:, 0], bf[:, 2], ts)}
+        tv = data.VOLUME.get(sym)
+        if tv is None:
+            return None
+        return {"vol": exact_align(tv[0], tv[1], ts), "buy": None}
+    except Exception as ex:
+        log.warning("order flow %s : %s", sym, ex)
+        return None
+
+
 def funding_refs(sym, ts, fetch=None):
     """Indicateurs de financement alignes sur les bougies (NaN si la source ne repond pas)."""
     try:
@@ -90,6 +117,7 @@ def build(kind, tf, fetch=None, fetch_daily=None, symbols=None, macro=None, idea
         refs["sym"] = s                             # flux des operateurs : force des devises / panier, SMT
         refs["panier"] = {s2: align(b2[:, 0], b2[:, 4], a[:, 0]) for s2, b2 in raw.items()}
         refs.update(pos)                            # COT de la CFTC, DVOL Deribit
+        refs["orderflow"] = orderflow_refs(s, kind, a[:, 0])
         if kind == "cr":
             refs["funding"] = funding_refs(s, a[:, 0])
         mac = {k: align(v[0], v[1], a[:, 0]) for k, v in macro.items()}

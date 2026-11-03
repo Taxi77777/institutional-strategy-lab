@@ -15,7 +15,7 @@ import numpy as np
 
 from . import data, ideas as IDEAS, indicators as IND, positionnement as POS, telegram as TG
 from .config import CFG, EXITS, UNIVERSE
-from .miner import BENCH, align, macro_series, funding_refs
+from .miner import BENCH, align, macro_series, funding_refs, orderflow_refs
 
 FUND = {}
 
@@ -256,6 +256,7 @@ FEAT = {}
 
 
 POSC = {}
+OFC = {}
 
 
 def features(sym, kind, tf, now, specs=None):
@@ -288,6 +289,17 @@ def features(sym, kind, tf, now, specs=None):
         ps = (time.time(), POS.sources(kind))
         POSC[kind] = ps
     refs.update(ps[1])
+    if kind == "cr":                                # order flow crypto : Binance, rafraichi a chaque heure
+        of = OFC.get(sym)
+        if not of or time.time() - of[0] > 1800:
+            try:
+                of = (time.time(), data.binance_flow(sym, days=int(KEEP[tf] * STEP[tf] / 86400) + 2))
+            except Exception:
+                of = (time.time(), None)
+            OFC[sym] = of
+        refs["orderflow"] = orderflow_refs(sym, kind, a[:, 0], flow=of[1]) if of[1] is not None else None
+    else:
+        refs["orderflow"] = orderflow_refs(sym, kind, a[:, 0])
     mac = {k: align(v[0], v[1], a[:, 0]) for k, v in macro().items()}
     if kind == "cr":
         refs = dict(refs or {})

@@ -63,7 +63,28 @@ def reel():
         print("   %s : %s" % (sym, {k: round(float(x[-1]), 3) for k, x in F.items()}))
 
 
+def flux():
+    """Order flow reel : Binance (crypto) et volume des ticks Dukascopy (forex)."""
+    import numpy as np
+    from lab import data, indicators as IND
+    from lab.miner import orderflow_refs
+    t = time.time()
+    bf = data.binance_flow("BTC", days=60)
+    print("Binance BTC : %d bougies, acheteurs %.0f %% du volume (%.0f s)" % (len(bf), 100 * np.nanmean(bf[:, 2] / bf[:, 1]),
+                                                                            time.time() - t), flush=True)
+    a = data.coinbase("BTC", 3600, 60)
+    F, atr = IND.compute(a, "cr", {"sym": "BTC", "orderflow": orderflow_refs("BTC", "cr", a[:, 0], flow=bf)})
+    print("   crypto :", {k: round(float(x[-1]), 3) for k, x in F["orderflow"].items()}, flush=True)
+    a = data.dukascopy_live("EURUSD", 3600, 40)
+    F, atr = IND.compute(a, "fx", {"sym": "EURUSD", "orderflow": orderflow_refs("EURUSD", "fx", a[:, 0])})
+    v = data.VOLUME.get("EURUSD")
+    print("   forex : volume ticks %d bougies dont %d connues ; %s" % (len(v[1]), int(np.isfinite(v[1]).sum()),
+          {k: round(float(x[-2]), 3) for k, x in F["orderflow"].items()}), flush=True)
+
+
 if __name__ == "__main__":
     main()
     if os.environ.get("SONDE_REEL"):
         reel()
+    flux()
+

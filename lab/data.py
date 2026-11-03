@@ -151,6 +151,7 @@ def dukascopy(sym, step, days):
     if len(rows) < 1000:
         raise RuntimeError("Dukascopy %s : historique indisponible" % sym)
     a = _resample(np.array(rows, dtype=float), step)
+    VOLUME[sym] = (a[:, 0].copy(), a[:, 5].copy())        # volume des ticks : order flow forex (a part)
     a[:, 5] = 0.0                   # meme vue que le direct temps reel (TrueFX : pas de volume) -> aucun ecart
     return a
 
@@ -219,6 +220,7 @@ def dukascopy_hours(sym, days):
             rows += [tuple(r) for r in recent if r[0] > last]
     a = np.array(sorted({int(r[0]): r for r in rows}.values()), dtype=float)
     a = a[a[:, 0] >= int(datetime.datetime(start.year, start.month, start.day, tzinfo=datetime.timezone.utc).timestamp())]
+    VOLUME[sym] = (a[:, 0].copy(), a[:, 5].copy())        # volume des ticks : order flow forex (a part)
     a[:, 5] = 0.0
     return a
 
@@ -245,6 +247,7 @@ def _duka_hour(sym, hour_dt):
 
 
 LIVE_CACHE = {}
+VOLUME = {}                       # volume des ticks Dukascopy par paire (order flow forex), garde a part
 
 
 def dukascopy_live(sym, step, days, recent=None):
@@ -282,8 +285,12 @@ def dukascopy_live(sym, step, days, recent=None):
     if len(rows) < 1000:
         raise RuntimeError("Dukascopy direct %s : pas assez de donnees" % sym)
     last = max(r[0] for r in rows)
+    duka_last = last
     rows += [r for r in (recent or []) if r[0] > last]      # minutes temps reel apres le dernier fichier publie
     a = _resample(np.array(rows, dtype=float), step)
+    vol = a[:, 5].copy()
+    vol[a[:, 0] + step > duka_last + 60] = np.nan           # bougie pas encore couverte par Dukascopy : volume inconnu
+    VOLUME[sym] = (a[:, 0].copy(), vol)
     a[:, 5] = 0.0
     return a
 
@@ -570,3 +577,26 @@ def cot(years=11):
             avail = datetime.datetime(d.year, d.month, d.day, tzinfo=datetime.timezone.utc).timestamp() + 6 * 86400
             out.setdefault(cur, {})[avail] = vals
     return {k: np.array([(t,) + v[t] for t in sorted(v)], dtype=float) for k, v in out.items()}
+
+
+def binance_flow(sym, days=1200):
+    """Order flow crypto : bougies 1 h Binance (data-api.binance.vision, public, sans inscription) avec le volume des
+       acheteurs agressifs (taker buy). Retourne (n, 3) : temps (debut de bougie, s), volume, volume acheteur."""
+    pair = "%sUSDT" % sym
+    end = int(time.time() * 1000)
+    step = 1000 * 3600 * 1000
+    base = 1500000000000
+    t = base + (max(int((time.time() - days * 86400) * 1000), base) - base) // step * step
+    rows = {}
+    while t < end:
+        u = min(t + step, end)
+        try:
+            raw = _cached_get("binance_%s_%d.json" % (pair, t),
+                              "https://data-api.binance.vision/api/v3/klines?symbol=%s&interval=1h&startTime=%d"
+                              "&endTime=%d&limit=1000" % (pair, t, u - 1), keep=u < end - 2 * 86400 * 1000)
+            for k in json.loads(raw):
+                rows[int(k[0]) // 1000] = (float(k[5]), float(k[9]))
+        except Exception as ex:
+            log.warning("Binance %s : %s", pair, ex)
+        t = u
+    return np.array([(k,) + v for k, v in sorted(rows.items())], dtype=float).reshape(-1, 3)
