@@ -23,6 +23,16 @@ SOURCES = {
                              "&startTime=1672531200000",
     "binance_us_klines": "https://api.binance.us/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=3",
     "coinbase_trades": "https://api.exchange.coinbase.com/products/BTC-USD/trades?limit=5",
+    "binance_EURUSDT": "https://data-api.binance.vision/api/v3/klines?symbol=EURUSDT&interval=1h&limit=2",
+    "binance_EURUSDT_2023": "https://data-api.binance.vision/api/v3/klines?symbol=EURUSDT&interval=1h&limit=1&startTime=1672531200000",
+    "binance_GBPUSDT": "https://data-api.binance.vision/api/v3/klines?symbol=GBPUSDT&interval=1h&limit=1",
+    "binance_AUDUSDT": "https://data-api.binance.vision/api/v3/klines?symbol=AUDUSDT&interval=1h&limit=1",
+    "binance_PAXGUSDT": "https://data-api.binance.vision/api/v3/klines?symbol=PAXGUSDT&interval=1h&limit=1&startTime=1672531200000",
+    "binance_USDTJPY": "https://data-api.binance.vision/api/v3/klines?symbol=USDTJPY&interval=1h&limit=1",
+    "binance_EURUSDT_futures_vision": "https://data.binance.vision/data/futures/um/monthly/klines/EURUSDT/1h/EURUSDT-1h-2025-01.zip",
+    "binance_XAUUSDT_futures_vision": "https://data.binance.vision/data/futures/um/monthly/klines/XAUUSDT/1h/XAUUSDT-1h-2025-12.zip",
+    "kraken_EURUSD": "https://api.kraken.com/0/public/OHLC?pair=EURUSD&interval=60",
+    "coinbase_book_level2": "https://api.exchange.coinbase.com/products/BTC-USD/book?level=2",
 }
 
 
