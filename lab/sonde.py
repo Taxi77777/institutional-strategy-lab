@@ -96,5 +96,6 @@ if __name__ == "__main__":
     main()
     if os.environ.get("SONDE_REEL"):
         reel()
-    flux()
+    if os.environ.get("SONDE_FLUX"):
+        flux()
 
