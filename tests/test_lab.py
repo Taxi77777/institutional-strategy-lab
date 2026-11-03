@@ -642,3 +642,27 @@ def test_order_flow_crypto_et_forex():
     vol2[-1] = np.nan
     G3 = OF.compute_orderflow("fx", ts, o, h, l, c, atr, F, {"vol": vol2, "buy": None})
     assert all(not np.isfinite(x[-1]) for x in G3.values())
+
+
+def test_heatmap_carnet(monkeypatch, tmp_path):
+    """Heatmap : murs du carnet, signal bloque par un gros mur juste au-dessus, releve horaire enregistre."""
+    from lab import data
+
+    class R:
+        def __init__(self, j):
+            self.j = j
+
+        def json(self):
+            return self.j
+    book = {"bids": [[100 - i * 0.05, 1.0] for i in range(40)], "asks": [[100.05 + i * 0.05, 1.0] for i in range(40)]}
+    book["asks"][2][1] = 60.0                                         # gros mur vendeur a +0,15 %
+    monkeypatch.setattr(data.SESSION, "get", lambda url, params=None, timeout=None: R(book))
+    h = data.heatmap("BTC")
+    assert h and h["mur_vente_dist"] < 0.003 and "mur_achat_dist" not in h
+    monkeypatch.setitem(config.CFG, "STATE_DIR", str(tmp_path))
+    live.HEAT.clear()
+    ok, txt = live.heat_check("BTC", "cr", 1, {"atr": 1.0, "close": 100.0})
+    assert not ok and "mur vendeur" in txt                            # achat bloque : mur a moins d'un demi-ATR
+    ok2, _ = live.heat_check("BTC", "cr", -1, {"atr": 1.0, "close": 100.0})
+    assert ok2
+    assert (tmp_path / "heatmap.jsonl").read_text().count("\n") == 1

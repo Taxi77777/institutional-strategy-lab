@@ -194,6 +194,60 @@ def activated(v):
     return out
 
 
+def heat_check(sym, kind, dr, fx):
+    """Heatmap du carnet (crypto, en direct) : un achat est bloque si un gros mur vendeur est a moins d'un demi-ATR
+       au-dessus (une vente : mur acheteur en dessous). Chaque releve est aussi enregistre (historique a tester)."""
+    if kind != "cr":
+        return True, None
+    hm = HEAT.get(sym)
+    if not hm or time.time() - hm[0] > 240:
+        hm = (time.time(), data.heatmap(sym))
+        HEAT[sym] = hm
+        record_heat(sym, hm[1])
+    h = hm[1]
+    if not h:
+        return True, None
+    half = 0.5 * fx["atr"] / fx["close"]
+    block = h.get("mur_vente_dist" if dr > 0 else "mur_achat_dist")
+    txt = "🧱 Heatmap : mur acheteur %s · mur vendeur %s · déséquilibre ±1 %% : %+.0f %%" % (
+        "à -%.2f %%" % (100 * h["mur_achat_dist"]) if "mur_achat_dist" in h else "aucun",
+        "à +%.2f %%" % (100 * h["mur_vente_dist"]) if "mur_vente_dist" in h else "aucun",
+        100 * h.get("desequilibre_1", 0))
+    return not (block is not None and block < half), txt
+
+
+def heat_record_all():
+    """Releve horaire de la heatmap des cryptos suivies (meme sans signal) : constitue l'historique."""
+    hour = int(time.time() // 3600)
+    for sym in UNIVERSE.get("cr", []):
+        if STOP[0]:
+            return
+        if HEAT.get(("rec", sym)) == hour:
+            continue
+        try:
+            h = data.heatmap(sym)
+        except Exception:
+            h = None
+        HEAT[sym] = (time.time(), h)
+        record_heat(sym, h)
+
+
+def record_heat(sym, h, path=None):
+    """Historique de la heatmap (une ligne par releve) : dans quelques mois le labo pourra la tester pour de vrai."""
+    if not h:
+        return
+    path = path or os.path.join(CFG["STATE_DIR"], "heatmap.jsonl")
+    hour = int(time.time() // 3600)
+    if HEAT.get(("rec", sym)) == hour:
+        return                                      # un releve par heure et par crypto
+    HEAT[("rec", sym)] = hour
+    try:
+        with open(path, "a") as f:
+            f.write(json.dumps(dict(h, sym=sym, ts=int(time.time()))) + "\n")
+    except Exception as ex:
+        log.warning("heatmap %s : %s", sym, ex)
+
+
 def activated_signals(st, lab, kind, tf, sym, fx):
     """Signal d'une strategie activee par le trader (a part du vote de l'armee)."""
     for s in lab.get("activees", []):
@@ -205,8 +259,12 @@ def activated_signals(st, lab, kind, tf, sym, fx):
         key = "act|%s|%s|%d|%d" % (sym, tf, s["dir"], int(fx["ts"]))
         if key in st["alerts"]:
             continue
+        ok, heat = heat_check(sym, kind, s["dir"], fx)
+        if not ok:
+            log.info("%s : signal bloque par un mur de la heatmap", sym)
+            continue
         st["alerts"][key] = time.time()
-        send_signal(st, kind, tf, sym, s["dir"], fx, s, {s["agent"]: s}, {}, lab, activee=True)
+        send_signal(st, kind, tf, sym, s["dir"], fx, dict(s, heat=heat), {s["agent"]: s}, {}, lab, activee=True)
         return 1
     return 0
 
@@ -257,6 +315,7 @@ FEAT = {}
 
 POSC = {}
 OFC = {}
+HEAT = {}
 
 
 def features(sym, kind, tf, now, specs=None):
@@ -512,6 +571,8 @@ def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab, elite=Fal
           if gain_mode() else
           "✅ Taux de réussite de la meilleure stratégie : <b>%.0f %%</b> sur %d trades jamais vus (gain moyen %+.2f × le risque, frais inclus)"
           % (100 * t["win"], t["n"], t["avg"]))]
+    if lead.get("heat"):
+        L.append(TG.esc(lead["heat"]))
     pa = (lead.get("robustesse") or {}).get("par_actif", {}).get(sym)
     if activee and pa:
         L.append("📊 Sur %s seul : %.0f %% sur %d trades jamais vus" % (TG.esc(data.label(sym, kind)), 100 * pa["reussite"],
@@ -757,6 +818,7 @@ def main():
                 for tf_ in CFG["TIMEFRAMES"]:            # 1 heure (demande du trader)
                     scan(st, lab, tf_, now)
                 st.setdefault("diag", {})["truefx"] = {"mode": data.TRUEFX["mode"], "paires_temps_reel": data.TRUEFX["paires"]}
+                heat_record_all()                       # historique horaire de la heatmap crypto
                 save_state(st)
             if st["open"] and int(now // 300) != done_trk and now % 300 >= 50:
                 done_trk = int(now // 300)

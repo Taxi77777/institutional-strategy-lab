@@ -448,6 +448,46 @@ def order_book(sym):
     return (bids - asks) / (bids + asks), bids + asks
 
 
+def heatmap(sym, span=0.02, bucket=0.001):
+    """Heatmap du carnet d'ordres crypto (Coinbase + Bitstamp, publics) a +/- span autour du prix : liquidite par
+       tranches de 0,1 %, plus gros murs d'achat / de vente (tranche >= 3 x la mediane et >= 8 % de la profondeur),
+       desequilibres a 0,5 / 1 / 2 %. Retourne un dict ou None."""
+    lv, mid = {}, None
+    for url, params in (("https://api.exchange.coinbase.com/products/%s-USD/book" % sym, {"level": 2}),
+                        ("https://www.bitstamp.net/api/v2/order_book/%susd/" % sym.lower(), {})):
+        try:
+            j = SESSION.get(url, params=params, timeout=10).json()
+            b = [(float(x[0]), float(x[1])) for x in (j.get("bids") or [])[:2000]]
+            a = [(float(x[0]), float(x[1])) for x in (j.get("asks") or [])[:2000]]
+            if not b or not a:
+                continue
+            mid = mid or (b[0][0] + a[0][0]) / 2
+            for side, rows in ((1, b), (-1, a)):
+                for p_, q in rows:
+                    rel = p_ / mid - 1
+                    if abs(rel) <= span:
+                        k = (side, int(np.floor(rel / bucket)))
+                        lv[k] = lv.get(k, 0.0) + p_ * q
+        except Exception:
+            continue
+    if not mid or not lv:
+        return None
+    tot = sum(lv.values())
+    med = float(np.median(list(lv.values())))
+    out = {"mid": mid, "profondeur": round(tot)}
+    for side, nm in ((1, "achat"), (-1, "vente")):
+        walls = [(k[1], v) for k, v in lv.items() if k[0] == side and v >= 3 * med and v >= 0.08 * tot]
+        if walls:
+            kb, v = max(walls, key=lambda x: x[1])
+            out["mur_%s_dist" % nm] = round(abs((kb + 0.5) * bucket), 4)     # distance au prix, en fraction
+            out["mur_%s_part" % nm] = round(v / tot, 3)
+    for w in (0.005, 0.01, 0.02):
+        bb = sum(v for k, v in lv.items() if k[0] == 1 and abs(k[1] * bucket) <= w)
+        aa = sum(v for k, v in lv.items() if k[0] == -1 and abs(k[1] * bucket) <= w)
+        out["desequilibre_%g" % (100 * w)] = round((bb - aa) / (bb + aa), 3) if bb + aa > 0 else 0.0
+    return out
+
+
 def daily(sym):
     """Cloture journaliere (1 an) pour le regime de marche (SPY, VIX, DXY)."""
     r = None
