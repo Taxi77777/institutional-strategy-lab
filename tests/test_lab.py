@@ -26,6 +26,7 @@ def synth(seed, n=2600, edge=False):
 @pytest.fixture(autouse=True)
 def fast(monkeypatch, tmp_path):
     monkeypatch.setenv("POSITIONNEMENT", "0")                      # pas de COT / DVOL reseau pendant les tests
+    monkeypatch.setitem(config.CFG, "SEULEMENT_ACTIVEES", 0)       # anciens tests : messages de l'armee actifs
     monkeypatch.setitem(config.CFG, "PAUSE", 0)
     monkeypatch.setitem(config.CFG, "SIMS", 500)
     monkeypatch.setitem(config.CFG, "BEAM", 15)
@@ -435,3 +436,19 @@ def test_strategie_activee_par_le_trader(monkeypatch, tmp_path):
     assert live.activated_signals(st, lab, "fx", "1H", "EURUSD", fx) == 1
     assert "ACTIVÉE PAR TOI" in sent[0] and "VENDRE" in sent[0]
     assert live.activated_signals(st, lab, "fx", "1H", "EURUSD", fx) == 0      # un seul trade par paire
+
+
+def test_seulement_activees_coupe_le_reste(monkeypatch):
+    """Exigence du trader : avec SEULEMENT_ACTIVEES, aucun resultat d'un ancien trade de l'armee sur Telegram."""
+    monkeypatch.setitem(config.CFG, "SEULEMENT_ACTIVEES", 1)
+    sent = []
+    monkeypatch.setattr(TG, "send", lambda txt, *a, **k: sent.append(txt))
+    monkeypatch.setattr(live, "save_state", lambda st: None)
+    now = 1790000000.0
+    a = np.c_[[now - 7200, now - 3600], [1.0, 1.0], [1.2, 1.2], [0.9, 0.9], [1.1, 1.1], [0, 0]]
+    monkeypatch.setattr(live, "hist", lambda *x: a)
+    st = {"open": [{"kind": "fx", "tf": "1H", "sym": "EURUSD", "dir": 1, "entry": 1.0, "sl": 0.8, "tp": 1.05,
+                    "t_entry": now - 7200, "t_exit": now - 10, "ids": ["x"], "agents": ["tendance"]}],
+          "alerts": {}, "retired": [], "live": {}, "track": []}
+    live.track(st, now)
+    assert sent == [] and len(st["track"]) == 1

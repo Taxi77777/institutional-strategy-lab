@@ -348,7 +348,8 @@ def is_elite(s):
 def scan(st, lab, tf, now):
     sent = 0
     for kind, syms in UNIVERSE.items():
-        if not (any(cl["kind"] == kind and cl["tf"] == tf and cl["strategies"] for cl in lab["classes"])
+        if not ((any(cl["kind"] == kind and cl["tf"] == tf and cl["strategies"] for cl in lab["classes"])
+                 and not CFG["SEULEMENT_ACTIVEES"])
                 or any(a["kind"] == kind and a["tf"] == tf for a in lab.get("activees", []))):
             continue
         for sym in syms:
@@ -365,6 +366,8 @@ def scan(st, lab, tf, now):
             if not fx or now - fx["ts"] - STEP[tf] > late:
                 continue                            # bougie trop ancienne : jamais de signal en retard
             sent += activated_signals(st, lab, kind, tf, sym, fx)       # activee par le trader (sous 92 %)
+            if CFG["SEULEMENT_ACTIVEES"]:
+                continue                            # le trader ne veut que les strategies activees
             sent += numerology_signals(st, lab, kind, tf, sym, fx)      # strategie a part
             votes = council_votes(lab, kind, tf, sym, fx, set(st["retired"]))
             if kind == "cr":
@@ -442,7 +445,8 @@ def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab, elite=Fal
     L.append("<i>Signal seulement : c'est toi qui passes l'ordre. Pas un conseil.</i>")
     TG.send("\n".join(L))
     st["open"].append({"kind": kind, "tf": tf, "sym": sym, "dir": dr, "entry": px, "sl": sl, "tp": tp, "t_entry": fx["ts"] + STEP[tf],
-                       "t_exit": t_exit, "ids": [s["id"] for s in agents.values() if s.get("id")], "agents": list(agents)})
+                       "t_exit": t_exit, "ids": [s["id"] for s in agents.values() if s.get("id")], "agents": list(agents),
+                       "activee": lead.get("activee") if activee else None})
     save_state(st)
 
 
@@ -486,12 +490,17 @@ def track(st, now):
             lv["k"] += int(win)
             if lv["n"] >= 20 and lv["k"] / lv["n"] < 0.70 and sid not in st["retired"]:
                 st["retired"].append(sid)               # la strategie ne tient plus en direct : retiree
+        act = o.get("activee")
         st["track"].append({"sym": o["sym"], "kind": o["kind"], "dir": dr, "win": win, "pct": round(pct, 3),
-                            "day": paris(now).date().isoformat()})
-        tot = st["track"]
+                            "day": paris(now).date().isoformat(), "activee": act})
+        if CFG["SEULEMENT_ACTIVEES"] and not act:
+            continue                                # ancien trade de l'armee : plus de message
+        tot = [x for x in st["track"] if x.get("activee") == act] if act else st["track"]
         k = sum(1 for x in tot if x["win"])
-        TG.send("%s\n🪖 ARMÉE DU LABO\n%s <b>%s terminé : %s</b> (%+.2f %%)\n📒 Bilan de l'armée : %d trades · %d gagnants · <b>%.0f %% de réussite</b>"
-                % (banner(o["kind"], o["sym"]), "✅" if win else "🛑", TG.esc(o["sym"]), res[0], pct, len(tot), k, 100 * k / len(tot)))
+        TG.send("%s\n%s\n%s <b>%s terminé : %s</b> (%+.2f %%)\n📒 Bilan %s : %d trades · %d gagnants · <b>%.0f %% de réussite</b>"
+                % (banner(o["kind"], o["sym"]), "🎯 %s" % TG.esc(act).upper() if act else "🪖 ARMÉE DU LABO",
+                   "✅" if win else "🛑", TG.esc(o["sym"]), res[0], pct,
+                   "de la stratégie" if act else "de l'armée", len(tot), k, 100 * k / len(tot)))
     st["open"] = still
 
 
@@ -610,7 +619,7 @@ def main():
         now = time.time()
         try:
             if not TG.CHAT["id"] and TG.pair_check(st):
-                TG.send("✅ <b>Labo institutionnel connecté</b> : l'armée des %d spécialistes enverra ses signaux 1 h ici." % len(IND.AGENTS))
+                TG.send("✅ <b>Labo institutionnel connecté</b> : les signaux des stratégies activées arriveront ici.")
                 save_state(st)
             par = paris(now)
             if CFG["INFOS"] and par.hour in (8, 14, 20) and par.minute < 30 and st["done"].get("brief") != "%s-%d" % (par.date(), par.hour):
