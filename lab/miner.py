@@ -310,17 +310,38 @@ def search(ds, log_every=50):
                 if sc > 0:
                     cands.append({"agent": agent, "exit": eid, "dir": dr, "conds": combo})
     nt, nc = ichimoku_core(ds, by_agent, cands, beam, depth, min_n, tr) if not only else (0, 0)
-    tested += nt
-    log.info("%s %s : %d conditions, %d combinaisons testees, %d candidates (dont %d noyau Ichimoku)",
-             ds["kind"], ds["tf"], len(conds), tested, len(cands), nc)
+    lt, lc = liquidity_core(ds, by_agent, cands, beam, depth, min_n, tr) if not only else (0, 0)
+    tested += nt + lt
+    log.info("%s %s : %d conditions, %d combinaisons testees, %d candidates (dont %d noyau Ichimoku, %d noyau liquidite)",
+             ds["kind"], ds["tf"], len(conds), tested, len(cands), nc, lc)
     return cands, tested, len(conds)
+
+
+LIQ_CORE = ("liquidite", "smc")
+LIQ_AMD = ("balayage_haut", "balayage_bas", "vs_haut_asie", "vs_bas_asie")
+
+
+def liquidity_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=200):
+    """Noyau Liquidite / Order Block (logique ICT / SMC, demande du trader) : chaque strategie part d'un setup de
+       liquidite (order block, FVG, BOS / CHoCH, sommets / creux egaux, balayage, chasse de stops des niveaux de la
+       veille / semaine / mois / sessions, stops empiles, liquidations) puis est confirmee par 1 ou 2 conditions des
+       AUTRES specialistes (Ichimoku, flux, tendance...)."""
+    core = [c_ for ag in LIQ_CORE for c_ in by_agent.get(ag, [])]
+    core += [c_ for c_ in by_agent.get("amd", []) if c_[1] in LIQ_AMD]
+    return core_search(ds, by_agent, cands, beam, depth, min_n, tr, core, set(LIQ_CORE), "noyau_liquidite", pool_n)
 
 
 def ichimoku_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=200):
     """Noyau Ichimoku : chaque strategie part d'une condition Ichimoku, confirmee par 1 ou 2 conditions des AUTRES
        specialistes (les pool_n meilleures seules, par sortie et sens). Comptee dans le test multiple (FDR)."""
-    core = by_agent.get("ichimoku", [])
-    others = [c_ for ag, cl in by_agent.items() if ag not in ("ichimoku", "numerologie") for c_ in cl]
+    return core_search(ds, by_agent, cands, beam, depth, min_n, tr, by_agent.get("ichimoku", []), {"ichimoku"},
+                       "noyau_ichimoku", pool_n)
+
+
+def core_search(ds, by_agent, cands, beam, depth, min_n, tr, core, core_agents, label, pool_n=200):
+    """Recherche « noyau » : une condition du noyau obligatoire + confirmations des autres specialistes."""
+    others = [c_ for ag, cl in by_agent.items() if ag not in core_agents | {"numerologie"} for c_ in cl
+              if c_ not in core]
     if not core or not others:
         return 0, 0
     cm = {c_: cmask(ds, c_) for c_ in core}
@@ -362,7 +383,7 @@ def ichimoku_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=200):
             allc += level
         for sc, combo, _mm in allc:
             if sc > 0:
-                cands.append({"agent": "noyau_ichimoku", "exit": eid, "dir": dr, "conds": combo})
+                cands.append({"agent": label, "exit": eid, "dir": dr, "conds": combo})
     return tested, len(cands) - before
 
 
