@@ -515,3 +515,45 @@ def test_labo_en_mode_tendance(monkeypatch):
     assert "plafond" in res
     for s in res["strategies"]:
         assert s["exit"].get("trail") and s["stats"]["test"]["avg"] > 0
+
+
+def test_sortie_en_deux_temps(monkeypatch):
+    """>= 90 % et gros gains : moitie encaissee au 1er objectif, stop au prix d'entree, le reste court la tendance.
+       Au hasard aucun gain gratuit ; en direct : message « moitie encaissee » puis sortie gagnante au prix d'entree."""
+    from lab import sim
+    rng = np.random.default_rng(5)
+    n = 8000
+    c = 100 * np.exp(np.cumsum(rng.normal(0, 2e-3, n)))
+    o = np.r_[c[0], c[:-1]]
+    a = np.c_[np.arange(n) * 3600.0, o, np.maximum(o, c) * 1.001, np.minimum(o, c) * 0.999, c, np.zeros(n)]
+    e = config.EXITS_SCALE[0]
+    r, w, v = sim.outcomes(a, np.full(n, 0.35), e, None, 1.5)[1]
+    assert r[v].mean() < 0.05 and w[v].mean() < 0.85            # au hasard : pas de 90 % gratuit
+    assert r[w & v].min() > 0                                    # tout trade gagnant a encaisse sa moitie
+    up = np.linspace(100, 130, 300)
+    a2 = np.c_[np.arange(300) * 3600.0, up, up + 0.05, up - 0.05, up, np.zeros(300)]
+    r2, w2, v2 = sim.outcomes(a2, np.full(300, 0.2), e, None, 0.0)[1]
+    assert w2[v2][:100].all() and r2[v2][:100].min() > 2         # vraie tendance : la 2e moitie fait le gros gain
+    sent = []
+    monkeypatch.setattr(TG, "send", lambda txt, *a_, **k: sent.append(txt))
+    monkeypatch.setattr(live, "save_state", lambda st: None)
+    t0 = 1790000000.0
+    bars = np.c_[t0 + np.arange(4) * 3600, [1.0, 1.004, 1.003, 1.001], [1.004, 1.006, 1.004, 1.002],
+                 [0.999, 1.003, 1.002, 0.998], [1.004, 1.003, 1.001, 0.999], np.zeros(4)]
+    monkeypatch.setattr(live, "hist", lambda *x: bars)
+    st = {"open": [{"kind": "fx", "tf": "1H", "sym": "EURUSD", "dir": 1, "entry": 1.0, "sl": 0.99, "sl0": 0.99,
+                    "sl_sent": 0.99, "tp": 1.005, "tp1": 1.005, "frac": 0.5, "trail": 1.0, "atr": 0.01,
+                    "t_entry": t0, "t_exit": t0 + 100 * 3600, "ids": ["x"], "agents": ["flux"]}],
+          "alerts": {}, "retired": [], "live": {}, "track": []}
+    live.track(st, t0 + 4 * 3600)
+    assert any("Moitié encaissée" in m for m in sent)
+    assert st["open"] == [] and st["track"][-1]["win"]            # le reste sort au prix d'entree : trade gagnant
+
+
+def test_labo_en_mode_tendance90(monkeypatch):
+    monkeypatch.setitem(config.CFG, "MODE", "tendance90")
+    monkeypatch.setattr(miner, "EXITS", config.EXITS_SCALE[:2])
+    ds, res = run(True)
+    assert "plafond" in res
+    for s in res["strategies"]:
+        assert s["exit"].get("tp1") and s["stats"]["test"]["win"] >= config.CFG["MIN_WIN"]

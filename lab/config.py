@@ -32,7 +32,9 @@ UNIVERSE = {
     "stocks": envl("STOCKS", ""),                # actions retirees a la demande du trader (forex et crypto seulement)
 }
 
-MODE = os.environ.get("LAB_MODE", "tendance").strip().lower()
+MODE = os.environ.get("LAB_MODE", "tendance90").strip().lower()
+# exigence du trader (3 nov. 10 h 51) : « tendance90 » = >= 90 % de trades gagnants ET gros gains : sortie en deux
+# temps (moitie encaissee au 1er objectif, stop au prix d'entree, l'autre moitie court la tendance au stop suiveur)
 # choix du trader (3 nov. 10 h) : « tendance » = vraie tendance (depart detecte, stop suiveur, on laisse courir) ;
 # « gain » = objectifs fixes >= stop ; « win » = ancien mode 92 % (petits objectifs)
 CFG = {
@@ -42,7 +44,7 @@ CFG = {
     "PF_FLOOR_2": envf("PF_FLOOR_2", 1.15),  # mode gain : tri des combinaisons et de l'apprentissage
     "ELITE_PF": envf("ELITE_PF", 1.5),       # mode gain : setup elite (peut signaler seul, >= 100 trades jamais vus)
     "TIMEFRAMES": envl("TIMEFRAMES", "1H"),           # demande du trader : 1 heure uniquement
-    "MIN_WIN": envf("MIN_WIN", 0.92),        # exigence du trader : le labo ne garde que les strategies >= 92 % (jamais vues)
+    "MIN_WIN": envf("MIN_WIN", 0.90 if MODE == "tendance90" else 0.92),        # exigence du trader : le labo ne garde que les strategies >= 92 % (jamais vues)
     # tri de depart de la recherche (pieces a assembler) : volontairement plus large que la barre finale, car une
     # combinaison a 92 % est faite d'indicateurs qui, seuls, font moins. La barre finale reste MIN_WIN.
     "SEARCH_FLOOR_1": envf("SEARCH_FLOOR_1", 0.75),
@@ -54,8 +56,8 @@ CFG = {
     "SEULEMENT_ACTIVEES": envf("SEULEMENT_ACTIVEES", 0),   # exigence du trader : sur Telegram, seulement les strategies
                                                           # activees (activation.json) et leurs resultats
     "INFOS": envf("INFOS", 0),               # briefings / veille sur Telegram : coupes par defaut (signaux + resultats seulement)
-    "SIGNAL_MIN_WIN": envf("SIGNAL_MIN_WIN", 0.92),   # exigence du trader : aucun signal sous 92 % de reussite prouvee
-    "ELITE_WIN": envf("ELITE_WIN", 0.92),    # setup elite : peut signaler seul (>= 92 % ...
+    "SIGNAL_MIN_WIN": envf("SIGNAL_MIN_WIN", 0.90 if MODE == "tendance90" else 0.92),   # exigence du trader : aucun signal sous 92 % de reussite prouvee
+    "ELITE_WIN": envf("ELITE_WIN", 0.90 if MODE == "tendance90" else 0.92),    # setup elite : peut signaler seul (>= 92 % ...
     "ELITE_WILSON": envf("ELITE_WILSON", 0.85),  # ... borne basse prudente >= 85 % ...
     "ELITE_N": envf("ELITE_N", 100),         # ... sur au moins 100 trades jamais vus)
     "BEAM": envf("BEAM", 40),                # largeur de la recherche (conditions gardees a chaque etage)
@@ -99,7 +101,17 @@ EXITS_TREND = [
     {"id": "e6", "tp": 99, "sl": 2.0, "trail": 3.0, "h": 240},
     {"id": "e7", "tp": 99, "sl": 1.0, "trail": 2.0, "h": 120},
 ]
-EXITS = {"tendance": EXITS_TREND, "gain": EXITS_GAIN}.get(MODE, EXITS_WIN)
+# >= 90 % et gros gains : sortie en deux temps (tp1 = 1er objectif pour la moitie, puis stop suiveur sur le reste)
+EXITS_SCALE = [
+    {"id": "e1", "tp": 0.5, "tp1": 0.5, "frac": 0.5, "sl": 1.0, "trail": 1.0, "h": 48},
+    {"id": "e2", "tp": 0.5, "tp1": 0.5, "frac": 0.5, "sl": 1.5, "trail": 1.5, "h": 72},
+    {"id": "e3", "tp": 0.75, "tp1": 0.75, "frac": 0.5, "sl": 1.5, "trail": 1.5, "h": 96},
+    {"id": "e4", "tp": 1.0, "tp1": 1.0, "frac": 0.5, "sl": 1.5, "trail": 2.0, "h": 120},
+    {"id": "e5", "tp": 1.0, "tp1": 1.0, "frac": 0.5, "sl": 2.0, "trail": 2.0, "h": 168},
+    {"id": "e6", "tp": 0.75, "tp1": 0.75, "frac": 0.5, "sl": 2.0, "trail": 3.0, "h": 240},
+    {"id": "e7", "tp": 1.0, "tp1": 1.0, "frac": 0.5, "sl": 1.0, "trail": 1.5, "h": 96},
+]
+EXITS = {"tendance": EXITS_TREND, "gain": EXITS_GAIN, "tendance90": EXITS_SCALE}.get(MODE, EXITS_WIN)
 _ids = [x.strip().lower() for x in os.environ.get("EXIT_IDS", "").split(",") if x.strip()]
 if _ids:                                    # recherche parallele : une famille de sorties par job
     EXITS = [e for e in EXITS if e["id"] in _ids]
