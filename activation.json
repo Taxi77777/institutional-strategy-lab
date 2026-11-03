@@ -1,28 +1,33 @@
 {
- "_info": "Strategies activees a la demande du trader sous sa barre. L'armee les prend dans le plafond publie (strategies.json), avec leurs zones exactes, et n'envoie un signal que sur les paires ou elles gagnent sur les trades jamais vus. Signaux seulement, aucun ordre.",
+ "_info": "Demande du trader (3 nov. 14 h 32) : signaux des meilleures pistes a partir de 84 % (forex et crypto), les nouvelles plus hautes remplacent les anciennes a chaque recherche. Signal seulement sur les paires ou la piste gagne sur les trades jamais vus. Signaux seulement, aucun ordre.",
  "regles": [
   {
-   "nom": "Fixing de Londres + Ichimoku",
-   "date": "2026-11-03",
+   "nom": "Meilleure piste forex",
+   "auto": true,
    "kind": "fx",
    "tf": "1H",
-   "agent": "noyau_ichimoku",
-   "dir": 1,
-   "exit": "e2",
-   "doit_contenir": [
-    [
-     "flux",
-     "heures_fixing_londres"
-    ],
-    [
-     "ichimoku",
-     "chikou_9_26"
-    ]
+   "taux_min": 0.84,
+   "trades_min": 50,
+   "max": 3,
+   "exclure": [
+    "numerologie"
    ],
-   "taux_min": 0.82,
-   "trades_min": 500,
    "paire_taux_min": 0.8,
    "paire_trades_min": 10
+  },
+  {
+   "nom": "Meilleure piste crypto",
+   "auto": true,
+   "kind": "cr",
+   "tf": "1H",
+   "taux_min": 0.84,
+   "trades_min": 50,
+   "max": 3,
+   "exclure": [
+    "numerologie"
+   ],
+   "paire_taux_min": 0.8,
+   "paire_trades_min": 5
   }
  ]
 }

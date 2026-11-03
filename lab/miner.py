@@ -608,7 +608,8 @@ def run_all(fetch=None, fetch_daily=None, kinds=None, tfs=None):
     out["duree_min"] = round((time.time() - t0) / 60, 1)
     out["total"] = {k: sum(c[k] for c in out["classes"]) for k in ("conditions", "combinaisons", "candidates")}
     out["total"]["strategies"] = sum(len(c["strategies"]) for c in out["classes"])
-    used = {nm for c in out["classes"] for s in c["strategies"] for ag, nm, _a, _b in s["conds"] if ag == "inventeur"}
+    used = {nm for c in out["classes"] for s in c["strategies"] + c.get("plafond", []) for ag, nm, *_r in s["conds"]
+            if ag == "inventeur"}             # recettes de l'Inventeur aussi pour le plafond (strategies activables)
     out["idees"] = {nm: all_specs[nm] for nm in used if nm in all_specs}
     out["inventeur"] = {"idees_testees": len(all_specs), "idees_gagnantes": len(used)}
     if not os.environ.get("AGENTS_ONLY"):
@@ -672,7 +673,8 @@ def merge(parts_dir="parts", old_path="strategies.json"):
     out["regle"] = out["regle"] or old.get("regle")
     out["classes"] = sorted(classes.values(), key=lambda c: ORDER.index("%s-%s" % (c["kind"], c["tf"]))
                             if "%s-%s" % (c["kind"], c["tf"]) in ORDER else 99)
-    used = {nm for c in out["classes"] for s in c["strategies"] for ag, nm, _a, _b in s["conds"] if ag == "inventeur"}
+    used = {nm for c in out["classes"] for s in c["strategies"] + c.get("plafond", []) for ag, nm, *_r in s["conds"]
+            if ag == "inventeur"}             # recettes de l'Inventeur aussi pour le plafond (strategies activables)
     out["idees"] = {nm: sp for nm, sp in {**old.get("idees", {}), **out["idees"]}.items() if nm in used}
     out["duree_min"] = max([p.get("duree_min", 0) for p in parts] or [0])
     out["total"] = {k: sum(c[k] for c in out["classes"]) for k in ("conditions", "combinaisons", "candidates")}

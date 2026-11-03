@@ -3,6 +3,7 @@ crypto : Coinbase). Un signal part si le vote de l'armee (>= CONSENSUS specialis
 ou un setup elite (>= 90 % sur >= 100 trades jamais vus) est actif, sans majorite contraire, un seul trade par paire.
 Briefing commun (« conseil des specialistes ») a 8 h, 14 h et 20 h (Paris), veille de l'Eclaireur chaque matin."""
 import datetime
+import hashlib
 import json
 import logging
 import os
@@ -134,8 +135,38 @@ def activated(v):
                 act = json.load(f)
         except Exception:
             act = {}
-    out = []
+    out, seen = [], set()
     for rule in act.get("regles", []):
+        if rule.get("auto"):                        # meilleures pistes du plafond, mises a jour a chaque recherche
+            for cl in v.get("classes", []):
+                if cl["kind"] != rule["kind"] or cl["tf"] != rule.get("tf", "1H"):
+                    continue
+                taken = 0
+                for p in cl.get("plafond", []):
+                    if taken >= rule.get("max", 3):
+                        break
+                    if (p["agent"] in rule.get("exclure", []) or any(len(c) != 4 for c in p["conds"])
+                            or p["test_win"] < rule["taux_min"] or p["test_n"] < rule["trades_min"]
+                            or p.get("test_avg", 0) <= 0):
+                        continue
+                    sig = json.dumps([p["dir"], p["exit"], sorted(map(list, p["conds"]))], default=str)
+                    if sig in seen:
+                        continue
+                    pa = (p.get("robustesse") or {}).get("par_actif", {})
+                    ok = sorted(sym for sym, x in pa.items() if x.get("trades", 0) >= rule["paire_trades_min"]
+                                and x.get("reussite", 0) >= rule["paire_taux_min"] and x.get("gain_moyen", 0) > 0)
+                    ex = next((e for e in EXITS if e["id"] == p["exit"]), None)
+                    if not ok or ex is None:
+                        continue
+                    seen.add(sig)
+                    taken += 1
+                    nom = "%s · %.0f %% (%d trades jamais vus)" % (rule["nom"], 100 * p["test_win"], p["test_n"])
+                    out.append({"id": "activee-%s-%s" % (cl["kind"], hashlib.md5(sig.encode()).hexdigest()[:8]),
+                                "kind": cl["kind"], "tf": cl["tf"], "agent": p["agent"], "dir": p["dir"], "exit": ex,
+                                "conds": [list(c) for c in p["conds"]],
+                                "stats": {"test": {"win": p["test_win"], "n": p["test_n"], "avg": p["test_avg"]}},
+                                "robustesse": p.get("robustesse", {}), "activee": nom, "paires_ok": ok})
+            continue
         for cl in v.get("classes", []):
             if cl["kind"] != rule["kind"] or cl["tf"] != rule.get("tf", "1H"):
                 continue

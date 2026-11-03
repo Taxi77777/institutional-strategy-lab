@@ -557,3 +557,18 @@ def test_labo_en_mode_tendance90(monkeypatch):
     assert "plafond" in res
     for s in res["strategies"]:
         assert s["exit"].get("tp1") and s["stats"]["test"]["win"] >= config.CFG["MIN_WIN"]
+
+
+def test_activation_auto_meilleures_pistes(monkeypatch, tmp_path):
+    """Les meilleures pistes du plafond >= seuil sont activees automatiquement (identifiant stable)."""
+    json.dump({"regles": [{"nom": "Meilleure piste crypto", "auto": True, "kind": "cr", "tf": "1H", "taux_min": 0.84,
+                           "trades_min": 50, "max": 2, "exclure": ["numerologie"], "paire_taux_min": 0.8,
+                           "paire_trades_min": 5}]}, open(tmp_path / "activation.json", "w"))
+    monkeypatch.setattr(live, "ACT_URL", "http://127.0.0.1:9/activation.json")
+    pa = {"BTC": {"reussite": 0.9, "trades": 8, "gain_moyen": 0.2}, "ETH": {"reussite": 0.6, "trades": 8, "gain_moyen": -0.1}}
+    mk = lambda w, n, ag="ichimoku": {"agent": ag, "dir": 1, "exit": config.EXITS[0]["id"], "test_win": w, "test_n": n,
+                                      "test_avg": 0.1, "conds": [[ag, "x", 0.0, 1.0]], "robustesse": {"par_actif": pa}}
+    lab = {"classes": [{"kind": "cr", "tf": "1H", "plafond": [mk(0.95, 40), mk(0.887, 71), mk(0.99, 80, "numerologie"),
+                                                               mk(0.80, 300)]}]}
+    a1, a2 = live.activated(lab), live.activated(lab)
+    assert len(a1) == 1 and a1[0]["paires_ok"] == ["BTC"] and a1[0]["id"] == a2[0]["id"] and "89 %" in a1[0]["activee"]
