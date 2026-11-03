@@ -383,7 +383,7 @@ def robustness(ds, cand):
             pos += int(r[ma].mean() > 0)
             w_a = float(win[ma].mean())
             sym = ds["symbols"][int(a)] if int(a) < len(ds["symbols"]) else str(a)
-            per_asset[sym] = {"reussite": round(w_a, 3), "trades": n_a}
+            per_asset[sym] = {"reussite": round(w_a, 3), "trades": n_a, "gain_moyen": round(float(r[ma].mean()), 4)}
             # exigence du trader : >= MIN_WIN sur CHAQUE paire (une perte toleree sur un petit echantillon)
             if n_a - int(win[ma].sum()) > max(1, int((1 - CFG["MIN_WIN"]) * n_a)):
                 bad.append(sym)
@@ -489,13 +489,17 @@ def near_misses(ds, allev, valid_ids, fdr_ids, top=8):
         elif win < CFG["MIN_WIN"]:
             why = "sous %.0f %% sur les trades jamais vus" % (100 * CFG["MIN_WIN"])
         else:
-            rob = robustness(ds, cd)
-            why = "robustesse : %s" % ", ".join("%s=%s" % (k, v_) for k, v_ in rob.items() if k != "ok")[:160] \
-                if not rob["ok"] else "retenue"
+            why = None
+        rob = robustness(ds, cd)
+        if why is None:
+            why = ("robustesse : paires sous le seuil %s, annees %s, moities %s" % (
+                ",".join(rob["actifs_sous_seuil"]) or "-", rob["annees_reussies"], rob["reussite_moities"])
+                if not rob["ok"] else "retenue")
         out.append({"agent": cd["agent"], "dir": cd["dir"], "exit": cd["exit"], "conds": [list(c_) for c_ in cd["conds"]],
                     "test_win": round(win, 4), "test_n": n, "test_avg": round(ev["test"]["avg"], 4),
                     "apprentissage_win": round(a_.get("win", 0), 4), "validation_win": round(v.get("win", 0), 4),
-                    "raison": why})
+                    "raison": why, "robustesse": {k: rob[k] for k in ("actifs_gagnants", "par_actif", "par_annee",
+                                                                         "reussite_moities", "annees_reussies")}})
     return out
 
 

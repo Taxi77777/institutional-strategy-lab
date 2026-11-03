@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 import numpy as np
 
 from . import data, ideas as IDEAS, indicators as IND, positionnement as POS, telegram as TG
-from .config import CFG, UNIVERSE
+from .config import CFG, EXITS, UNIVERSE
 from .miner import BENCH, align, macro_series, funding_refs
 
 FUND = {}
@@ -81,6 +81,7 @@ STRAT_URL = os.environ.get("LAB_STRATEGIES_URL",
                            "https://raw.githubusercontent.com/Taxi77777/institutional-strategy-lab/main/strategies.json")
 LAB_CACHE = {"ts": 0, "v": None}
 NUM_URL = STRAT_URL.replace("strategies.json", "strategies_numerologie.json")
+ACT_URL = STRAT_URL.replace("strategies.json", "activation.json")
 
 
 def load_strategies():
@@ -114,8 +115,69 @@ def load_strategies():
             v["classes"].append({"kind": c["kind"], "tf": c["tf"], "strategies": ss, "armee": {}})
         else:
             tgt["strategies"] = [s for s in tgt["strategies"] if s.get("agent") != "numerologie"] + ss
+    v["activees"] = activated(v)
     LAB_CACHE.update(ts=time.time(), v=v)
     return v
+
+
+def activated(v):
+    """Strategies activees par le trader sous la barre des 92 % (activation.json) : prises dans le plafond publie,
+       avec leurs zones exactes ; signal seulement sur les paires ou elles gagnent sur les trades jamais vus."""
+    try:
+        r = data.SESSION.get(ACT_URL, params={"t": int(time.time() // 3600)}, timeout=20)
+        act = r.json() if r.ok else None
+    except Exception:
+        act = None
+    if not isinstance(act, dict):
+        try:
+            with open("activation.json") as f:
+                act = json.load(f)
+        except Exception:
+            act = {}
+    out = []
+    for rule in act.get("regles", []):
+        for cl in v.get("classes", []):
+            if cl["kind"] != rule["kind"] or cl["tf"] != rule.get("tf", "1H"):
+                continue
+            for p in cl.get("plafond", []):
+                names = [tuple(c[:2]) for c in p["conds"]]
+                if (p["agent"] != rule["agent"] or p["dir"] != rule["dir"] or p["exit"] != rule["exit"]
+                        or any(len(c) != 4 for c in p["conds"])
+                        or not all(tuple(x) in names for x in rule.get("doit_contenir", []))
+                        or p["test_win"] < rule["taux_min"] or p["test_n"] < rule["trades_min"]):
+                    continue
+                pa = (p.get("robustesse") or {}).get("par_actif", {})
+                ok = sorted(sym for sym, x in pa.items() if x.get("trades", 0) >= rule["paire_trades_min"]
+                            and x.get("reussite", 0) >= rule["paire_taux_min"] and x.get("gain_moyen", 0) > 0)
+                ex = next((e for e in EXITS if e["id"] == p["exit"]), None)
+                if not ok or ex is None:
+                    continue
+                slug = "".join(ch if ch.isalnum() else "-" for ch in rule["nom"].lower())
+                out.append({"id": "activee-%s" % slug, "kind": cl["kind"], "tf": cl["tf"], "agent": p["agent"],
+                            "dir": p["dir"], "exit": ex, "conds": [list(c) for c in p["conds"]],
+                            "stats": {"test": {"win": p["test_win"], "n": p["test_n"], "avg": p["test_avg"]}},
+                            "robustesse": p.get("robustesse", {}), "activee": rule["nom"], "paires_ok": ok})
+                break
+            if out and out[-1]["activee"] == rule["nom"]:
+                break
+    return out
+
+
+def activated_signals(st, lab, kind, tf, sym, fx):
+    """Signal d'une strategie activee par le trader (a part du vote de l'armee)."""
+    for s in lab.get("activees", []):
+        if (s["kind"] != kind or s["tf"] != tf or sym not in s["paires_ok"] or s["id"] in set(st["retired"])
+                or not active(s, fx["last"])):
+            continue
+        if any(o["sym"] == sym for o in st["open"]):
+            return 0
+        key = "act|%s|%s|%d|%d" % (sym, tf, s["dir"], int(fx["ts"]))
+        if key in st["alerts"]:
+            continue
+        st["alerts"][key] = time.time()
+        send_signal(st, kind, tf, sym, s["dir"], fx, s, {s["agent"]: s}, {}, lab, activee=True)
+        return 1
+    return 0
 
 
 # ------------------------------------------------------------------ donnees en direct
@@ -286,7 +348,8 @@ def is_elite(s):
 def scan(st, lab, tf, now):
     sent = 0
     for kind, syms in UNIVERSE.items():
-        if not any(cl["kind"] == kind and cl["tf"] == tf and cl["strategies"] for cl in lab["classes"]):
+        if not (any(cl["kind"] == kind and cl["tf"] == tf and cl["strategies"] for cl in lab["classes"])
+                or any(a["kind"] == kind and a["tf"] == tf for a in lab.get("activees", []))):
             continue
         for sym in syms:
             if STOP[0]:
@@ -301,6 +364,7 @@ def scan(st, lab, tf, now):
             late = 2400 if kind == "fx" else 600          # forex : Dukascopy publie chaque heure avec un leger retard
             if not fx or now - fx["ts"] - STEP[tf] > late:
                 continue                            # bougie trop ancienne : jamais de signal en retard
+            sent += activated_signals(st, lab, kind, tf, sym, fx)       # activee par le trader (sous 92 %)
             sent += numerology_signals(st, lab, kind, tf, sym, fx)      # strategie a part
             votes = council_votes(lab, kind, tf, sym, fx, set(st["retired"]))
             if kind == "cr":
@@ -337,7 +401,7 @@ def scan(st, lab, tf, now):
     return sent
 
 
-def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab, elite=False):
+def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab, elite=False, activee=False):
     ex, px, atr = lead["exit"], fx["close"], fx["atr"]
     sl, tp = px - dr * ex["sl"] * atr, px + dr * ex["tp"] * atr
     t_exit = fx["ts"] + STEP[tf] * (ex["h"] + 1)
@@ -345,11 +409,15 @@ def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab, elite=Fal
     army = next((cl.get("armee", {}).get("achat" if dr > 0 else "vente") for cl in lab["classes"]
                  if cl["kind"] == kind and cl["tf"] == tf), None)
     L = [banner(kind, sym),
-         "🪖 <b>ARMÉE DU LABO</b> · stratégie validée (≥ %.0f %% sur des trades jamais vus) : <b>%s</b>" % (
-             100 * CFG["MIN_WIN"], TG.esc(IND.AGENTS.get(lead.get("agent", ""), lead.get("agent", "")))),
+         ("🎯 <b>STRATÉGIE ACTIVÉE PAR TOI</b> · <b>%s</b> (sous ta barre des 92 %%)" % TG.esc(lead.get("activee", ""))
+          if activee else
+          "🪖 <b>ARMÉE DU LABO</b> · stratégie validée (≥ %.0f %% sur des trades jamais vus) : <b>%s</b>" % (
+              100 * CFG["MIN_WIN"], TG.esc(IND.AGENTS.get(lead.get("agent", ""), lead.get("agent", ""))))),
          "%s <b>%s %s</b>%s" % ("🟢" if dr > 0 else "🔴", "ACHETER" if dr > 0 else "VENDRE", TG.esc(data.label(sym, kind)),
                                 "" if dr > 0 else "  <i>(tu gagnes si le prix baisse)</i>"),
-         ("🔢 <b>Stratégie numérologie (à part)</b> · prouvée à plus de 92 %% · bougies %s" % tf.lower()
+         ("🎯 Prouvée à %.1f %% sur %d trades jamais vus, gagnante sur cette paire · bougies %s" % (
+             100 * lead["stats"]["test"]["win"], lead["stats"]["test"]["n"], tf.lower()) if activee else
+          "🔢 <b>Stratégie numérologie (à part)</b> · prouvée à plus de 92 %% · bougies %s" % tf.lower()
           if lead.get("agent") == "numerologie" else
           "⭐ <b>Setup élite</b> (prouvé seul à plus de 92 %%) · bougies %s" % tf.lower() if elite else
           "🪖 Armée : <b>%d spécialistes d'accord</b> · bougies %s" % (len(agents), tf.lower())), SEP,
@@ -360,7 +428,11 @@ def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab, elite=Fal
          "<i>Chez ton courtier le prix peut différer un peu : garde les mêmes % depuis ton prix d'entrée.</i>", SEP,
          "✅ Taux de réussite de la meilleure stratégie : <b>%.0f %%</b> sur %d trades jamais vus (gain moyen %+.2f × le risque, frais inclus)"
          % (100 * t["win"], t["n"], t["avg"])]
-    if army and not elite:
+    pa = (lead.get("robustesse") or {}).get("par_actif", {}).get(sym)
+    if activee and pa:
+        L.append("📊 Sur %s seul : %.0f %% sur %d trades jamais vus" % (TG.esc(data.label(sym, kind)), 100 * pa["reussite"],
+                                                                         pa["trades"]))
+    if army and not elite and not activee:
         L.append("🪖 Vote de l'armée testé : %.0f %% de réussite sur %d trades jamais vus" % (100 * army["win"], army["n"]))
     if lead.get("mc"):
         L.append("🎲 %d simulations de 20 trades : positif dans %.0f %% des cas" % (CFG["SIMS"], 100 * lead["mc"]["p_gain"]))
