@@ -433,7 +433,7 @@ def compute_extra(o, h, l, c, v, atr, ts=None):
            "wq101": wq101(o, h, l, c, v, has_vol, atr), "smc": smc(o, h, l, c, atr),
            "chiffres_ronds": round_numbers(h, l, c, atr)}
     if ts is not None:
-        out["numerologie"] = numerologie(ts, c, atr)
+        pass                                            # numerologie retiree a la demande du trader (3 nov.)
         wk = weekend_vol(ts, c)
         if np.isfinite(wk["vol_weekend"]).sum() > 0:     # seulement les marches ouverts le week-end (crypto)
             out["weekend"] = wk

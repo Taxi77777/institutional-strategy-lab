@@ -41,7 +41,6 @@ AGENTS = {
     "flux": "Flux des opérateurs (fixing de Londres, Gotobi / Tokyo, fin de mois, NFP, 17 h New York, SMT, force des devises, gaps CME / lundi)",
     "positionnement": "Positionnement des gros acteurs (COT de la CFTC) et peur des options (DVOL Deribit)",
     "orderflow": "Order flow (delta réel crypto / estimé forex, delta cumulé, divergences, absorption, checklist d'entrée)",
-    "numerologie": "Numérologies (monothéistes, Pythagore, Tesla, chinoise, hindoue, maya, kabbale, Gann) — test",
 }
 HTF = ((3600, "1h"), (14400, "4h"), (86400, "jour"))
 NAN = np.nan

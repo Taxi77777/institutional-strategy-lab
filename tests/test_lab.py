@@ -289,32 +289,6 @@ def test_numerologie_causale():
     assert set(np.unique(a["racine_numerique"])) <= set(range(1, 10))
 
 
-def test_numerologie_a_part(monkeypatch):
-    """La numerologie ne vote pas avec l'armee et signale a part (>= 92 % prouve sur la paire)."""
-    sent = []
-    monkeypatch.setattr(TG, "send", lambda m: sent.append(m) or True)
-    monkeypatch.setattr(live, "save_state", lambda st: None)
-    s = {"id": "n1", "agent": "numerologie", "dir": 1, "wilson_test": 0.9, "exit": config.EXITS[1], "conds": [],
-         "stats": {"test": {"win": 0.95, "n": 120, "avg": 0.1}},
-         "robustesse": {"par_actif": {"EURUSD": {"reussite": 0.95, "trades": 20}}}}
-    lab = {"classes": [{"kind": "fx", "tf": "1H", "armee": {}, "strategies": [s]}]}
-    fx = {"close": 100.0, "atr": 1.0, "ts": 1790000000.0, "last": {}}
-    assert live.council_votes(lab, "fx", "1H", "EURUSD", fx, set()) == {1: {}, -1: {}}
-    monkeypatch.setattr(live, "features", lambda *a, **k: fx)
-    monkeypatch.setattr(live, "UNIVERSE", {"fx": ["EURUSD"]})
-    st = live.load_state()
-    assert live.scan(st, lab, "1H", fx["ts"] + 3600 + 60) == 1 and "numérologie (à part)" in sent[-1]
-
-
-def test_recherche_dediee_numerologie(monkeypatch):
-    """Recherche parallele : AGENTS_ONLY=numerologie ne produit que des candidates numerologie."""
-    monkeypatch.setenv("AGENTS_ONLY", "numerologie")
-    ds = miner.build("cr", "1H", lambda s, k, tf: synth(sum(map(ord, s)), edge=True), symbols=["BTC", "ETH"], macro={})
-    cands, tested, _ = miner.search(ds)
-    assert tested > 0 and all(cd["agent"] == "numerologie" for cd in cands)
-    assert all(c_[0] == "numerologie" for cd in cands for c_ in cd["conds"])
-
-
 def test_merge_familles_de_sorties(tmp_path, monkeypatch):
     """Recherches paralleles par familles de sorties : les strategies d'une meme classe s'additionnent."""
     monkeypatch.chdir(tmp_path)
