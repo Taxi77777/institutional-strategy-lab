@@ -1,6 +1,7 @@
 """Sonde des nouvelles sources gratuites sans inscription : repondent-elles depuis les serveurs GitHub ?
    python -m lab.sonde  -> affiche le statut de chaque source (aucune cle, aucun secret)."""
 import io
+import os
 import time
 import zipfile
 
@@ -17,6 +18,11 @@ SOURCES = {
                          "&start_timestamp=1617235200000&end_timestamp=1617580800000",
     "cftc_cot_financier_2024": "https://www.cftc.gov/files/dea/history/fut_fin_txt_2024.zip",
     "coinbase_usdt_usd": "https://api.exchange.coinbase.com/products/USDT-USD/candles?granularity=3600",
+    "binance_data_api_klines": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=3",
+    "binance_data_api_2023": "https://data-api.binance.vision/api/v3/klines?symbol=ETHUSDT&interval=1h&limit=2"
+                             "&startTime=1672531200000",
+    "binance_us_klines": "https://api.binance.us/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=3",
+    "coinbase_trades": "https://api.exchange.coinbase.com/products/BTC-USD/trades?limit=5",
 }
 
 
@@ -59,4 +65,5 @@ def reel():
 
 if __name__ == "__main__":
     main()
-    reel()
+    if os.environ.get("SONDE_REEL"):
+        reel()
