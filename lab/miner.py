@@ -178,7 +178,7 @@ def stats(r, win, m):
 
 
 def gain_mode():
-    return CFG.get("MODE", "gain") == "gain"
+    return CFG.get("MODE", "gain") in ("gain", "tendance")
 
 
 def floor_ok(st, lvl):

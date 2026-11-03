@@ -305,7 +305,7 @@ def council_votes(lab, kind, tf, sym, fx, retired):
 
 
 def gain_mode():
-    return CFG.get("MODE", "gain") == "gain"
+    return CFG.get("MODE", "gain") in ("gain", "tendance")
 
 
 def is_strong(s):
@@ -448,10 +448,15 @@ def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab, elite=Fal
           "🪖 Armée : <b>%d spécialistes d'accord</b> · bougies %s" % (len(agents), tf.lower())), SEP,
          "💵 Entrée au prix du marché : <code>%s</code>  · à faire avant %s" % (fmt(px), paris(max(fx["ts"] + STEP[tf] + 600, time.time() + 600)).strftime("%H:%M")),
          "🛑 Sortie de sécurité : <code>%s</code>  (%+.2f %%)" % (fmt(sl), -dr * 100 * ex["sl"] * atr / px),
-         "🎯 Prendre le gain : <code>%s</code>  (%+.2f %%)" % (fmt(tp), dr * 100 * ex["tp"] * atr / px),
+         ("📈 <b>Pas d'objectif fixe : on laisse courir la tendance.</b> Stop suiveur à %.1f ATR du meilleur cours de "
+          "clôture : je t'envoie chaque déplacement du stop." % ex["trail"] if ex.get("trail") else
+          "🎯 Prendre le gain : <code>%s</code>  (%+.2f %%)" % (fmt(tp), dr * 100 * ex["tp"] * atr / px)),
          "⏰ Fermer de toute façon à %s (Paris)" % paris(t_exit).strftime("%H:%M"),
          "<i>Chez ton courtier le prix peut différer un peu : garde les mêmes % depuis ton prix d'entrée.</i>", SEP,
-         ("✅ Meilleure stratégie : <b>%.0f %% de réussite</b>, gain visé <b>%.1f × le stop</b>, facteur de profit <b>%.2f</b> "
+         ("✅ Meilleure stratégie : <b>%.0f %% de réussite</b>, gain moyen <b>%+.2f × le risque</b>, facteur de profit "
+          "<b>%.2f</b> sur %d trades jamais vus (frais inclus)" % (100 * t["win"], t["avg"], t.get("pf", 0), t["n"])
+          if ex.get("trail") else
+          "✅ Meilleure stratégie : <b>%.0f %% de réussite</b>, gain visé <b>%.1f × le stop</b>, facteur de profit <b>%.2f</b> "
           "sur %d trades jamais vus (frais inclus)" % (100 * t["win"], ex["tp"] / ex["sl"], t.get("pf", 0), t["n"])
           if gain_mode() else
           "✅ Taux de réussite de la meilleure stratégie : <b>%.0f %%</b> sur %d trades jamais vus (gain moyen %+.2f × le risque, frais inclus)"
@@ -471,7 +476,8 @@ def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab, elite=Fal
     TG.send("\n".join(L))
     st["open"].append({"kind": kind, "tf": tf, "sym": sym, "dir": dr, "entry": px, "sl": sl, "tp": tp, "t_entry": fx["ts"] + STEP[tf],
                        "t_exit": t_exit, "ids": [s["id"] for s in agents.values() if s.get("id")], "agents": list(agents),
-                       "activee": lead.get("activee") if activee else None})
+                       "activee": lead.get("activee") if activee else None,
+                       "trail": ex.get("trail"), "atr": atr, "sl0": sl, "sl_sent": sl})
     save_state(st)
 
 
@@ -489,7 +495,27 @@ def track(st, now):
             continue
         a = a[(a[:, 0] >= o["t_entry"]) & (a[:, 0] + STEP[o["tf"]] <= now)]
         dr, res = o["dir"], None
-        for b in a:
+        if o.get("trail"):                          # vraie tendance : stop suiveur recalcule sur les bougies cloturees
+            stop = o.get("sl0", o["sl"])
+            for b in a:
+                if b[0] >= o["t_exit"]:
+                    break
+                if (dr > 0 and b[3] <= stop) or (dr < 0 and b[2] >= stop):
+                    pnl = (stop - o["entry"]) * dr
+                    res = ("GAGNANT" if pnl > 0 else "PERDANT", pnl)
+                    break
+                new = b[4] - dr * o["trail"] * o["atr"]
+                stop = max(stop, new) if dr > 0 else min(stop, new)
+            o["sl"] = stop
+            if (res is None and now < o["t_exit"] and abs(stop - o.get("sl_sent", stop)) >= 0.25 * o["atr"]
+                    and not (CFG["SEULEMENT_ACTIVEES"] and not o.get("activee"))):
+                TG.send("%s\n🔁 <b>Déplace ton stop</b> sur %s : <code>%s</code>  (%s : %+.2f %%)" % (
+                    banner(o["kind"], o["sym"]), TG.esc(data.label(o["sym"], o["kind"])), fmt(stop),
+                    "gain protégé" if (stop - o["entry"]) * dr > 0 else "perte réduite", 100 * (stop - o["entry"]) * dr / o["entry"]))
+                o["sl_sent"] = stop
+                save_state(st)
+            a = a[:0] if res is not None else a
+        for b in (a if not o.get("trail") else []):
             if b[0] >= o["t_exit"]:
                 break
             if (dr > 0 and b[3] <= o["sl"]) or (dr < 0 and b[2] >= o["sl"]):

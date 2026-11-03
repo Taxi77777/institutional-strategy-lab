@@ -32,7 +32,9 @@ UNIVERSE = {
     "stocks": envl("STOCKS", ""),                # actions retirees a la demande du trader (forex et crypto seulement)
 }
 
-MODE = os.environ.get("LAB_MODE", "gain").strip().lower()   # choix du trader (3 nov.) : « gain » = gros gains
+MODE = os.environ.get("LAB_MODE", "tendance").strip().lower()
+# choix du trader (3 nov. 10 h) : « tendance » = vraie tendance (depart detecte, stop suiveur, on laisse courir) ;
+# « gain » = objectifs fixes >= stop ; « win » = ancien mode 92 % (petits objectifs)
 CFG = {
     "MODE": MODE,                            # gain : objectif >= stop, classement par gain total ; win : ancien mode 92 %
     "MIN_PF": envf("MIN_PF", 1.3),           # mode gain : facteur de profit minimal (gains / pertes) sur les trades jamais vus
@@ -87,7 +89,17 @@ EXITS_GAIN = [
     {"id": "e6", "tp": 2.0, "sl": 2.0, "h": 48},
     {"id": "e7", "tp": 4.0, "sl": 2.0, "h": 96},
 ]
-EXITS = EXITS_GAIN if MODE == "gain" else EXITS_WIN
+# vraie tendance : aucun objectif fixe (tp tres loin, jamais vise), stop de depart puis stop suiveur en ATR
+EXITS_TREND = [
+    {"id": "e1", "tp": 99, "sl": 1.0, "trail": 1.0, "h": 48},
+    {"id": "e2", "tp": 99, "sl": 1.0, "trail": 1.5, "h": 72},
+    {"id": "e3", "tp": 99, "sl": 1.5, "trail": 1.5, "h": 96},
+    {"id": "e4", "tp": 99, "sl": 1.5, "trail": 2.0, "h": 120},
+    {"id": "e5", "tp": 99, "sl": 2.0, "trail": 2.0, "h": 168},
+    {"id": "e6", "tp": 99, "sl": 2.0, "trail": 3.0, "h": 240},
+    {"id": "e7", "tp": 99, "sl": 1.0, "trail": 2.0, "h": 120},
+]
+EXITS = {"tendance": EXITS_TREND, "gain": EXITS_GAIN}.get(MODE, EXITS_WIN)
 _ids = [x.strip().lower() for x in os.environ.get("EXIT_IDS", "").split(",") if x.strip()]
 if _ids:                                    # recherche parallele : une famille de sorties par job
     EXITS = [e for e in EXITS if e["id"] in _ids]
