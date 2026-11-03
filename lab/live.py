@@ -304,11 +304,26 @@ def council_votes(lab, kind, tf, sym, fx, retired):
     return votes
 
 
+def gain_mode():
+    return CFG.get("MODE", "gain") == "gain"
+
+
+def is_strong(s):
+    """Strategie assez forte pour mener un signal : mode gain -> gain moyen positif et facteur de profit >= MIN_PF ;
+       mode win -> >= SIGNAL_MIN_WIN de reussite."""
+    t = s["stats"]["test"]
+    if gain_mode():
+        return t.get("avg", 0) > 0 and t.get("pf", 0) >= CFG["MIN_PF"]
+    return t.get("win", 0) >= CFG["SIGNAL_MIN_WIN"]
+
+
 def pair_proven(s, sym):
     """Strategie prouvee sur cette paire : >= 5 trades jamais vus et >= 92 % (une perte toleree si peu de trades)."""
     pa = (s.get("robustesse") or {}).get("par_actif", {}).get(sym)
     if not pa or pa.get("trades", 0) < 5:
         return False
+    if gain_mode():                                 # gros gains : la strategie gagne de l'argent sur cette paire
+        return pa.get("gain_moyen", 0) > 0
     n = pa["trades"]
     losses = n - round(pa["reussite"] * n)
     return losses <= max(1, int((1 - CFG["SIGNAL_MIN_WIN"]) * n))
@@ -324,7 +339,7 @@ def numerology_signals(st, lab, kind, tf, sym, fx):
         for s in cl["strategies"]:
             if s.get("agent") != "numerologie" or s["id"] in set(st["retired"]) or not active(s, fx["last"]):
                 continue
-            if not (is_elite(s) and pair_proven(s, sym) and s["stats"]["test"]["win"] >= CFG["SIGNAL_MIN_WIN"]):
+            if not (is_elite(s) and pair_proven(s, sym) and is_strong(s)):
                 continue
             if any(o["sym"] == sym for o in st["open"]):
                 return sent
@@ -341,6 +356,9 @@ def numerology_signals(st, lab, kind, tf, sym, fx):
 def is_elite(s):
     """Setup elite : >= 92 % sur >= 100 trades jamais vus, borne basse prudente >= 85 %, gain positif."""
     t = s["stats"]["test"]
+    if gain_mode():                                 # gros gains : >= 100 trades jamais vus, facteur de profit eleve,
+        return (t.get("n", 0) >= CFG["ELITE_N"] and t.get("pf", 0) >= CFG["ELITE_PF"]       # gain prudent positif
+                and t.get("avg", 0) - 1.64 * t.get("se", 1) > 0)
     return (t.get("win", 0) >= CFG["ELITE_WIN"] and t.get("n", 0) >= CFG["ELITE_N"] and t.get("avg", 0) > 0
             and s.get("wilson_test", 0) >= CFG["ELITE_WILSON"])
 
@@ -383,13 +401,14 @@ def scan(st, lab, tf, now):
                 strong = {a: s for a, s in agents.items() if a != "carnet"}
                 if not strong or len(votes[-dr]) >= len(agents):
                     continue                        # personne de solide, ou autant de specialistes contre
-                army_ok = (army and army.get("win", 0) >= CFG["SIGNAL_MIN_WIN"] and army.get("avg", 0) > 0
-                           and army.get("n", 0) >= 20 and len(agents) >= CFG["CONSENSUS"])
+                army_ok = (army and army.get("avg", 0) > 0 and army.get("n", 0) >= 20 and len(agents) >= CFG["CONSENSUS"]
+                           and (army.get("pf", 0) >= CFG["MIN_PF"] if gain_mode()
+                                else army.get("win", 0) >= CFG["SIGNAL_MIN_WIN"]))
                 elite = [s for s in strong.values() if is_elite(s)]
                 if not army_ok and not elite:
                     continue                        # ni vote de l'armee prouve >= 92 %, ni setup elite
-                if max(s["stats"]["test"]["win"] for s in (elite or strong.values())) < CFG["SIGNAL_MIN_WIN"]:
-                    continue                        # exigence du trader : la strategie meneuse doit avoir >= 92 %
+                if not any(is_strong(s) for s in (elite or strong.values())):
+                    continue                        # la strategie meneuse doit passer la barre (92 % ou gros gains)
                 if not any(pair_proven(s, sym) for s in (elite or strong.values())):
                     continue                        # ... et l'avoir prouve sur CETTE paire (>= 5 trades jamais vus)
                 if any(o["sym"] == sym for o in st["open"]):
@@ -414,6 +433,8 @@ def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab, elite=Fal
     L = [banner(kind, sym),
          ("🎯 <b>STRATÉGIE ACTIVÉE PAR TOI</b> · <b>%s</b> (sous ta barre des 92 %%)" % TG.esc(lead.get("activee", ""))
           if activee else
+          "🪖 <b>ARMÉE DU LABO</b> · stratégie gros gains validée (objectif ≥ stop, gagnante sur des trades jamais vus) : <b>%s</b>"
+          % TG.esc(IND.AGENTS.get(lead.get("agent", ""), lead.get("agent", ""))) if gain_mode() else
           "🪖 <b>ARMÉE DU LABO</b> · stratégie validée (≥ %.0f %% sur des trades jamais vus) : <b>%s</b>" % (
               100 * CFG["MIN_WIN"], TG.esc(IND.AGENTS.get(lead.get("agent", ""), lead.get("agent", ""))))),
          "%s <b>%s %s</b>%s" % ("🟢" if dr > 0 else "🔴", "ACHETER" if dr > 0 else "VENDRE", TG.esc(data.label(sym, kind)),
@@ -422,15 +443,19 @@ def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab, elite=Fal
              100 * lead["stats"]["test"]["win"], lead["stats"]["test"]["n"], tf.lower()) if activee else
           "🔢 <b>Stratégie numérologie (à part)</b> · prouvée à plus de 92 %% · bougies %s" % tf.lower()
           if lead.get("agent") == "numerologie" else
-          "⭐ <b>Setup élite</b> (prouvé seul à plus de 92 %%) · bougies %s" % tf.lower() if elite else
+          ("⭐ <b>Setup élite</b> (gros gains prouvés seul sur plus de 100 trades) · bougies %s" if gain_mode() else
+           "⭐ <b>Setup élite</b> (prouvé seul à plus de 92 %%) · bougies %s") % tf.lower() if elite else
           "🪖 Armée : <b>%d spécialistes d'accord</b> · bougies %s" % (len(agents), tf.lower())), SEP,
          "💵 Entrée au prix du marché : <code>%s</code>  · à faire avant %s" % (fmt(px), paris(max(fx["ts"] + STEP[tf] + 600, time.time() + 600)).strftime("%H:%M")),
          "🛑 Sortie de sécurité : <code>%s</code>  (%+.2f %%)" % (fmt(sl), -dr * 100 * ex["sl"] * atr / px),
          "🎯 Prendre le gain : <code>%s</code>  (%+.2f %%)" % (fmt(tp), dr * 100 * ex["tp"] * atr / px),
          "⏰ Fermer de toute façon à %s (Paris)" % paris(t_exit).strftime("%H:%M"),
          "<i>Chez ton courtier le prix peut différer un peu : garde les mêmes % depuis ton prix d'entrée.</i>", SEP,
-         "✅ Taux de réussite de la meilleure stratégie : <b>%.0f %%</b> sur %d trades jamais vus (gain moyen %+.2f × le risque, frais inclus)"
-         % (100 * t["win"], t["n"], t["avg"])]
+         ("✅ Meilleure stratégie : <b>%.0f %% de réussite</b>, gain visé <b>%.1f × le stop</b>, facteur de profit <b>%.2f</b> "
+          "sur %d trades jamais vus (frais inclus)" % (100 * t["win"], ex["tp"] / ex["sl"], t.get("pf", 0), t["n"])
+          if gain_mode() else
+          "✅ Taux de réussite de la meilleure stratégie : <b>%.0f %%</b> sur %d trades jamais vus (gain moyen %+.2f × le risque, frais inclus)"
+          % (100 * t["win"], t["n"], t["avg"]))]
     pa = (lead.get("robustesse") or {}).get("par_actif", {}).get(sym)
     if activee and pa:
         L.append("📊 Sur %s seul : %.0f %% sur %d trades jamais vus" % (TG.esc(data.label(sym, kind)), 100 * pa["reussite"],

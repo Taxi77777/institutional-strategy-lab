@@ -32,7 +32,13 @@ UNIVERSE = {
     "stocks": envl("STOCKS", ""),                # actions retirees a la demande du trader (forex et crypto seulement)
 }
 
+MODE = os.environ.get("LAB_MODE", "gain").strip().lower()   # choix du trader (3 nov.) : « gain » = gros gains
 CFG = {
+    "MODE": MODE,                            # gain : objectif >= stop, classement par gain total ; win : ancien mode 92 %
+    "MIN_PF": envf("MIN_PF", 1.3),           # mode gain : facteur de profit minimal (gains / pertes) sur les trades jamais vus
+    "PF_FLOOR_1": envf("PF_FLOOR_1", 1.05),  # mode gain : tri de depart de la recherche (une condition)
+    "PF_FLOOR_2": envf("PF_FLOOR_2", 1.15),  # mode gain : tri des combinaisons et de l'apprentissage
+    "ELITE_PF": envf("ELITE_PF", 1.5),       # mode gain : setup elite (peut signaler seul, >= 100 trades jamais vus)
     "TIMEFRAMES": envl("TIMEFRAMES", "1H"),           # demande du trader : 1 heure uniquement
     "MIN_WIN": envf("MIN_WIN", 0.92),        # exigence du trader : le labo ne garde que les strategies >= 92 % (jamais vues)
     # tri de depart de la recherche (pieces a assembler) : volontairement plus large que la barre finale, car une
@@ -43,7 +49,7 @@ CFG = {
     "MIN_TRADES_TEST": envf("MIN_TRADES_TEST", 30),
     "FDR": envf("FDR", 0.05),                # taux de fausses decouvertes toleré (Benjamini-Hochberg)
     "CONSENSUS": envf("CONSENSUS", 3),       # specialistes d'accord minimum pour un signal
-    "SEULEMENT_ACTIVEES": envf("SEULEMENT_ACTIVEES", 1),   # exigence du trader : sur Telegram, seulement les strategies
+    "SEULEMENT_ACTIVEES": envf("SEULEMENT_ACTIVEES", 0),   # exigence du trader : sur Telegram, seulement les strategies
                                                           # activees (activation.json) et leurs resultats
     "INFOS": envf("INFOS", 0),               # briefings / veille sur Telegram : coupes par defaut (signaux + resultats seulement)
     "SIGNAL_MIN_WIN": envf("SIGNAL_MIN_WIN", 0.92),   # exigence du trader : aucun signal sous 92 % de reussite prouvee
@@ -61,16 +67,27 @@ CFG = {
 }
 
 # sorties testees (en multiples de l'ATR) : objectif de gain, stop, duree maxi en bougies
-EXITS = [
+EXITS_WIN = [
     {"id": "e1", "tp": 0.5, "sl": 1.5, "h": 16},
     {"id": "e2", "tp": 0.5, "sl": 2.0, "h": 24},
     {"id": "e3", "tp": 0.75, "sl": 2.0, "h": 24},
     {"id": "e4", "tp": 1.0, "sl": 1.0, "h": 12},
     {"id": "e5", "tp": 1.0, "sl": 2.5, "h": 32},
-    {"id": "e6", "tp": 1.5, "sl": 4.0, "h": 64},   # grands mouvements : les frais pesent moins en 5 / 15 / 30 min
+    {"id": "e6", "tp": 1.5, "sl": 4.0, "h": 64},
     {"id": "e7", "tp": 2.0, "sl": 4.0, "h": 96},
     # pas de sortie a gain < 0,5 ATR : sur des prix au hasard elle « reussit » deja ~87 % (faux taux, teste)
 ]
+# mode gain (choix du trader) : l'objectif est TOUJOURS au moins egal au stop (pas de petits gains)
+EXITS_GAIN = [
+    {"id": "e1", "tp": 1.0, "sl": 1.0, "h": 12},
+    {"id": "e2", "tp": 1.5, "sl": 1.0, "h": 24},
+    {"id": "e3", "tp": 2.0, "sl": 1.0, "h": 32},
+    {"id": "e4", "tp": 1.5, "sl": 1.5, "h": 32},
+    {"id": "e5", "tp": 3.0, "sl": 1.5, "h": 64},
+    {"id": "e6", "tp": 2.0, "sl": 2.0, "h": 48},
+    {"id": "e7", "tp": 4.0, "sl": 2.0, "h": 96},
+]
+EXITS = EXITS_GAIN if MODE == "gain" else EXITS_WIN
 _ids = [x.strip().lower() for x in os.environ.get("EXIT_IDS", "").split(",") if x.strip()]
 if _ids:                                    # recherche parallele : une famille de sorties par job
     EXITS = [e for e in EXITS if e["id"] in _ids]

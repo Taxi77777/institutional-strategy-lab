@@ -172,7 +172,32 @@ def stats(r, win, m):
     rr = r[m]
     avg = float(rr.mean())
     sd = float(rr.std()) if n > 1 else 0.0
-    return {"n": n, "win": float(win[m].mean()), "avg": avg, "se": sd / math.sqrt(n) if n > 1 else 1.0}
+    neg = float(-rr[rr < 0].sum())
+    pf = float(rr[rr > 0].sum()) / neg if neg > 0 else (9.99 if avg > 0 else 0.0)
+    return {"n": n, "win": float(win[m].mean()), "avg": avg, "se": sd / math.sqrt(n) if n > 1 else 1.0, "pf": round(pf, 3)}
+
+
+def gain_mode():
+    return CFG.get("MODE", "gain") == "gain"
+
+
+def floor_ok(st, lvl):
+    """Tri de la recherche : mode gain -> gain moyen positif et facteur de profit ; mode win -> taux de reussite."""
+    if gain_mode():
+        return st.get("avg", 0) > 0 and st.get("pf", 0) >= CFG["PF_FLOOR_%d" % lvl]
+    return st.get("win", 0) >= (min(CFG["SEARCH_FLOOR_1"], CFG["MIN_WIN"] - 0.05) if lvl == 1
+                                else min(CFG["SEARCH_FLOOR_2"], CFG["MIN_WIN"] - 0.03))
+
+
+def passes(st, need):
+    """Barre finale (validation, test) : mode gain -> gain moyen positif et facteur de profit >= MIN_PF."""
+    if st.get("n", 0) < need or st.get("avg", 0) <= 0:
+        return False
+    return st.get("pf", 0) >= CFG["MIN_PF"] if gain_mode() else st.get("win", 0) >= CFG["MIN_WIN"]
+
+
+def total(st):
+    return st.get("avg", 0) * st.get("n", 0)
 
 
 def score(st):
@@ -180,6 +205,8 @@ def score(st):
        est significativement positif ; sinon 0 (combinaison non retenue). Objectif du trader : le plus haut taux."""
     if st.get("n", 0) == 0 or st["avg"] - st["se"] <= 0:
         return 0.0
+    if gain_mode():                               # gain total prudent : (gain moyen - erreur) x nombre de trades
+        return (st["avg"] - st["se"]) * math.sqrt(st["n"])
     return wilson_low(int(round(st["win"] * st["n"])), st["n"])
 
 
@@ -257,7 +284,7 @@ def search(ds, log_every=50):
                 mm = m & base
                 st = stats(r, win, mm)
                 tested += 1
-                if st["n"] >= min_n and st["win"] >= min(CFG["SEARCH_FLOOR_1"], CFG["MIN_WIN"] - 0.05):
+                if st["n"] >= min_n and floor_ok(st, 1):
                     scored.append((score(st), (c_,), mm))
             scored.sort(key=lambda x: -x[0])
             level = scored[:beam]
@@ -272,7 +299,7 @@ def search(ds, log_every=50):
                         m2 = mm & masks[c2]
                         st = stats(r, win, m2)
                         tested += 1
-                        if st["n"] >= min_n and st["win"] >= min(CFG["SEARCH_FLOOR_2"], CFG["MIN_WIN"] - 0.03):
+                        if st["n"] >= min_n and floor_ok(st, 2):
                             nxt.append((score(st), tuple(sorted(combo + (c2,))), m2))
                 uniq = {}
                 for x in sorted(nxt, key=lambda x: -x[0]):
@@ -326,7 +353,7 @@ def ichimoku_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=200):
                     m2 = mm & om[c2]
                     st = stats(r, win, m2)
                     tested += 1
-                    if st["n"] >= min_n and st["win"] >= min(CFG["SEARCH_FLOOR_2"], CFG["MIN_WIN"] - 0.03):
+                    if st["n"] >= min_n and floor_ok(st, 2):
                         nxt.append((score(st), tuple(sorted(combo + (c2,))), m2))
             uniq = {}
             for x in sorted(nxt, key=lambda x: -x[0]):
@@ -384,12 +411,16 @@ def robustness(ds, cand):
             w_a = float(win[ma].mean())
             sym = ds["symbols"][int(a)] if int(a) < len(ds["symbols"]) else str(a)
             per_asset[sym] = {"reussite": round(w_a, 3), "trades": n_a, "gain_moyen": round(float(r[ma].mean()), 4)}
-            # exigence du trader : >= MIN_WIN sur CHAQUE paire (une perte toleree sur un petit echantillon)
-            if n_a - int(win[ma].sum()) > max(1, int((1 - CFG["MIN_WIN"]) * n_a)):
+            if gain_mode():                       # mode gain : aucune paire perdante (>= 10 trades jamais vus)
+                if n_a >= 10 and float(r[ma].mean()) < 0:
+                    bad.append(sym)
+            # exigence du trader (mode win) : >= MIN_WIN sur CHAQUE paire (une perte toleree sur un petit echantillon)
+            elif n_a - int(win[ma].sum()) > max(1, int((1 - CFG["MIN_WIN"]) * n_a)):
                 bad.append(sym)
     idx = np.flatnonzero(m)
     halves = [idx[:len(idx) // 2], idx[len(idx) // 2:]]
     wins = [float(win[h_].mean()) if len(h_) else 0.0 for h_ in halves]
+    avgs = [float(r[h_].mean()) if len(h_) else -1.0 for h_ in halves]
     # validation glissante : la regle figee doit reussir CHAQUE annee jamais vue (>= 5 trades), une seule annee
     # faible toleree sur quatre ; une strategie chanceuse sur une periode ne passe plus
     yrs = (ds["ts"][idx] // (365.25 * 86400)).astype(int)
@@ -398,11 +429,14 @@ def robustness(ds, cand):
         sel = idx[yrs == y]
         if len(sel) >= 5:
             per_year[int(1970 + y)] = (round(float(win[sel].mean()), 3), int(len(sel)), float(r[sel].mean()))
-    good = sum(1 for w, n, a in per_year.values() if w >= CFG["MIN_WIN"] - 0.05 and a > 0)
+    good = sum(1 for w, n, a in per_year.values() if a > 0 and (gain_mode() or w >= CFG["MIN_WIN"] - 0.05))
     years_ok = len(per_year) < 2 or good >= max(1, int(np.ceil(0.75 * len(per_year))))
     # au moins 3 paires prouvees (>= 5 trades jamais vus chacune) : sinon le « 92 % sur chaque paire » serait vide
-    ok = tot >= 3 and pos / tot >= 0.5 and min(wins) >= CFG["MIN_WIN"] - 0.05 and years_ok and not bad
-    return {"ok": bool(ok), "actifs_gagnants": "%d/%d" % (pos, tot), "reussite_moities": [round(w, 3) for w in wins],
+    if gain_mode():                               # gros gains : 70 % des paires gagnantes, chaque moitie gagnante
+        ok = tot >= 3 and pos / tot >= 0.7 and min(avgs) > 0 and years_ok and not bad
+    else:
+        ok = tot >= 3 and pos / tot >= 0.5 and min(wins) >= CFG["MIN_WIN"] - 0.05 and years_ok and not bad
+    return {"ok": bool(ok), "actifs_gagnants": "%d/%d" % (pos, tot), "reussite_moities": [round(w, 3) for w in wins], "gain_moities": [round(a, 4) for a in avgs],
             "par_actif": per_asset, "actifs_sous_seuil": bad,
             "par_annee": {str(y): {"reussite": w, "trades": n} for y, (w, n, a) in per_year.items()},
             "annees_reussies": "%d/%d" % (good, len(per_year))}
@@ -425,7 +459,7 @@ def run_class(ds):
         ev = evaluate(ds, cd)
         allev.append((cd, ev))
         v = ev["validation"]
-        if v.get("n", 0) >= 15 and v["win"] >= CFG["MIN_WIN"] and v["avg"] > 0:
+        if passes(v, 15):
             evals.append((cd, ev))
     keep = bh([pval_mean_pos(ev["validation"]) for _, ev in evals], CFG["FDR"])
     final = []
@@ -435,9 +469,9 @@ def run_class(ds):
         t = ev["test"]
         need = CFG["MIN_TRADES_TEST"]
         a_ = ev["apprentissage"]
-        if a_.get("n", 0) == 0 or a_["avg"] <= 0 or a_["win"] < CFG["SEARCH_FLOOR_2"]:
+        if a_.get("n", 0) == 0 or a_["avg"] <= 0 or not floor_ok(a_, 2):
             continue                                # perdante pendant l'apprentissage : chance, pas une strategie
-        if t.get("n", 0) >= need and t["win"] >= CFG["MIN_WIN"] and t["avg"] > 0:
+        if passes(t, need):
             rob = robustness(ds, cd)
             if not rob["ok"]:
                 continue
@@ -451,7 +485,10 @@ def run_class(ds):
                 "robustesse": rob,
                 "mc": mc(ev["test_r"], CFG["SIMS"]),
             })
-    final.sort(key=lambda s: (-s["stats"]["test"]["win"], -s["wilson_test"], -s["stats"]["test"]["avg"]))   # reussite d'abord
+    if gain_mode():                               # gros gains : le plus gros gain total sur les trades jamais vus d'abord
+        final.sort(key=lambda s: (-total(s["stats"]["test"]), -s["stats"]["test"].get("pf", 0)))
+    else:
+        final.sort(key=lambda s: (-s["stats"]["test"]["win"], -s["wilson_test"], -s["stats"]["test"]["avg"]))
     per, kept = {}, []
     for st in final:                              # au plus 5 strategies par specialiste et par sens (pas de doublons)
         key = (st["agent"], st["dir"])
@@ -476,18 +513,24 @@ def near_misses(ds, allev, valid_ids, fdr_ids, top=8):
         t = ev["test"]
         if t.get("n", 0) >= CFG["MIN_TRADES_TEST"] and t.get("avg", 0) > 0:
             rows.append((t["win"], t["n"], cd, ev))
-    rows.sort(key=lambda r: (-r[0], -r[1]))
+    if gain_mode():
+        rows.sort(key=lambda r: (-total(r[3]["test"]), -r[0]))
+    else:
+        rows.sort(key=lambda r: (-r[0], -r[1]))
     out = []
     for win, n, cd, ev in rows[:top]:
         a_, v = ev["apprentissage"], ev["validation"]
         if id(cd) not in valid_ids:
-            why = "validation : %.0f %% sur %d trades" % (100 * v.get("win", 0), v.get("n", 0))
+            why = "validation : %.0f %% sur %d trades, facteur de profit %.2f" % (
+                100 * v.get("win", 0), v.get("n", 0), v.get("pf", 0))
         elif id(cd) not in fdr_ids:
             why = "hasard possible (correction des tests multiples)"
-        elif a_.get("n", 0) == 0 or a_["avg"] <= 0 or a_["win"] < CFG["SEARCH_FLOOR_2"]:
-            why = "apprentissage : %.0f %% sur %d trades" % (100 * a_.get("win", 0), a_.get("n", 0))
-        elif win < CFG["MIN_WIN"]:
-            why = "sous %.0f %% sur les trades jamais vus" % (100 * CFG["MIN_WIN"])
+        elif a_.get("n", 0) == 0 or a_["avg"] <= 0 or not floor_ok(a_, 2):
+            why = "apprentissage : %.0f %% sur %d trades, facteur de profit %.2f" % (
+                100 * a_.get("win", 0), a_.get("n", 0), a_.get("pf", 0))
+        elif not passes(ev["test"], CFG["MIN_TRADES_TEST"]):
+            why = ("facteur de profit %.2f sous %.2f sur les trades jamais vus" % (ev["test"].get("pf", 0), CFG["MIN_PF"])
+                   if gain_mode() else "sous %.0f %% sur les trades jamais vus" % (100 * CFG["MIN_WIN"]))
         else:
             why = None
         rob = robustness(ds, cd)
@@ -497,6 +540,7 @@ def near_misses(ds, allev, valid_ids, fdr_ids, top=8):
                 if not rob["ok"] else "retenue")
         out.append({"agent": cd["agent"], "dir": cd["dir"], "exit": cd["exit"], "conds": [list(c_) for c_ in cd["conds"]],
                     "test_win": round(win, 4), "test_n": n, "test_avg": round(ev["test"]["avg"], 4),
+                    "test_pf": ev["test"].get("pf", 0), "test_total": round(total(ev["test"]), 3),
                     "apprentissage_win": round(a_.get("win", 0), 4), "validation_win": round(v.get("win", 0), 4),
                     "raison": why, "robustesse": {k: rob[k] for k in ("actifs_gagnants", "par_actif", "par_annee",
                                                                          "reussite_moities", "annees_reussies")}})
@@ -528,7 +572,11 @@ def army_test(ds, final):
                 continue
             st = dict(st, exit=e["id"])
             ok = st["n"] >= 20 and st["avg"] > 0          # taux de reussite maximal, avec un gain positif
-            key = (ok, st["win"] if ok else st["avg"])
+            if gain_mode():
+                ok = ok and st.get("pf", 0) >= CFG["MIN_PF"]
+                key = (ok, total(st))
+            else:
+                key = (ok, st["win"] if ok else st["avg"])
             if best is None or key > best[0]:
                 best = (key, st)
         if best:
@@ -539,6 +587,7 @@ def army_test(ds, final):
 def run_all(fetch=None, fetch_daily=None, kinds=None, tfs=None):
     t0 = time.time()
     out = {"genere": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"), "regle": {
+        "mode": CFG["MODE"], "facteur_profit_min": CFG["MIN_PF"], "objectif_au_moins_egal_au_stop": gain_mode(),
         "taux_reussite_min": CFG["MIN_WIN"], "objectif": CFG["TARGET_WIN"], "trades_test_min": CFG["MIN_TRADES_TEST"],
         "fdr": CFG["FDR"], "consensus": CFG["CONSENSUS"]}, "classes": []}
     macro = macro_series(fetch_daily or data.daily) if fetch_daily is not False else {}
@@ -603,14 +652,18 @@ def merge(parts_dir="parts", old_path="strategies.json"):
                 else:
                     f[n_] = f.get(n_, 0) + c.get(n_, 0)
             f["plafond"] = sorted(f.get("plafond", []) + c.get("plafond", []),
-                                  key=lambda r: (-r["test_win"], -r["test_n"]))[:8]
+                                  key=(lambda r: (-r.get("test_total", 0), -r["test_win"])) if gain_mode()
+                                  else (lambda r: (-r["test_win"], -r["test_n"])))[:8]
             for side, a_ in c.get("armee", {}).items():
                 if side not in f["armee"] or a_.get("win", 0) > f["armee"][side].get("win", 0):
                     f["armee"][side] = a_
         out["idees"].update(p.get("idees", {}))
         tested += p.get("inventeur", {}).get("idees_testees", 0)
     for k, f in fresh.items():
-        f["strategies"].sort(key=lambda s: (-s.get("stats", {}).get("test", {}).get("win", 0), -s.get("wilson_test", 0)))
+        if gain_mode():
+            f["strategies"].sort(key=lambda s: -total(s.get("stats", {}).get("test", {})))
+        else:
+            f["strategies"].sort(key=lambda s: (-s.get("stats", {}).get("test", {}).get("win", 0), -s.get("wilson_test", 0)))
         classes[k] = f
     for p in parts:
         for g in p.get("memoire", {}).get("gagnantes", []):

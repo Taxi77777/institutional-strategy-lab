@@ -6,6 +6,8 @@ import sys
 import numpy as np
 import pytest
 
+os.environ.setdefault("LAB_MODE", "win")                    # anciens tests ecrits pour le mode 92 %
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from lab import config, indicators as IND, live, miner, telegram as TG  # noqa: E402
 
@@ -27,6 +29,7 @@ def synth(seed, n=2600, edge=False):
 def fast(monkeypatch, tmp_path):
     monkeypatch.setenv("POSITIONNEMENT", "0")                      # pas de COT / DVOL reseau pendant les tests
     monkeypatch.setitem(config.CFG, "SEULEMENT_ACTIVEES", 0)       # anciens tests : messages de l'armee actifs
+    monkeypatch.setitem(config.CFG, "MODE", "win")
     monkeypatch.setitem(config.CFG, "PAUSE", 0)
     monkeypatch.setitem(config.CFG, "SIMS", 500)
     monkeypatch.setitem(config.CFG, "BEAM", 15)
@@ -452,3 +455,18 @@ def test_seulement_activees_coupe_le_reste(monkeypatch):
           "alerts": {}, "retired": [], "live": {}, "track": []}
     live.track(st, now)
     assert sent == [] and len(st["track"]) == 1
+
+
+def test_mode_gros_gains(monkeypatch):
+    """Choix du trader : objectif >= stop, barre = facteur de profit, classement par gain total."""
+    monkeypatch.setitem(config.CFG, "MODE", "gain")
+    monkeypatch.setitem(config.CFG, "MIN_PF", 1.2)
+    monkeypatch.setattr(miner, "EXITS", config.EXITS_GAIN)
+    assert all(e["tp"] >= e["sl"] for e in config.EXITS_GAIN)
+    ds, res = run(True)
+    for s in res["strategies"]:
+        t = s["stats"]["test"]
+        assert t["avg"] > 0 and t["pf"] >= 1.2 and s["exit"]["tp"] >= s["exit"]["sl"]
+    tots = [s["stats"]["test"]["avg"] * s["stats"]["test"]["n"] for s in res["strategies"]]
+    assert tots == sorted(tots, reverse=True)
+    assert all("test_pf" in r for r in res["plafond"])
