@@ -454,8 +454,8 @@ def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab, elite=Fal
          ("✅ Meilleure stratégie : <b>%.0f %% de réussite</b>, gain visé <b>%.1f × le stop</b>, facteur de profit <b>%.2f</b> "
           "sur %d trades jamais vus (frais inclus)" % (100 * t["win"], ex["tp"] / ex["sl"], t.get("pf", 0), t["n"])
           if gain_mode() else
-          "✅ Taux de réussite de la meilleure stratégie : <b>%.0f %%</b> sur %d trades jamais vus (gain moyen %+.2f × le risque, frais inclus)"
-          % (100 * t["win"], t["n"], t["avg"]))]
+          "✅ Taux de réussite de la meilleure stratégie : <b>%.0f %%</b> sur %d trades jamais vus · gain visé <b>%.1f × le stop</b> "
+          "(frais inclus)" % (100 * t["win"], t["n"], ex["tp"] / ex["sl"]))]
     pa = (lead.get("robustesse") or {}).get("par_actif", {}).get(sym)
     if activee and pa:
         L.append("📊 Sur %s seul : %.0f %% sur %d trades jamais vus" % (TG.esc(data.label(sym, kind)), 100 * pa["reussite"],

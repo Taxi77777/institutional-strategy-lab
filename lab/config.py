@@ -32,19 +32,21 @@ UNIVERSE = {
     "stocks": envl("STOCKS", ""),                # actions retirees a la demande du trader (forex et crypto seulement)
 }
 
-MODE = os.environ.get("LAB_MODE", "gain").strip().lower()   # choix du trader (3 nov.) : « gain » = gros gains
+MODE = os.environ.get("LAB_MODE", "gain90").strip().lower()
+# choix du trader (3 nov. 9 h 42) : « gain90 » = gros gains (objectif >= stop) ET >= 90 % de reussite ;
+# « gain » = gros gains classes par gain total ; « win » = ancien mode 92 % avec petits objectifs
 CFG = {
-    "MODE": MODE,                            # gain : objectif >= stop, classement par gain total ; win : ancien mode 92 %
+    "MODE": MODE,
     "MIN_PF": envf("MIN_PF", 1.3),           # mode gain : facteur de profit minimal (gains / pertes) sur les trades jamais vus
     "PF_FLOOR_1": envf("PF_FLOOR_1", 1.05),  # mode gain : tri de depart de la recherche (une condition)
     "PF_FLOOR_2": envf("PF_FLOOR_2", 1.15),  # mode gain : tri des combinaisons et de l'apprentissage
     "ELITE_PF": envf("ELITE_PF", 1.5),       # mode gain : setup elite (peut signaler seul, >= 100 trades jamais vus)
     "TIMEFRAMES": envl("TIMEFRAMES", "1H"),           # demande du trader : 1 heure uniquement
-    "MIN_WIN": envf("MIN_WIN", 0.92),        # exigence du trader : le labo ne garde que les strategies >= 92 % (jamais vues)
+    "MIN_WIN": envf("MIN_WIN", 0.90 if MODE == "gain90" else 0.92),        # exigence du trader : le labo ne garde que les strategies >= 92 % (jamais vues)
     # tri de depart de la recherche (pieces a assembler) : volontairement plus large que la barre finale, car une
     # combinaison a 92 % est faite d'indicateurs qui, seuls, font moins. La barre finale reste MIN_WIN.
-    "SEARCH_FLOOR_1": envf("SEARCH_FLOOR_1", 0.75),
-    "SEARCH_FLOOR_2": envf("SEARCH_FLOOR_2", 0.80),
+    "SEARCH_FLOOR_1": envf("SEARCH_FLOOR_1", 0.55 if MODE == "gain90" else 0.75),   # gros objectifs : au hasard ~50 %
+    "SEARCH_FLOOR_2": envf("SEARCH_FLOOR_2", 0.62 if MODE == "gain90" else 0.80),
     "TARGET_WIN": envf("TARGET_WIN", 0.99),  # objectif du trader : 99 a 100 % (la plus haute passe toujours devant)
     "MIN_TRADES_TEST": envf("MIN_TRADES_TEST", 30),
     "FDR": envf("FDR", 0.05),                # taux de fausses decouvertes toleré (Benjamini-Hochberg)
@@ -52,8 +54,8 @@ CFG = {
     "SEULEMENT_ACTIVEES": envf("SEULEMENT_ACTIVEES", 0),   # exigence du trader : sur Telegram, seulement les strategies
                                                           # activees (activation.json) et leurs resultats
     "INFOS": envf("INFOS", 0),               # briefings / veille sur Telegram : coupes par defaut (signaux + resultats seulement)
-    "SIGNAL_MIN_WIN": envf("SIGNAL_MIN_WIN", 0.92),   # exigence du trader : aucun signal sous 92 % de reussite prouvee
-    "ELITE_WIN": envf("ELITE_WIN", 0.92),    # setup elite : peut signaler seul (>= 92 % ...
+    "SIGNAL_MIN_WIN": envf("SIGNAL_MIN_WIN", 0.90 if MODE == "gain90" else 0.92),   # exigence du trader : aucun signal sous 92 % de reussite prouvee
+    "ELITE_WIN": envf("ELITE_WIN", 0.90 if MODE == "gain90" else 0.92),    # setup elite : peut signaler seul (>= 92 % ...
     "ELITE_WILSON": envf("ELITE_WILSON", 0.85),  # ... borne basse prudente >= 85 % ...
     "ELITE_N": envf("ELITE_N", 100),         # ... sur au moins 100 trades jamais vus)
     "BEAM": envf("BEAM", 40),                # largeur de la recherche (conditions gardees a chaque etage)
@@ -87,7 +89,7 @@ EXITS_GAIN = [
     {"id": "e6", "tp": 2.0, "sl": 2.0, "h": 48},
     {"id": "e7", "tp": 4.0, "sl": 2.0, "h": 96},
 ]
-EXITS = EXITS_GAIN if MODE == "gain" else EXITS_WIN
+EXITS = EXITS_WIN if MODE == "win" else EXITS_GAIN
 _ids = [x.strip().lower() for x in os.environ.get("EXIT_IDS", "").split(",") if x.strip()]
 if _ids:                                    # recherche parallele : une famille de sorties par job
     EXITS = [e for e in EXITS if e["id"] in _ids]
