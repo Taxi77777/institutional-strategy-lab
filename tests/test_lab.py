@@ -589,3 +589,30 @@ def test_deux_voies_resultats_recents_gardes(tmp_path, monkeypatch):
         "plafond": [row("autre_voie", 0.88, _t.time() - 3600), row("vieux", 0.95, _t.time() - 2 * 86400)]}]}))
     pl = miner.merge()["classes"][0]["plafond"]
     assert [r["conds"][0][1] for r in pl] == ["autre_voie", "neuf"]
+
+
+def test_noyau_liquidite_order_block(monkeypatch):
+    """Noyau Liquidite / Order Block : chaque piste part d'un setup de liquidite (smc / liquidite / balayage)."""
+    ds = miner.build("cr", "1H", lambda s, k, tf: synth(sum(map(ord, s)), edge=True), symbols=["BTC", "ETH", "SOL"], macro={})
+    conds = miner.conditions(ds)
+    by_agent = {}
+    for c_ in conds:
+        by_agent.setdefault(c_[0], []).append(c_)
+    cands = []
+    tested, n = miner.liquidity_core(ds, by_agent, cands, 10, 2, 30, ds["split"] == 0, pool_n=30)
+    assert tested > 0
+    for cd in cands:
+        assert cd["agent"] == "noyau_liquidite"
+        assert any(c_[0] in miner.LIQ_CORE or c_[1] in miner.LIQ_AMD for c_ in cd["conds"])
+
+
+def test_smc_ict_avance_causal():
+    """Order blocks valides, breakers, FVG / iFVG, modele chasse -> MSS -> OTE : aucun regard vers le futur."""
+    a = synth(29)
+    F, _ = IND.compute(a, "fx")
+    for k in ("ob_haussier_dist", "dans_breaker_baissier", "ifvg_haussier_dist", "modele_ict", "ict_haussier_ote",
+              "ob_haussier_premier_contact", "chasse_puis_mss"):
+        assert k in F["smc"]
+    F2, _ = IND.compute(a[:1800], "fx")
+    for k, x in F2["smc"].items():
+        assert np.allclose(np.nan_to_num(F["smc"][k][:1800]), np.nan_to_num(x)), k

@@ -10,6 +10,7 @@ from lab import traders as TR
 from lab import liquidite as LQ
 from lab import flux as FL
 from lab import positionnement as PO
+from lab import smc_avance as SA
 from numpy.lib.stride_tricks import sliding_window_view as swv
 
 NY = ZoneInfo("America/New_York")
@@ -28,12 +29,13 @@ AGENTS = {
     "talib": "TA-Lib complet (ADX, cycles d'Ehlers, KAMA, MAMA, T3, SAR, régressions…)",
     "alpha158": "Alpha158 (Microsoft Qlib)",
     "wq101": "101 Alphas (WorldQuant)",
-    "smc": "Smart Money Concepts (BOS, CHoCH, order blocks, FVG)",
+    "smc": "Smart Money / ICT avancé (order blocks validés, breakers, FVG / iFVG, chasse de liquidité → MSS → OTE)",
     "derives": "Dérivés crypto (taux de financement des perpétuels)",
     "chiffres_ronds": "Chiffres ronds (niveaux psychologiques)",
     "noyau_ichimoku": "Noyau Ichimoku + confirmations des autres spécialistes",
+    "noyau_liquidite": "Noyau Liquidité / Order Block (chasse de stops, order block, FVG) + confirmations",
     "weekend": "Volatilité du week-end crypto",
-    "traders": "Grands traders (Tortues, Raschke, Crabel, L. Williams, Connors, Elder, DeMark, B. Williams, Sperandeo)",
+    "traders": "Grands traders (Tortues, Raschke, Crabel, L. Williams, Connors, Elder, DeMark, B. Williams, Sperandeo, Belkhayate)",
     "liquidite": "Liquidité des opérateurs (stops veille / semaine / mois / sessions, chasses de stops, ouvertures institutionnelles, liquidations estimées, delta estimé, Corwin-Schultz, Roll, Amihud)",
     "flux": "Flux des opérateurs (fixing de Londres, Gotobi / Tokyo, fin de mois, NFP, 17 h New York, SMT, force des devises, gaps CME / lundi)",
     "positionnement": "Positionnement des gros acteurs (COT de la CFTC) et peur des options (DVOL Deribit)",
@@ -636,6 +638,8 @@ def compute(arr, kind, refs=None, macro=None):
         F[ag].update(feats)
     # grands traders : regles publiques des meilleurs traders du monde (lab/traders.py)
     F["traders"] = TR.compute_traders(o, h, l, c, v, atr14, days)
+    # Smart Money / ICT avance : order blocks valides, breakers, FVG / iFVG, modele chasse -> MSS -> OTE (lab/smc_avance.py)
+    F["smc"].update(SA.compute_smc_avance(ts, o, h, l, c, atr14))
     # liquidite : ou sont les stops, chasses de stops, mesures academiques de liquidite (lab/liquidite.py)
     F["liquidite"] = LQ.compute_liquidite(ts, h, l, c, v, atr14, o=o, kind=kind)
     # flux des operateurs : acteurs obliges d'acheter / vendre a heure fixe (lab/flux.py)
