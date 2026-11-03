@@ -5,9 +5,13 @@ on:
   schedule:
     - cron: '17 */6 * * *'      # secours : la recherche se relance elle-meme sans arret (voir fin du fichier)
   workflow_dispatch:
+    inputs:
+      voie:
+        description: "Voie de recherche (deux voies tournent en parallele, chacune avec ses idees)"
+        default: "1"
 
 concurrency:
-  group: lab-mine
+  group: lab-mine-${{ inputs.voie || '1' }}
   cancel-in-progress: false
 
 jobs:
@@ -44,6 +48,7 @@ jobs:
           BEAM: ${{ vars.BEAM || '60' }}
           DUKA_CACHE: .duka_cache
           EXIT_IDS: ${{ matrix.exits }}
+          IDEA_SEED: ${{ github.run_id }}
           PYTHONUNBUFFERED: '1'
         run: python -m lab.miner part ${{ matrix.kind }} ${{ matrix.tf }}
       - uses: actions/upload-artifact@v4
@@ -77,11 +82,9 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           for i in 1 2 3 4 5; do
-            cp strategies.json /tmp/strategies.json
-            cp ideas.json /tmp/ideas.json 2>/dev/null || true
+            # deux voies en parallele : on refusionne sur la toute derniere version publiee (rien n'est perdu)
             git fetch -q origin main && git reset -q --hard origin/main
-            cp /tmp/strategies.json strategies.json
-            cp /tmp/ideas.json ideas.json 2>/dev/null || true
+            python -m lab.miner merge
             git add strategies.json ideas.json 2>/dev/null || git add strategies.json
             git diff --cached --quiet && exit 0
             git commit -qm "labo : nouvelles strategies [skip ci]"
@@ -92,4 +95,4 @@ jobs:
         if: always() && vars.CONTINU != 'stop'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run mine.yml -R ${{ github.repository }} --ref main
+        run: gh workflow run mine.yml -R ${{ github.repository }} --ref main -f voie=${{ inputs.voie || '1' }}

@@ -140,15 +140,15 @@ def test_merge_parallel_parts(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setitem(config.CFG, "TIMEFRAMES", ["1H"])
     (tmp_path / "parts").mkdir()
-    cls = lambda k, tf, n: {"kind": k, "tf": tf, "strategies": [{"conds": []}] * n, "conditions": 1, "combinaisons": 2,
-                             "candidates": 3}
+    cls = lambda k, tf, n: {"kind": k, "tf": tf, "strategies": [{"conds": [["a", "x%d" % i, 0, 1]]} for i in range(n)],
+                             "conditions": 1, "combinaisons": 2, "candidates": 3}
     for k, tf, n in (("cr", "1H", 0), ("fx", "1H", 2)):
         (tmp_path / "parts" / ("%s_%s.json" % (k, tf))).write_text(json.dumps(
             {"regle": {"x": 1}, "classes": [cls(k, tf, n)], "memoire": {"gagnantes": [{"nom": "a", "score": 0.8 + n / 100}]}}))
     (tmp_path / "strategies.json").write_text(json.dumps({"classes": [cls("fx", "1H", 4), cls("fx", "15M", 9)]}))   # 15 min retire
     out = miner.merge()
     assert [(c["kind"], c["tf"]) for c in out["classes"]] == [("fx", "1H"), ("cr", "1H")]
-    assert out["classes"][0]["strategies"] == [{"conds": []}] * 2 and out["total"]["strategies"] == 2
+    assert len(out["classes"][0]["strategies"]) == 2 and out["total"]["strategies"] == 2   # anciennes sans date : retirees
     assert json.load(open(tmp_path / "ideas.json"))["gagnantes"][0]["score"] == pytest.approx(0.82)
 
 
@@ -319,10 +319,10 @@ def test_merge_familles_de_sorties(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setitem(config.CFG, "TIMEFRAMES", ["1H"])
     (tmp_path / "parts").mkdir()
-    st = lambda w: {"conds": [], "wilson_test": w, "stats": {"test": {"win": w}}}
-    for sh, w in (("e1e2e3", 0.93), ("e6e7", 0.96)):
+    st = lambda w, e: {"conds": [], "exit": {"id": e}, "wilson_test": w, "stats": {"test": {"win": w}}}
+    for sh, w, e in (("e1e2e3", 0.93, "e1"), ("e6e7", 0.96, "e6")):
         (tmp_path / "parts" / ("fx_1H_%s.json" % sh)).write_text(json.dumps({"regle": {}, "classes": [
-            {"kind": "fx", "tf": "1H", "strategies": [st(w)], "conditions": 10, "combinaisons": 5, "candidates": 2,
+            {"kind": "fx", "tf": "1H", "strategies": [st(w, e)], "conditions": 10, "combinaisons": 5, "candidates": 2,
              "validees": 1, "apres_fdr": 1, "armee": {"vente": {"win": w, "n": 30}}}]}))
     out = miner.merge()
     c = out["classes"][0]
@@ -572,3 +572,20 @@ def test_activation_auto_meilleures_pistes(monkeypatch, tmp_path):
                                                                mk(0.80, 300)]}]}
     a1, a2 = live.activated(lab), live.activated(lab)
     assert len(a1) == 1 and a1[0]["paires_ok"] == ["BTC"] and a1[0]["id"] == a2[0]["id"] and "89 %" in a1[0]["activee"]
+
+
+def test_deux_voies_resultats_recents_gardes(tmp_path, monkeypatch):
+    """Deux voies en parallele : les pistes recentes (< 24 h) de l'autre voie sont gardees, les vieilles retirees."""
+    import time as _t
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setitem(config.CFG, "TIMEFRAMES", ["1H"])
+    (tmp_path / "parts").mkdir()
+    row = lambda nm, w, vu=None: dict({"agent": "flux", "dir": 1, "exit": "e2", "conds": [["flux", nm, 0, 1]],
+                                       "test_win": w, "test_n": 100}, **({"vu": vu} if vu else {}))
+    (tmp_path / "parts" / "fx_1H.json").write_text(json.dumps({"regle": {}, "classes": [
+        {"kind": "fx", "tf": "1H", "strategies": [], "plafond": [row("neuf", 0.84)], "conditions": 1, "combinaisons": 1,
+         "candidates": 1}]}))
+    (tmp_path / "strategies.json").write_text(json.dumps({"classes": [{"kind": "fx", "tf": "1H", "strategies": [],
+        "plafond": [row("autre_voie", 0.88, _t.time() - 3600), row("vieux", 0.95, _t.time() - 2 * 86400)]}]}))
+    pl = miner.merge()["classes"][0]["plafond"]
+    assert [r["conds"][0][1] for r in pl] == ["autre_voie", "neuf"]

@@ -660,11 +660,25 @@ def merge(parts_dir="parts", old_path="strategies.json"):
                     f["armee"][side] = a_
         out["idees"].update(p.get("idees", {}))
         tested += p.get("inventeur", {}).get("idees_testees", 0)
-    for k, f in fresh.items():
+    now_s = time.time()
+    for k, f in fresh.items():                      # deux voies en parallele : on garde aussi les resultats recents
+        oc = classes.get(k, {})                    # de l'autre voie (moins de 24 h), sans doublons
+        for key in ("strategies", "plafond"):
+            rows = [dict(r, vu=r.get("vu", now_s)) for r in f.get(key, [])]
+            rows += [r for r in oc.get(key, []) if now_s - r.get("vu", 0) < 86400]
+            uniq = {}
+            for r in rows:
+                sig = json.dumps([r.get("dir"), r.get("exit") if isinstance(r.get("exit"), str) else r.get("exit", {}).get("id"),
+                                  sorted(map(list, r.get("conds", [])))], default=str)
+                if sig not in uniq or r.get("vu", 0) > uniq[sig].get("vu", 0):
+                    uniq[sig] = r
+            f[key] = list(uniq.values())
         if gain_mode():
             f["strategies"].sort(key=lambda s: -total(s.get("stats", {}).get("test", {})))
         else:
             f["strategies"].sort(key=lambda s: (-s.get("stats", {}).get("test", {}).get("win", 0), -s.get("wilson_test", 0)))
+        f["plafond"] = sorted(f.get("plafond", []), key=(lambda r: (-r.get("test_total", 0), -r["test_win"])) if gain_mode()
+                              else (lambda r: (-r["test_win"], -r["test_n"])))[:8]
         classes[k] = f
     for p in parts:
         for g in p.get("memoire", {}).get("gagnantes", []):
