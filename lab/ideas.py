@@ -96,12 +96,14 @@ def generate(feature_names, n=150, seed=0, memory=None, weights=None):
 
 
 def remember(final, specs_by_name, memory):
-    """Ajoute a la memoire les idees presentes dans les strategies retenues (score = meilleur taux de reussite)."""
+    """Ajoute a la memoire les idees presentes dans les strategies retenues ET dans le plafond (meilleures pistes,
+       demande du trader) : elles sont retestees a chaque recherche. Score = meilleur taux de reussite."""
     mem = {g["nom"]: g for g in (memory or {}).get("gagnantes", [])}
     for s in final:
-        for ag, nm, _lo, _hi in s["conds"]:
+        for c in s["conds"]:
+            ag, nm = c[0], c[1]
             if ag == "inventeur" and nm in specs_by_name:
-                sc = s["stats"]["test"]["win"]
+                sc = s["stats"]["test"]["win"] if "stats" in s else s.get("test_win", 0)
                 if nm not in mem or sc > mem[nm]["score"]:
                     mem[nm] = {"nom": nm, "spec": specs_by_name[nm], "score": sc}
     return {"gagnantes": sorted(mem.values(), key=lambda g: -g["score"])[:200]}

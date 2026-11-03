@@ -601,7 +601,7 @@ def run_all(fetch=None, fetch_daily=None, kinds=None, tfs=None):
                 continue
             all_specs.update({IDEAS.name(sp): sp for sp in specs})
             res = run_class(ds)
-            memory = IDEAS.remember(res["strategies"], all_specs, memory)
+            memory = IDEAS.remember(res["strategies"] + res.get("plafond", []), all_specs, memory)
             out["classes"].append(res)
             log.info("%s %s : %d strategies retenues", kind, tf, len(res["strategies"]))
             del ds
