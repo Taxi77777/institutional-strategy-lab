@@ -431,7 +431,8 @@ def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab, elite=Fal
     army = next((cl.get("armee", {}).get("achat" if dr > 0 else "vente") for cl in lab["classes"]
                  if cl["kind"] == kind and cl["tf"] == tf), None)
     L = [banner(kind, sym),
-         ("🎯 <b>STRATÉGIE ACTIVÉE PAR TOI</b> · <b>%s</b> (sous ta barre des 92 %%)" % TG.esc(lead.get("activee", ""))
+         ("🎯 <b>STRATÉGIE ACTIVÉE PAR TOI</b> · <b>%s</b> (sous ta barre des %.0f %%)" % (TG.esc(lead.get("activee", "")),
+                                                                                     100 * CFG["MIN_WIN"])
           if activee else
           "🪖 <b>ARMÉE DU LABO</b> · stratégie gros gains validée (objectif ≥ stop, gagnante sur des trades jamais vus) : <b>%s</b>"
           % TG.esc(IND.AGENTS.get(lead.get("agent", ""), lead.get("agent", ""))) if gain_mode() else
