@@ -623,6 +623,9 @@ def binance_flow(sym, days=1200):
     """Order flow crypto : bougies 1 h Binance (data-api.binance.vision, public, sans inscription) avec le volume des
        acheteurs agressifs (taker buy). Retourne (n, 3) : temps (debut de bougie, s), volume, volume acheteur."""
     pair = "%sUSDT" % sym
+    ck = (pair, days)
+    if ck in FLOW_CACHE and time.time() - FLOW_CACHE[ck][0] < 1800:
+        return FLOW_CACHE[ck][1]
     end = int(time.time() * 1000)
     step = 1000 * 3600 * 1000
     base = 1500000000000
@@ -639,4 +642,10 @@ def binance_flow(sym, days=1200):
         except Exception as ex:
             log.warning("Binance %s : %s", pair, ex)
         t = u
-    return np.array([(k,) + v for k, v in sorted(rows.items())], dtype=float).reshape(-1, 3)
+    out = np.array([(k,) + v for k, v in sorted(rows.items())], dtype=float).reshape(-1, 3)
+    FLOW_CACHE[ck] = (time.time(), out)
+    return out
+
+
+FLOW_CACHE = {}
+FX_CRYPTO_PROXY = {"EUR": "EUR", "XAU": "PAXG"}      # vrai order flow d'une paire forex / or cotee sur Binance

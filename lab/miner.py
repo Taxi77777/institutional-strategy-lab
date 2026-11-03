@@ -54,9 +54,16 @@ def orderflow_refs(sym, kind, ts, flow=None):
                 return None
             return {"vol": exact_align(bf[:, 0], bf[:, 1], ts), "buy": exact_align(bf[:, 0], bf[:, 2], ts)}
         tv = data.VOLUME.get(sym)
-        if tv is None:
-            return None
-        return {"vol": exact_align(tv[0], tv[1], ts), "buy": None}
+        res = {"vol": exact_align(tv[0], tv[1], ts), "buy": None} if tv is not None else None
+        px = data.FX_CRYPTO_PROXY.get(sym[:3])          # EURUSDT / PAXG sur Binance : vrai volume acheteur / vendeur
+        if px and res is not None:
+            try:
+                bf = data.binance_flow(px, days=int((ts[-1] - ts[0]) / 86400) + 2)
+                if len(bf):
+                    res["proxy"] = {"vol": exact_align(bf[:, 0], bf[:, 1], ts), "buy": exact_align(bf[:, 0], bf[:, 2], ts)}
+            except Exception as ex:
+                log.warning("order flow Binance %s : %s", px, ex)
+        return res
     except Exception as ex:
         log.warning("order flow %s : %s", sym, ex)
         return None

@@ -666,3 +666,22 @@ def test_heatmap_carnet(monkeypatch, tmp_path):
     ok2, _ = live.heat_check("BTC", "cr", -1, {"atr": 1.0, "close": 100.0})
     assert ok2
     assert (tmp_path / "heatmap.jsonl").read_text().count("\n") == 1
+
+
+def test_order_flow_forex_proxy_binance():
+    """Forex : vrai delta EURUSDT (Binance) ajoute pour les paires en euro, sans regard vers le futur."""
+    from lab import orderflow as OF
+    a = synth(33)
+    ts, o, h, l, c, v = (a[:, i] for i in range(6))
+    F, atr = IND.compute(a, "fx")
+    rng = np.random.default_rng(3)
+    vol, pv = rng.uniform(100, 200, len(c)), rng.uniform(1e5, 2e5, len(c))
+    pb = pv * rng.uniform(0.3, 0.7, len(c))
+    G = OF.compute_orderflow("fx", ts, o, h, l, c, atr, F, {"vol": vol, "buy": None, "proxy": {"vol": pv, "buy": pb}})
+    assert "delta_reel_binance" in G and "divergence_binance_24h" in G
+    m = 1800
+    Fm, atm = IND.compute(a[:m], "fx")
+    G2 = OF.compute_orderflow("fx", ts[:m], o[:m], h[:m], l[:m], c[:m], atm, Fm,
+                              {"vol": vol[:m], "buy": None, "proxy": {"vol": pv[:m], "buy": pb[:m]}})
+    for k, x in G2.items():
+        assert np.allclose(np.nan_to_num(G[k][:m]), np.nan_to_num(x)), k
