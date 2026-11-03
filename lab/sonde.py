@@ -21,6 +21,12 @@ SOURCES = {
     "kraken_trades_USDJPY": "https://api.kraken.com/0/public/Trades?pair=USDJPY&count=5",
     "kraken_volume_24h": "https://api.kraken.com/0/public/Ticker?pair=USDJPY,USDCAD,USDCHF,AUDUSD,GBPUSD,EURUSD,EURGBP",
     "coinbase_fiat": "https://api.exchange.coinbase.com/products/EURC-USD/candles?granularity=86400",
+    "binance_EURUSDT_aggtrades_mois": "https://data.binance.vision/data/spot/monthly/aggTrades/EURUSDT/EURUSDT-aggTrades-2025-06.zip",
+    "binance_GBPUSDT_aggtrades_mois": "https://data.binance.vision/data/spot/monthly/aggTrades/GBPUSDT/GBPUSDT-aggTrades-2025-06.zip",
+    "binance_XAUUSDT_fut_klines": "https://data.binance.vision/data/futures/um/monthly/klines/XAUUSDT/1h/XAUUSDT-1h-2026-01.zip",
+    "binance_XAUUSDT_fut_funding": "https://data.binance.vision/data/futures/um/monthly/fundingRate/XAUUSDT/XAUUSDT-fundingRate-2026-01.zip",
+    "binance_XAUUSDT_fut_metrics": "https://data.binance.vision/data/futures/um/daily/metrics/XAUUSDT/XAUUSDT-metrics-2026-01-15.zip",
+    "binance_EURUSDT_fut_klines": "https://data.binance.vision/data/futures/um/monthly/klines/EURUSDT/1h/EURUSDT-1h-2026-01.zip",
 }
 
 
