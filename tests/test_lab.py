@@ -6,6 +6,8 @@ import sys
 import numpy as np
 import pytest
 
+os.environ.setdefault("LAB_MODE", "win")                    # anciens tests ecrits pour le mode 92 %
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from lab import config, indicators as IND, live, miner, telegram as TG  # noqa: E402
 
@@ -26,6 +28,8 @@ def synth(seed, n=2600, edge=False):
 @pytest.fixture(autouse=True)
 def fast(monkeypatch, tmp_path):
     monkeypatch.setenv("POSITIONNEMENT", "0")                      # pas de COT / DVOL reseau pendant les tests
+    monkeypatch.setitem(config.CFG, "SEULEMENT_ACTIVEES", 0)       # anciens tests : messages de l'armee actifs
+    monkeypatch.setitem(config.CFG, "MODE", "win")
     monkeypatch.setitem(config.CFG, "PAUSE", 0)
     monkeypatch.setitem(config.CFG, "SIMS", 500)
     monkeypatch.setitem(config.CFG, "BEAM", 15)
@@ -408,3 +412,61 @@ def test_plafond_meilleures_pistes():
     assert "plafond" in res
     for r in res["plafond"]:
         assert 0 <= r["test_win"] <= 1 and r["test_n"] >= 30 and r["raison"]
+
+
+def test_strategie_activee_par_le_trader(monkeypatch, tmp_path):
+    """activation.json : la strategie est prise dans le plafond avec ses zones, signal seulement sur les paires
+       gagnantes, message Telegram marque « activee par toi »."""
+    json.dump({"regles": [{"nom": "Fixing de Londres", "kind": "fx", "tf": "1H", "agent": "flux", "dir": -1, "exit": "e2",
+                           "doit_contenir": [["flux", "heures_fixing_londres"]], "taux_min": 0.88, "trades_min": 500,
+                           "paire_taux_min": 0.85, "paire_trades_min": 10}]}, open(tmp_path / "activation.json", "w"))
+    monkeypatch.setattr(live, "ACT_URL", "http://127.0.0.1:9/activation.json")
+    pl = {"agent": "flux", "dir": -1, "exit": "e2", "test_win": 0.898, "test_n": 1217, "test_avg": 0.06,
+          "conds": [["flux", "heures_fixing_londres", 0.5, 2.5], ["flux", "mouvement_avant_tokyo", -1.0, 0.3]],
+          "robustesse": {"par_actif": {"EURUSD": {"reussite": 0.9, "trades": 60, "gain_moyen": 0.05},
+                                       "USDJPY": {"reussite": 0.8, "trades": 60, "gain_moyen": -0.01}}}}
+    lab = {"classes": [{"kind": "fx", "tf": "1H", "strategies": [], "plafond": [pl]}]}
+    act = live.activated(lab)
+    assert len(act) == 1 and act[0]["paires_ok"] == ["EURUSD"]
+    lab["activees"] = act
+    sent = []
+    monkeypatch.setattr(TG, "send", lambda txt, *a, **k: sent.append(txt))
+    monkeypatch.setattr(live, "save_state", lambda st: None)
+    st = {"open": [], "alerts": {}, "retired": []}
+    fx = {"last": {("flux", "heures_fixing_londres"): 1.0, ("flux", "mouvement_avant_tokyo"): 0.0},
+          "close": 1.1, "atr": 0.001, "ts": 1790000000.0}
+    assert live.activated_signals(st, lab, "fx", "1H", "USDJPY", fx) == 0      # paire perdante : jamais de signal
+    assert live.activated_signals(st, lab, "fx", "1H", "EURUSD", fx) == 1
+    assert "ACTIVÉE PAR TOI" in sent[0] and "VENDRE" in sent[0]
+    assert live.activated_signals(st, lab, "fx", "1H", "EURUSD", fx) == 0      # un seul trade par paire
+
+
+def test_seulement_activees_coupe_le_reste(monkeypatch):
+    """Exigence du trader : avec SEULEMENT_ACTIVEES, aucun resultat d'un ancien trade de l'armee sur Telegram."""
+    monkeypatch.setitem(config.CFG, "SEULEMENT_ACTIVEES", 1)
+    sent = []
+    monkeypatch.setattr(TG, "send", lambda txt, *a, **k: sent.append(txt))
+    monkeypatch.setattr(live, "save_state", lambda st: None)
+    now = 1790000000.0
+    a = np.c_[[now - 7200, now - 3600], [1.0, 1.0], [1.2, 1.2], [0.9, 0.9], [1.1, 1.1], [0, 0]]
+    monkeypatch.setattr(live, "hist", lambda *x: a)
+    st = {"open": [{"kind": "fx", "tf": "1H", "sym": "EURUSD", "dir": 1, "entry": 1.0, "sl": 0.8, "tp": 1.05,
+                    "t_entry": now - 7200, "t_exit": now - 10, "ids": ["x"], "agents": ["tendance"]}],
+          "alerts": {}, "retired": [], "live": {}, "track": []}
+    live.track(st, now)
+    assert sent == [] and len(st["track"]) == 1
+
+
+def test_mode_gros_gains(monkeypatch):
+    """Choix du trader : objectif >= stop, barre = facteur de profit, classement par gain total."""
+    monkeypatch.setitem(config.CFG, "MODE", "gain")
+    monkeypatch.setitem(config.CFG, "MIN_PF", 1.2)
+    monkeypatch.setattr(miner, "EXITS", config.EXITS_GAIN)
+    assert all(e["tp"] >= e["sl"] for e in config.EXITS_GAIN)
+    ds, res = run(True)
+    for s in res["strategies"]:
+        t = s["stats"]["test"]
+        assert t["avg"] > 0 and t["pf"] >= 1.2 and s["exit"]["tp"] >= s["exit"]["sl"]
+    tots = [s["stats"]["test"]["avg"] * s["stats"]["test"]["n"] for s in res["strategies"]]
+    assert tots == sorted(tots, reverse=True)
+    assert all("test_pf" in r for r in res["plafond"])

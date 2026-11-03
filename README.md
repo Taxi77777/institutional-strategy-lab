@@ -1,6 +1,6 @@
 # 🪖 Institutional Strategy Lab — l'armée des spécialistes
 
-**Recherche automatique et continue de stratégies 1 heure à plus de 92 % de réussite, objectif 99 à 100 %, prouvées sur des données jamais vues.
+**Recherche automatique et continue de stratégies 1 heure à GROS GAINS (objectif toujours au moins égal au stop), classées par gain total réel, prouvées sur des données jamais vues.
 Forex, or, argent et crypto · compatible avec tous les courtiers · signaux Telegram · 100 % gratuit.**
 
 ## Le principe
@@ -40,9 +40,11 @@ Forex, or, argent et crypto · compatible avec tous les courtiers · signaux Tel
    tests multiples (Benjamini-Hochberg) ; trades sans chevauchement, frais inclus, exécution prudente ; robustesse
    (**≥ 92 % sur chaque paire** ayant au moins 5 trades jamais vus, majorité des actifs gagnants, chaque année jamais vue, ≥ 75 % sur chaque moitié de la période jamais vue) ; contrôle : sur des prix au
    hasard le labo ne trouve rien (testé).
-6. **Règle de sélection** : **≥ 92 % de réussite** (exigence du trader, objectif 99 à 100 %), ≥ 30 trades jamais vus **et** gain moyen positif après frais.
-   Pas de prise de gain sous 0,5 ATR (sur des prix au hasard elle « réussit » déjà ~87 %).
-
+6. **Règle de sélection (mode gros gains, choix du trader le 3 novembre 2026)** : objectif de gain **toujours ≥ au stop**
+   (1 à 2 fois le stop), gain moyen positif après frais et **facteur de profit ≥ 1,3** (gains ÷ pertes) en validation
+   et sur ≥ 30 trades jamais vus ; aucune paire perdante (≥ 10 trades), 70 % des paires gagnantes, chaque moitié et
+   75 % des années gagnantes ; classement par **gain total**. L'ancien mode « 92 % » (petits gains) reste disponible
+   avec la variable `LAB_MODE` = `win`.
 7. **Plafond** : `strategies.json` publie aussi, pour le forex et la crypto, les 8 meilleures pistes qui ont échoué
    (`plafond`) avec leur taux sur les trades jamais vus et la règle qui les a éliminées : on sait toujours où en est la
    recherche.
