@@ -48,7 +48,7 @@ Forex, or, argent et crypto · compatible avec tous les courtiers · signaux Tel
    Sur des prix au hasard ces sorties gagnent 49 à 73 % du temps avec un gain moyen négatif : le 90 % doit venir d'un vrai
    avantage. Autres modes (`LAB_MODE`) : `tendance` (stop suiveur seul), `gain` (objectifs fixes ≥ stop), `win`
    (ancien 92 %).
-7. **Plafond** : `strategies.json` publie aussi, pour le forex et la crypto, les 8 meilleures pistes qui ont échoué
+7. **Plafond** : `strategies.json` publie aussi, pour le forex et la crypto, les 20 meilleures pistes qui ont échoué
    (`plafond`) avec leur taux sur les trades jamais vus et la règle qui les a éliminées : on sait toujours où en est la
    recherche.
 

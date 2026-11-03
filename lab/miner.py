@@ -505,7 +505,7 @@ def run_class(ds):
             "plafond": plafond}
 
 
-def near_misses(ds, allev, valid_ids, fdr_ids, top=8):
+def near_misses(ds, allev, valid_ids, fdr_ids, top=20):
     """Classement honnete des meilleures pistes qui ont echoue : taux sur les trades jamais vus (>= 30 trades, gain
        moyen positif) et premiere regle qui les a eliminees. Sert a savoir ou en est la recherche."""
     rows = []
@@ -654,7 +654,7 @@ def merge(parts_dir="parts", old_path="strategies.json"):
                     f[n_] = f.get(n_, 0) + c.get(n_, 0)
             f["plafond"] = sorted(f.get("plafond", []) + c.get("plafond", []),
                                   key=(lambda r: (-r.get("test_total", 0), -r["test_win"])) if gain_mode()
-                                  else (lambda r: (-r["test_win"], -r["test_n"])))[:8]
+                                  else (lambda r: (-r["test_win"], -r["test_n"])))[:20]
             for side, a_ in c.get("armee", {}).items():
                 if side not in f["armee"] or a_.get("win", 0) > f["armee"][side].get("win", 0):
                     f["armee"][side] = a_
@@ -678,7 +678,7 @@ def merge(parts_dir="parts", old_path="strategies.json"):
         else:
             f["strategies"].sort(key=lambda s: (-s.get("stats", {}).get("test", {}).get("win", 0), -s.get("wilson_test", 0)))
         f["plafond"] = sorted(f.get("plafond", []), key=(lambda r: (-r.get("test_total", 0), -r["test_win"])) if gain_mode()
-                              else (lambda r: (-r["test_win"], -r["test_n"])))[:8]
+                              else (lambda r: (-r["test_win"], -r["test_n"])))[:20]
         classes[k] = f
     for p in parts:
         for g in p.get("memoire", {}).get("gagnantes", []):
