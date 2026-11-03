@@ -268,30 +268,46 @@ def sperandeo(h, l, c, k=3):
     return {"regle_2B": tb}
 
 
-def belkhayate(h, l, c, win=120, deg=2):
+def _cog(c, win, deg=2):
+    """Centre de gravite causal : regression polynomiale sur la fenetre PASSEE, evaluee a la derniere bougie."""
     n = len(c)
+    cog, sd = np.full(n, NAN), np.full(n, NAN)
+    if n >= win:
+        x = np.arange(win, dtype=float) / win
+        X = np.vander(x, deg + 1, increasing=True)
+        P = np.linalg.pinv(X)
+        W = np.lib.stride_tricks.sliding_window_view(c, win)
+        coef = W @ P.T
+        cog[win - 1:] = coef @ X[-1]
+        sd[win - 1:] = (W - coef @ X.T).std(axis=1)
+    return cog, sd
+
+
+def belkhayate(h, l, c):
+    """Methode Belkhayate (descriptions publiques : WH SelfInvest, TradingSat, ProRealCode) : centre de gravite et ses
+       3 bandes, pente du centre = filtre de tendance (bleu / rouge), achat quand le prix entre dans la 3e bande basse
+       avec un centre qui monte (vente : l'inverse), bandes resserrees = retournement plus probable ; Timing.
+       Deux echelles : 1 h (120 bougies) et l'equivalent 4 h de l'auteur (480 bougies de 1 h)."""
     med = (h + l) / 2
     mid = _roll(med, 5, np.mean)
     scale = 0.2 * _roll(h - l, 5, np.mean)
     timing = (_div(h - mid, scale) + _div(l - mid, scale) + _div(c - mid, scale)) / 3
     out = {"belkhayate_timing": timing}
-    cog, sd = np.full(n, NAN), np.full(n, NAN)
-    if n >= win:
-        x = np.arange(win, dtype=float) / win
-        X = np.vander(x, deg + 1, increasing=True)            # 1, x, x^2
-        P = np.linalg.pinv(X)                                  # (deg+1, win)
-        W = np.lib.stride_tricks.sliding_window_view(c, win)  # fenetre passee uniquement
-        coef = W @ P.T
-        fit_last = coef @ X[-1]
-        resid = W - coef @ X.T
-        cog[win - 1:] = fit_last
-        sd[win - 1:] = resid.std(axis=1)
-    z = _div(c - cog, sd)
-    out["belkhayate_centre_gravite"] = z                       # 0 = centre, +-1,618 / +-2,618 = bandes d'or
-    out["belkhayate_pente_centre"] = _div(cog - _prev(cog, 5), sd)
-    buy = (timing <= -4) & (timing >= -8) & (z <= -1.618)
-    sell = (timing >= 4) & (timing <= 8) & (z >= 1.618)
-    out["belkhayate_zone"] = np.where(buy, 1.0, np.where(sell, -1.0, 0.0))
+    for win, tag in ((120, "1h"), (480, "4h")):
+        cog, sd = _cog(c, win)
+        z = _div(c - cog, sd)
+        slope = _div(cog - _prev(cog, 5), sd)
+        band = np.sign(z) * np.where(np.abs(z) >= 2.618, 3, np.where(np.abs(z) >= 1.618, 2, np.where(np.abs(z) >= 1.0, 1, 0)))
+        out["belkhayate_centre_%s" % tag] = z
+        out["belkhayate_pente_%s" % tag] = slope
+        out["belkhayate_bande_%s" % tag] = np.where(np.isfinite(z), band, NAN)
+        out["belkhayate_resserrement_%s" % tag] = _div(sd, _roll(sd, 50, np.nanmean))
+        prev_band = _prev(out["belkhayate_bande_%s" % tag])
+        # signal de l'auteur : 1re cloture dans la 3e bande, dans le sens de la pente du centre de gravite
+        out["belkhayate_signal_%s" % tag] = np.where((band == -3) & (prev_band > -3) & (slope > 0), 1.0,
+                                                     np.where((band == 3) & (prev_band < 3) & (slope < 0), -1.0, 0.0))
+        out["belkhayate_zone_%s" % tag] = np.where((timing <= -4) & (timing >= -8) & (z <= -1.618), 1.0,
+                                                   np.where((timing >= 4) & (timing <= 8) & (z >= 1.618), -1.0, 0.0))
     return out
 
 
