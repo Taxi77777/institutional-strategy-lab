@@ -9,30 +9,18 @@ from lab.data import SESSION
 
 NOW = int(time.time() * 1000)
 SOURCES = {
-    "binance_vision_klines": "https://data.binance.vision/data/spot/monthly/klines/BTCUSDT/1h/BTCUSDT-1h-2024-01.zip",
-    "binance_api_klines": "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=5",
-    "binance_vision_metrics": "https://data.binance.vision/data/futures/um/daily/metrics/BTCUSDT/BTCUSDT-metrics-2024-01-15.zip",
-    "deribit_dvol": "https://www.deribit.com/api/v2/public/get_volatility_index_data?currency=BTC&resolution=3600"
-                    "&start_timestamp=%d&end_timestamp=%d" % (NOW - 5 * 86400000, NOW),
-    "deribit_dvol_2021": "https://www.deribit.com/api/v2/public/get_volatility_index_data?currency=BTC&resolution=3600"
-                         "&start_timestamp=1617235200000&end_timestamp=1617580800000",
-    "cftc_cot_financier_2024": "https://www.cftc.gov/files/dea/history/fut_fin_txt_2024.zip",
-    "coinbase_usdt_usd": "https://api.exchange.coinbase.com/products/USDT-USD/candles?granularity=3600",
-    "binance_data_api_klines": "https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=3",
-    "binance_data_api_2023": "https://data-api.binance.vision/api/v3/klines?symbol=ETHUSDT&interval=1h&limit=2"
-                             "&startTime=1672531200000",
-    "binance_us_klines": "https://api.binance.us/api/v3/klines?symbol=BTCUSDT&interval=1h&limit=3",
-    "coinbase_trades": "https://api.exchange.coinbase.com/products/BTC-USD/trades?limit=5",
-    "binance_EURUSDT": "https://data-api.binance.vision/api/v3/klines?symbol=EURUSDT&interval=1h&limit=2",
-    "binance_EURUSDT_2023": "https://data-api.binance.vision/api/v3/klines?symbol=EURUSDT&interval=1h&limit=1&startTime=1672531200000",
-    "binance_GBPUSDT": "https://data-api.binance.vision/api/v3/klines?symbol=GBPUSDT&interval=1h&limit=1",
-    "binance_AUDUSDT": "https://data-api.binance.vision/api/v3/klines?symbol=AUDUSDT&interval=1h&limit=1",
-    "binance_PAXGUSDT": "https://data-api.binance.vision/api/v3/klines?symbol=PAXGUSDT&interval=1h&limit=1&startTime=1672531200000",
-    "binance_USDTJPY": "https://data-api.binance.vision/api/v3/klines?symbol=USDTJPY&interval=1h&limit=1",
-    "binance_EURUSDT_futures_vision": "https://data.binance.vision/data/futures/um/monthly/klines/EURUSDT/1h/EURUSDT-1h-2025-01.zip",
-    "binance_XAUUSDT_futures_vision": "https://data.binance.vision/data/futures/um/monthly/klines/XAUUSDT/1h/XAUUSDT-1h-2025-12.zip",
-    "kraken_EURUSD": "https://api.kraken.com/0/public/OHLC?pair=EURUSD&interval=60",
-    "coinbase_book_level2": "https://api.exchange.coinbase.com/products/BTC-USD/book?level=2",
+    "binance_EURUSDT_debut": "https://data-api.binance.vision/api/v3/klines?symbol=EURUSDT&interval=1d&limit=1&startTime=0",
+    "binance_GBPUSDT_debut": "https://data-api.binance.vision/api/v3/klines?symbol=GBPUSDT&interval=1d&limit=1&startTime=0",
+    "binance_AUDUSDT_debut": "https://data-api.binance.vision/api/v3/klines?symbol=AUDUSDT&interval=1d&limit=1&startTime=0",
+    "binance_PAXGUSDT_debut": "https://data-api.binance.vision/api/v3/klines?symbol=PAXGUSDT&interval=1d&limit=1&startTime=0",
+    "binance_GBPUSDT_jour": "https://data-api.binance.vision/api/v3/klines?symbol=GBPUSDT&interval=1d&limit=1",
+    "binance_AUDUSDT_jour": "https://data-api.binance.vision/api/v3/klines?symbol=AUDUSDT&interval=1d&limit=1",
+    "binance_EURUSDT_jour": "https://data-api.binance.vision/api/v3/klines?symbol=EURUSDT&interval=1d&limit=1",
+    "binance_JPY_CHF_CAD_NZD": "https://data-api.binance.vision/api/v3/exchangeInfo?symbols=%5B%22USDTJPY%22%5D",
+    "kraken_paires_fx": "https://api.kraken.com/0/public/AssetPairs?pair=USDJPY,USDCAD,USDCHF,AUDUSD,GBPUSD,EURUSD,EURGBP,EURJPY,EURCHF,EURCAD,AUDJPY,NZDUSD",
+    "kraken_trades_USDJPY": "https://api.kraken.com/0/public/Trades?pair=USDJPY&count=5",
+    "kraken_volume_24h": "https://api.kraken.com/0/public/Ticker?pair=USDJPY,USDCAD,USDCHF,AUDUSD,GBPUSD,EURUSD,EURGBP",
+    "coinbase_fiat": "https://api.exchange.coinbase.com/products/EURC-USD/candles?granularity=86400",
 }
 
 
