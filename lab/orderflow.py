@@ -88,6 +88,12 @@ def compute_orderflow(kind, ts, o, h, l, c, atr, F, flow):
         if len(w) > 50 and np.isfinite(vol[i]):
             vz[i] = (vol[i] - w.mean()) / (w.std() + 1e-12)
     out["volume_relatif"] = vz
+    rz = np.full(n, NAN)                                           # Wyckoff / VSA : effort (volume) contre resultat
+    rr = h - l
+    for i in range(100, n):
+        w = rr[i - 100:i]
+        rz[i] = (rr[i] - w.mean()) / (w.std() + 1e-12)
+    out["effort_contre_resultat"] = vz - rz
     rng = h - l
     body = np.abs(c - o)
     small = np.isfinite(atr) & (rng < 0.8 * atr) & (body < 0.4 * np.where(rng > 0, rng, 1))

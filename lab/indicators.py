@@ -12,6 +12,7 @@ from lab import flux as FL
 from lab import positionnement as PO
 from lab import smc_avance as SA
 from lab import orderflow as OF
+from lab import liquidite_avancee as LA
 from numpy.lib.stride_tricks import sliding_window_view as swv
 
 NY = ZoneInfo("America/New_York")
@@ -643,6 +644,7 @@ def compute(arr, kind, refs=None, macro=None):
     F["smc"].update(SA.compute_smc_avance(ts, o, h, l, c, atr14))
     # liquidite : ou sont les stops, chasses de stops, mesures academiques de liquidite (lab/liquidite.py)
     F["liquidite"] = LQ.compute_liquidite(ts, h, l, c, v, atr14, o=o, kind=kind)
+    F["liquidite"].update(LA.compute_liquidite_avancee(ts, o, h, l, c, atr14))   # Osler, Abdi-Ranaldo, ICT avance
     # flux des operateurs : acteurs obliges d'acheter / vendre a heure fixe (lab/flux.py)
     F["flux"] = FL.compute_flux((refs or {}).get("sym"), kind, ts, o, h, l, c, atr14, refs)
     F["orderflow"] = OF.compute_orderflow(kind, ts, o, h, l, c, atr14, F, (refs or {}).get("orderflow"))

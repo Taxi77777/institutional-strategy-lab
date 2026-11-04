@@ -669,3 +669,16 @@ def test_order_flow_flux_des_devises(monkeypatch, tmp_path):
                                                                          "cotee": {k: x[:m] for k, x in jpy.items()}}})
     for k, x in G2.items():
         assert np.allclose(np.nan_to_num(G[k][:m]), np.nan_to_num(x)), k
+
+
+def test_liquidite_tres_avancee_causale():
+    """Osler (chiffres ronds), Abdi-Ranaldo (decale d'une bougie), trous de liquidite, IRL / ERL, Power of 3, CBDR,
+       IPDA, NWOG, rejection blocks : aucun regard vers le futur."""
+    a = synth(37)
+    F, _ = IND.compute(a, "fx")
+    for k in ("cassure_rond_00", "zone_stops_rond_50", "illiquidite_heure_z", "trou_liquidite", "balayage_erl",
+              "judas_swing", "projection_cbdr", "ipda_20j_position", "vs_milieu_nwog", "rejection_block"):
+        assert k in F["liquidite"], k
+    F2, _ = IND.compute(a[:1800], "fx")
+    for k, x in F2["liquidite"].items():
+        assert np.allclose(np.nan_to_num(F["liquidite"][k][:1800]), np.nan_to_num(x)), k
