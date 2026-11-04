@@ -93,7 +93,7 @@ def compute_positionnement(sym, kind, ts, c, refs):
     return F
 
 
-def sources(kind):
+def sources(kind, years=11):
     """Telecharge une fois par recherche les sources du positionnement (dict vide si indisponible)."""
     import os
     from lab import data
@@ -101,7 +101,7 @@ def sources(kind):
         return {}
     src = {}
     try:
-        src["cot"] = data.cot()
+        src["cot"] = data.cot(years=years)
     except Exception:
         src["cot"] = {}
     if kind == "cr":
