@@ -620,9 +620,11 @@ def near_misses(ds, allev, valid_ids, fdr_ids, top=20):
         if len(out) >= top:
             break
         f_ = family(cd)
-        if f_ in fam:
-            continue
+        same = (cd["dir"], cd["exit"], round(win, 4), n)
+        if f_ in fam or same in fam:
+            continue                                # meme piste (memes trades) : une seule fois
         fam.add(f_)
+        fam.add(same)
         a_, v = ev["apprentissage"], ev["validation"]
         if id(cd) not in valid_ids:
             why = "validation : %.0f %% sur %d trades, facteur de profit %.2f" % (

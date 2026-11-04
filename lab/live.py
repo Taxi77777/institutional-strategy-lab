@@ -136,8 +136,10 @@ def activated(v):
                             or p.get("test_avg", 0) <= 0):
                         continue
                     sig = family(p)
-                    if sig in seen:
-                        continue
+                    same = ("stats", p["dir"], p["exit"], round(p["test_win"], 4), p["test_n"])
+                    if sig in seen or same in seen:
+                        continue                    # meme piste (memes trades) ecrite autrement : une seule fois
+                    seen.add(same)
                     pa = (p.get("robustesse") or {}).get("par_actif", {})
                     ok = sorted(sym for sym, x in pa.items() if x.get("trades", 0) >= rule["paire_trades_min"]
                                 and x.get("reussite", 0) >= rule["paire_taux_min"] and x.get("gain_moyen", 0) > 0)
