@@ -250,7 +250,7 @@ LIVE_CACHE = {}
 VOLUME = {}                       # volume des ticks Dukascopy par paire (order flow forex), garde a part
 
 
-def dukascopy_live(sym, step, days, recent=None):
+def dukascopy_live(sym, step, days, recent=None, recent_retry=False):
     """Direct forex sur les memes prix que la recherche : jours termines (bougies 1 min) + heures terminees du jour
        (ticks). Tout est garde en memoire : seuls les nouveaux fichiers sont telecharges."""
     now = datetime.datetime.now(datetime.timezone.utc)
@@ -282,6 +282,14 @@ def dukascopy_live(sym, step, days, recent=None):
             if r:
                 LIVE_CACHE[key] = r
         rows += LIVE_CACHE.get(key) or []
+    if len(rows) < 1000 and not recent_retry:
+        # reseau capricieux au demarrage (21 paires x 8 telechargements en parallele) : on reprend un par un
+        for d in need:
+            if (sym, d) not in LIVE_CACHE:
+                res = _duka_day(sym, d)
+                if res:
+                    LIVE_CACHE[(sym, d)] = res
+        return dukascopy_live(sym, step, days, recent, recent_retry=True)
     if len(rows) < 1000:
         raise RuntimeError("Dukascopy direct %s : pas assez de donnees" % sym)
     last = max(r[0] for r in rows)

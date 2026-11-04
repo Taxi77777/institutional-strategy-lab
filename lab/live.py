@@ -470,10 +470,11 @@ def scan(st, lab, tf, now):
                 fx = features(sym, kind, tf, now, lab.get("idees"))
             except Exception as ex:
                 log.warning("%s %s : %s", sym, tf, ex)
-                sv.setdefault("erreurs", {})[sym] = str(ex)[:120]
+                sv.setdefault("erreurs", {})[sym] = "%s : %s" % (paris(time.time()).strftime("%d/%m %H:%M"), str(ex)[:110])
                 continue
             finally:
                 time.sleep(CFG["PAUSE"])
+            sv.get("erreurs", {}).pop(sym, None)            # actif de nouveau lu : l'erreur est effacee
             sv[kind] = {"dernier_controle": paris(time.time()).strftime("%d/%m %H:%M"), "dernier_actif": sym,
                         "actifs": len(syms), "pistes_actives": sum(1 for a in lab.get("activees", []) if a["kind"] == kind),
                         "derniere_bougie": paris(fx["ts"]).strftime("%d/%m %H:%M") if fx else None}

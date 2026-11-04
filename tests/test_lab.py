@@ -1,3 +1,4 @@
+import datetime
 import json
 """Tests hors ligne du labo : le hasard ne doit rien donner, un vrai avantage doit etre trouve, l'armee doit voter."""
 import os
@@ -701,3 +702,21 @@ def test_order_flow_avance_microstructure():
     G2 = OF.compute_orderflow("cr", ts[:m], o[:m], h[:m], l[:m], c[:m], atm, Fm, {k: x[:m] for k, x in flow.items()})
     for k, x in G2.items():
         assert np.allclose(np.nan_to_num(G[k][:m]), np.nan_to_num(x)), k
+
+
+def test_dukascopy_direct_reprise(monkeypatch):
+    """Direct forex : un telechargement rate au premier passage est repris un par un (plus de paire sans donnees)."""
+    from lab import data
+    data.LIVE_CACHE.clear()
+    calls = {}
+
+    def day(sym, d):
+        calls[d] = calls.get(d, 0) + 1
+        if calls[d] == 1:
+            return None                                    # premier essai rate (reseau)
+        t0 = datetime.datetime(d.year, d.month, d.day, tzinfo=datetime.timezone.utc).timestamp()
+        return [[t0 + 60 * i, 1.1, 1.1, 1.1, 1.1, 1.0] for i in range(1440)]
+    monkeypatch.setattr(data, "_duka_day", day)
+    monkeypatch.setattr(data, "_duka_hour", lambda sym, dt: None)
+    a = data.dukascopy_live("GBPUSD", 3600, 5)
+    assert len(a) > 50 and max(calls.values()) == 2
