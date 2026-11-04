@@ -69,10 +69,13 @@ def aggregate(trades, rows):
 def update(budget_s=19000, pause=1.2):
     """Complete l'historique de chaque paire (reprise au curseur), dans la limite de budget_s secondes."""
     os.makedirs(DIR, exist_ok=True)
-    state_path = os.path.join(DIR, "etat.json")
-    state = json.load(open(state_path)) if os.path.exists(state_path) else {}
     t_end = time.time() + budget_s
-    for pair in PAIRS:
+    only = [p for p in os.environ.get("KRAKEN_PAIRS", "").split(",") if p]
+    old_state = os.path.join(DIR, "etat.json")
+    shared = json.load(open(old_state)) if os.path.exists(old_state) else {}
+    for pair in (only or list(PAIRS)):
+        state_path = os.path.join(DIR, "etat_%s.json" % pair)       # un etat par paire : collecte en parallele
+        state = json.load(open(state_path)) if os.path.exists(state_path) else {pair: shared.get(pair)} if shared.get(pair) else {}
         rows = _load(pair)
         since = state.get(pair, str(START * 10 ** 9))
         calls = 0

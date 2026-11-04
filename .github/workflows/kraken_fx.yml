@@ -1,7 +1,7 @@
 name: Order flow devises (Kraken)
 
-# Reconstruit puis complete l'historique des transactions (avec leur sens) des devises principales sur Kraken :
-# euro, livre, dollar australien, dollar neo-zelandais, yen, dollar canadien, franc suisse. Sert a l'order flow forex.
+# Reconstruit puis complete l'historique des transactions (avec leur sens) des devises principales sur Kraken.
+# Une machine par devise, en parallele (7 fois plus rapide). Sert a l'order flow forex.
 on:
   schedule:
     - cron: '9 */6 * * *'
@@ -17,6 +17,10 @@ jobs:
     timeout-minutes: 340
     permissions:
       contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        paire: [EURUSD, GBPUSD, AUDUSD, NZDUSD, USDJPY, USDCAD, USDCHF]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -25,6 +29,7 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Collecte des transactions Kraken
         env:
+          KRAKEN_PAIRS: ${{ matrix.paire }}
           KRAKEN_BUDGET_S: '18500'
           PYTHONUNBUFFERED: '1'
         run: python -m lab.kraken_fx
@@ -33,13 +38,15 @@ jobs:
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          mkdir -p /tmp/kr && cp -r donnees/kraken/. /tmp/kr/ 2>/dev/null || exit 0
-          for i in 1 2 3 4 5; do
+          P=${{ matrix.paire }}
+          mkdir -p /tmp/kr
+          cp donnees/kraken/$P.csv donnees/kraken/etat_$P.json /tmp/kr/ 2>/dev/null || exit 0
+          for i in 1 2 3 4 5 6 7 8; do
             git fetch -q origin main && git reset -q --hard origin/main
-            mkdir -p donnees/kraken && cp -r /tmp/kr/. donnees/kraken/
+            mkdir -p donnees/kraken && cp /tmp/kr/* donnees/kraken/
             git add donnees/kraken
             git diff --cached --quiet && exit 0
-            git commit -qm "order flow devises : transactions Kraken [skip ci]"
+            git commit -qm "order flow devises : transactions Kraken $P [skip ci]"
             git push -q origin HEAD:main && exit 0
-            sleep 5
+            sleep $((RANDOM % 10 + 3))
           done
