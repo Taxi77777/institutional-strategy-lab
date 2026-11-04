@@ -86,7 +86,41 @@ def flux():
           {k: round(float(x[-2]), 3) for k, x in F["orderflow"].items()}), flush=True)
 
 
+def signaux():
+    """Etat en direct : pour chaque crypto, les pistes actives remplissent-elles leurs conditions maintenant ?"""
+    import numpy as np
+    from lab import live
+    lab = live.load_strategies()
+    now = time.time()
+    acts = [a for a in lab.get("activees", []) if a["kind"] == "cr"]
+    print("pistes crypto actives :", len(acts), flush=True)
+    for sym in live.UNIVERSE["cr"]:
+        try:
+            fx = live.features(sym, "cr", "1H", now, lab.get("idees"))
+        except Exception as ex:
+            print("  %s : erreur %s" % (sym, ex), flush=True)
+            continue
+        if not fx:
+            continue
+        for a in acts:
+            if sym not in a["paires_ok"]:
+                continue
+            res = []
+            for ag, nm, lo, hi in a["conds"]:
+                v = fx["last"].get((ag, nm))
+                res.append("%s=%s %s" % (nm[:28], "nan" if v is None or not np.isfinite(v) else round(v, 3),
+                                         "OK" if v is not None and np.isfinite(v) and lo <= v <= hi else "non"))
+            ok = live.active(a, fx["last"])
+            heat = live.heat_check(sym, "cr", a["dir"], fx) if ok else (True, None)
+            print("  %s %s | %s | %s%s" % ("SIGNAL" if ok and heat[0] else ("bloque heatmap" if ok else "-"), sym,
+                                          a["activee"][-28:], " ; ".join(res), (" | " + heat[1]) if ok and heat[1] else ""),
+                  flush=True)
+        print("  %s prix %s, bougie %s" % (sym, fx["close"], time.strftime("%H:%M", time.gmtime(fx["ts"]))), flush=True)
+
+
 if __name__ == "__main__":
+    if os.environ.get("SONDE_SIGNAUX", "1") == "1":
+        signaux()
     main()
     if os.environ.get("SONDE_REEL"):
         reel()
