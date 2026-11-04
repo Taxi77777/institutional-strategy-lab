@@ -32,7 +32,10 @@ Forex, or, argent et crypto · compatible avec tous les courtiers · signaux Tel
    (zone d'unité supérieure → arrivée du prix → divergence du delta → déclenchement) ·
    **Smart Money / ICT avancé** : order blocks validés, breakers, FVG / iFVG, chasse de liquidité → MSS → OTE, killzones,
    et le **noyau Liquidité / Order Block** (chaque piste part d'un setup de liquidité, confirmé par les autres) ·
-   **Belkhayate** : Timing et centre de gravité calculé sans repaint (1 h et 4 h).
+   **Belkhayate** : Timing et centre de gravité calculé sans repaint (1 h et 4 h) ·
+   **Liquidité très avancée** : chiffres ronds d'Osler (stops au-dessus / en dessous, cascades), écart Abdi-Ranaldo par
+   heure, trous de liquidité, et l'ICT avancé (IRL / ERL, Power of 3, Judas, CBDR, IPDA 20/40/60 j, NWOG, rejection
+   blocks), plus l'effort contre le résultat (Wyckoff).
 2. **Le noyau Ichimoku** : des stratégies qui partent toujours d'un signal Ichimoku — passé (Chikou), présent (Tenkan,
    Kijun, prix face au nuage), futur (nuage projeté, déjà connu à la clôture) — confirmé par 1 ou 2 conditions des
    meilleurs autres spécialistes.
