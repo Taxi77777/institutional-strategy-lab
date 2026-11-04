@@ -621,7 +621,8 @@ def cot(years=11):
 
 def binance_flow(sym, days=1200):
     """Order flow crypto : bougies 1 h Binance (data-api.binance.vision, public, sans inscription) avec le volume des
-       acheteurs agressifs (taker buy). Retourne (n, 3) : temps (debut de bougie, s), volume, volume acheteur."""
+       acheteurs agressifs (taker buy). Retourne (n, 4) : temps (debut de bougie, s), volume, volume acheteur, nombre de
+       transactions."""
     pair = "%sUSDT" % sym
     ck = (pair, days)
     if ck in FLOW_CACHE and time.time() - FLOW_CACHE[ck][0] < 1800:
@@ -638,11 +639,11 @@ def binance_flow(sym, days=1200):
                               "https://data-api.binance.vision/api/v3/klines?symbol=%s&interval=1h&startTime=%d"
                               "&endTime=%d&limit=1000" % (pair, t, u - 1), keep=u < end - 2 * 86400 * 1000)
             for k in json.loads(raw):
-                rows[int(k[0]) // 1000] = (float(k[5]), float(k[9]))
+                rows[int(k[0]) // 1000] = (float(k[5]), float(k[9]), float(k[8]))   # volume, acheteurs, transactions
         except Exception as ex:
             log.warning("Binance %s : %s", pair, ex)
         t = u
-    out = np.array([(k,) + v for k, v in sorted(rows.items())], dtype=float).reshape(-1, 3)
+    out = np.array([(k,) + v for k, v in sorted(rows.items())], dtype=float).reshape(-1, 4)
     FLOW_CACHE[ck] = (time.time(), out)
     return out
 

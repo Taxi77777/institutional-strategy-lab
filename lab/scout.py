@@ -39,11 +39,15 @@ KEYWORDS = {
     "fixing": "flux", "london fix": "flux", "gotobi": "flux", "rebalancing": "flux", "month-end": "flux",
     "nonfarm": "flux", "nfp": "flux", "fomc": "flux", "smt": "flux", "currency strength": "flux",
     "cme gap": "flux", "weekend gap": "flux", "dealer": "flux", "hedging flows": "flux",
+    "order flow imbalance": "orderflow", "vpin": "orderflow", "kyle lambda": "orderflow", "footprint": "orderflow",
+    "cumulative delta": "orderflow", "trade size": "orderflow", "microstructure": "orderflow", "taker": "orderflow",
+    "aggressor": "orderflow", "meta-order": "orderflow", "toxic flow": "orderflow", "absorption": "orderflow",
 }
 GITHUB_QUERIES = ("trading strategy forex", "trading strategy crypto", "technical indicators",
                   "algorithmic trading intraday", "smart money concepts", "order flow trading",
                   "liquidity sweep trading", "stop hunt liquidity",
-                  "fx fixing flows", "month end rebalancing fx", "cme gap bitcoin")
+                  "fx fixing flows", "month end rebalancing fx", "cme gap bitcoin",
+                  "order flow imbalance crypto", "footprint chart orderflow", "market microstructure trading signals")
 
 
 def _agents(text):
