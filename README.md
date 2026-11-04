@@ -1,7 +1,7 @@
 # 🪖 Institutional Strategy Lab — l'armée des spécialistes
 
 **Recherche automatique et continue en 1 heure de stratégies à ≥ 90 % de trades gagnants ET gros gains : départ de tendance détecté (liquidité, flux des opérateurs, Ichimoku…), sortie en deux temps (moitié encaissée au 1er objectif, stop au prix d'entrée, l'autre moitié court la tendance au stop suiveur), prouvé sur des données jamais vues.
-Forex, or, argent et crypto · compatible avec tous les courtiers · signaux Telegram · 100 % gratuit.**
+Forex (21 paires), or, argent et 60 cryptos · compatible avec tous les courtiers · signaux Telegram · 100 % gratuit.**
 
 ## Le principe
 

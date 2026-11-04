@@ -28,7 +28,10 @@ UNIVERSE = {
     # actifs « universels » : cotes chez tous les courtiers (forex, metaux, grandes cryptos, indices / actions US)
     "fx": envl("FX", "EURUSD,GBPUSD,USDJPY,USDCHF,USDCAD,AUDUSD,NZDUSD,EURJPY,GBPJPY,EURGBP,AUDJPY,EURCHF,"
                      "GBPCHF,CADJPY,CHFJPY,EURAUD,EURCAD,GBPAUD,AUDNZD,XAUUSD,XAGUSD"),
-    "cr": envl("CRYPTO", "BTC,ETH,SOL,XRP,BNB,DOGE,ADA,AVAX,LINK,LTC,DOT,TRX,BCH,NEAR,XLM,HBAR,ATOM,UNI,AAVE,SUI"),
+    "cr": envl("CRYPTO", "BTC,ETH,SOL,XRP,BNB,DOGE,ADA,AVAX,LINK,LTC,DOT,TRX,BCH,NEAR,XLM,HBAR,ATOM,UNI,AAVE,SUI,"
+                         "FIL,ETC,ICP,SHIB,ARB,OP,APT,INJ,GRT,CRV,LDO,SAND,MANA,ALGO,XTZ,FET,IMX,STX,AXS,"
+                         "COMP,SNX,YFI,1INCH,BAT,ZEC,DASH,QNT,CHZ,ENS,APE,BLUR,LRC,SUSHI,ZRX,ANKR,STORJ,MINA,FLOW,"
+                         "KAVA,ROSE"),   # 60 cryptos (demande du trader), Coinbase + order flow Binance
     "stocks": envl("STOCKS", ""),                # actions retirees a la demande du trader (forex et crypto seulement)
 }
 
