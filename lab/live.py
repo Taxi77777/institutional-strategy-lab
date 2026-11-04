@@ -128,7 +128,8 @@ def activated(v):
                 if cl["kind"] != rule["kind"] or cl["tf"] != rule.get("tf", "1H"):
                     continue
                 taken = 0
-                for p in cl.get("plafond", []):
+                pool = sorted(cl.get("activables", []) + cl.get("plafond", []), key=lambda r: -r["test_win"])
+                for p in pool:
                     if taken >= rule.get("max", 3):
                         break
                     if (p["agent"] in rule.get("exclure", []) or any(len(c) != 4 for c in p["conds"])
@@ -334,7 +335,7 @@ def features(sym, kind, tf, now, specs=None):
     refs["panier"] = pan
     ps = POSC.get(kind)
     if not ps or time.time() - ps[0] > 6 * 3600:      # COT / DVOL : rafraichis toutes les 6 h
-        ps = (time.time(), POS.sources(kind))
+        ps = (time.time(), POS.sources(kind, years=4))   # direct : 4 ans suffisent (percentile sur 3 ans), rapide
         POSC[kind] = ps
     refs.update(ps[1])
     if kind == "cr":                                # order flow crypto : Binance, rafraichi a chaque heure
@@ -464,13 +465,18 @@ def scan(st, lab, tf, now):
         for sym in syms:
             if STOP[0]:
                 return sent
+            sv = st.setdefault("diag", {}).setdefault("surveillance", {})
             try:
                 fx = features(sym, kind, tf, now, lab.get("idees"))
             except Exception as ex:
                 log.warning("%s %s : %s", sym, tf, ex)
+                sv.setdefault("erreurs", {})[sym] = str(ex)[:120]
                 continue
             finally:
                 time.sleep(CFG["PAUSE"])
+            sv[kind] = {"dernier_controle": paris(time.time()).strftime("%d/%m %H:%M"), "dernier_actif": sym,
+                        "actifs": len(syms), "pistes_actives": sum(1 for a in lab.get("activees", []) if a["kind"] == kind),
+                        "derniere_bougie": paris(fx["ts"]).strftime("%d/%m %H:%M") if fx else None}
             late = 2400 if kind == "fx" else 600          # forex : Dukascopy publie chaque heure avec un leger retard
             if not fx or now - fx["ts"] - STEP[tf] > late:
                 continue                            # bougie trop ancienne : jamais de signal en retard

@@ -540,7 +540,7 @@ def funding(sym, days=1200):
 
 
 # ---- positionnement des gros acteurs et peur des options (sources publiques, sans inscription) ----
-def _cached_get(name, url, keep=True, timeout=40):
+def _cached_get(name, url, keep=True, timeout=25):
     """Telechargement avec cache disque (DUKA_CACHE) pour les fichiers termines (annees passees)."""
     root = os.environ.get("DUKA_CACHE", "")
     path = os.path.join(root, "_sources", name) if root and keep else None

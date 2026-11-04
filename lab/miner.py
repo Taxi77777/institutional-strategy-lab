@@ -605,20 +605,23 @@ def run_class(ds):
     final = kept
     army = army_test(ds, final)
     plafond = near_misses(ds, allev, {id(cd) for cd, _ in evals}, {id(evals[i][0]) for i in keep})
+    # pistes activables (demande du trader) : >= 73 %, >= 50 trades jamais vus, validation >= 60 %
+    activables = near_misses(ds, allev, {id(cd) for cd, _ in evals}, {id(evals[i][0]) for i in keep},
+                             filt=lambda t, v: t["n"] >= 50 and t["win"] >= 0.73 and v.get("win", 0) >= 0.6)
     days = sorted(v[1] for v in ds["hist"].values())
     return {"kind": ds["kind"], "tf": ds["tf"], "symbols": ds["symbols"], "historique_jours": days[len(days) // 2] if days else 0,
             "bougies": int(sum(v[0] for v in ds["hist"].values())), "conditions": ncond, "combinaisons": tested,
             "candidates": len(cands), "validees": len(evals), "apres_fdr": len(keep), "strategies": final, "armee": army,
-            "plafond": plafond}
+            "plafond": plafond, "activables": activables}
 
 
-def near_misses(ds, allev, valid_ids, fdr_ids, top=20):
+def near_misses(ds, allev, valid_ids, fdr_ids, top=20, filt=None):
     """Classement honnete des meilleures pistes qui ont echoue : taux sur les trades jamais vus (>= 30 trades, gain
        moyen positif) et premiere regle qui les a eliminees. Sert a savoir ou en est la recherche."""
     rows = []
     for cd, ev in allev:
         t = ev["test"]
-        if t.get("n", 0) >= CFG["MIN_TRADES_TEST"] and t.get("avg", 0) > 0:
+        if t.get("n", 0) >= CFG["MIN_TRADES_TEST"] and t.get("avg", 0) > 0 and (filt is None or filt(t, ev["validation"])):
             rows.append((t["win"], t["n"], cd, ev))
     if gain_mode():
         rows.sort(key=lambda r: (-total(r[3]["test"]), -r[0]))
@@ -716,14 +719,15 @@ def run_all(fetch=None, fetch_daily=None, kinds=None, tfs=None):
                 continue
             all_specs.update({IDEAS.name(sp): sp for sp in specs})
             res = run_class(ds)
-            memory = IDEAS.remember(res["strategies"] + res.get("plafond", []), all_specs, memory)
+            memory = IDEAS.remember(res["strategies"] + res.get("plafond", []) + res.get("activables", []), all_specs, memory)
             out["classes"].append(res)
             log.info("%s %s : %d strategies retenues", kind, tf, len(res["strategies"]))
             del ds
     out["duree_min"] = round((time.time() - t0) / 60, 1)
     out["total"] = {k: sum(c[k] for c in out["classes"]) for k in ("conditions", "combinaisons", "candidates")}
     out["total"]["strategies"] = sum(len(c["strategies"]) for c in out["classes"])
-    used = {nm for c in out["classes"] for s in c["strategies"] + c.get("plafond", []) for ag, nm, *_r in s["conds"]
+    used = {nm for c in out["classes"] for s in c["strategies"] + c.get("plafond", []) + c.get("activables", [])
+            for ag, nm, *_r in s["conds"]
             if ag == "inventeur"}             # recettes de l'Inventeur aussi pour le plafond (strategies activables)
     out["idees"] = {nm: all_specs[nm] for nm in used if nm in all_specs}
     out["inventeur"] = {"idees_testees": len(all_specs), "idees_gagnantes": len(used)}
@@ -767,9 +771,10 @@ def merge(parts_dir="parts", old_path="strategies.json"):
                     f[n_] = max(f.get(n_, 0), c.get(n_, 0))
                 else:
                     f[n_] = f.get(n_, 0) + c.get(n_, 0)
-            f["plafond"] = sorted(f.get("plafond", []) + c.get("plafond", []),
-                                  key=(lambda r: (-r.get("test_total", 0), -r["test_win"])) if gain_mode()
-                                  else (lambda r: (-r["test_win"], -r["test_n"])))[:20]
+            for key in ("plafond", "activables"):
+                f[key] = sorted(f.get(key, []) + c.get(key, []),
+                                key=(lambda r: (-r.get("test_total", 0), -r["test_win"])) if gain_mode()
+                                else (lambda r: (-r["test_win"], -r["test_n"])))[:20]
             for side, a_ in c.get("armee", {}).items():
                 if side not in f["armee"] or a_.get("win", 0) > f["armee"][side].get("win", 0):
                     f["armee"][side] = a_
@@ -778,7 +783,7 @@ def merge(parts_dir="parts", old_path="strategies.json"):
     now_s = time.time()
     for k, f in fresh.items():                      # deux voies en parallele : on garde aussi les resultats recents
         oc = classes.get(k, {})                    # de l'autre voie (moins de 24 h), sans doublons
-        for key in ("strategies", "plafond"):
+        for key in ("strategies", "plafond", "activables"):
             rows = [dict(r, vu=r.get("vu", now_s)) for r in f.get(key, [])]
             rows += [r for r in oc.get(key, []) if now_s - r.get("vu", 0) < 86400]
             uniq = {}
@@ -791,8 +796,9 @@ def merge(parts_dir="parts", old_path="strategies.json"):
             f["strategies"].sort(key=lambda s: -total(s.get("stats", {}).get("test", {})))
         else:
             f["strategies"].sort(key=lambda s: (-s.get("stats", {}).get("test", {}).get("win", 0), -s.get("wilson_test", 0)))
-        f["plafond"] = sorted(f.get("plafond", []), key=(lambda r: (-r.get("test_total", 0), -r["test_win"])) if gain_mode()
-                              else (lambda r: (-r["test_win"], -r["test_n"])))[:20]
+        for key in ("plafond", "activables"):
+            f[key] = sorted(f.get(key, []), key=(lambda r: (-r.get("test_total", 0), -r["test_win"])) if gain_mode()
+                            else (lambda r: (-r["test_win"], -r["test_n"])))[:20]
         classes[k] = f
     for p in parts:
         for g in p.get("memoire", {}).get("gagnantes", []):
@@ -801,7 +807,8 @@ def merge(parts_dir="parts", old_path="strategies.json"):
     out["regle"] = out["regle"] or old.get("regle")
     out["classes"] = sorted(classes.values(), key=lambda c: ORDER.index("%s-%s" % (c["kind"], c["tf"]))
                             if "%s-%s" % (c["kind"], c["tf"]) in ORDER else 99)
-    used = {nm for c in out["classes"] for s in c["strategies"] + c.get("plafond", []) for ag, nm, *_r in s["conds"]
+    used = {nm for c in out["classes"] for s in c["strategies"] + c.get("plafond", []) + c.get("activables", [])
+            for ag, nm, *_r in s["conds"]
             if ag == "inventeur"}             # recettes de l'Inventeur aussi pour le plafond (strategies activables)
     out["idees"] = {nm: sp for nm, sp in {**old.get("idees", {}), **out["idees"]}.items() if nm in used}
     out["duree_min"] = max([p.get("duree_min", 0) for p in parts] or [0])
