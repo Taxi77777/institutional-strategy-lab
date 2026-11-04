@@ -35,6 +35,16 @@ def align(src_ts, src_val, ts):
     return out
 
 
+def family(r):
+    """Signature d'une piste par la NATURE de ses conditions (agent, nom), son sens et sa sortie : les variantes d'une
+       meme piste (bornes legerement differentes d'une recherche a l'autre, reglage de l'Inventeur) ne comptent qu'une
+       fois."""
+    import re
+    names = sorted("%s|%s" % (c[0], re.sub(r",\d+\)$", ")", str(c[1]))) for c in r.get("conds", []))
+    ex = r.get("exit") if isinstance(r.get("exit"), str) else (r.get("exit") or {}).get("id")
+    return json.dumps([r.get("dir"), ex, names])
+
+
 def exact_align(src_ts, val, ts):
     """Valeur de la bougie de meme heure exactement (NaN si absente) : pas de report d'une autre bougie."""
     if src_ts is None or len(src_ts) == 0:
@@ -601,8 +611,14 @@ def near_misses(ds, allev, valid_ids, fdr_ids, top=20):
         rows.sort(key=lambda r: (-total(r[3]["test"]), -r[0]))
     else:
         rows.sort(key=lambda r: (-r[0], -r[1]))
-    out = []
-    for win, n, cd, ev in rows[:top]:
+    out, fam = [], set()
+    for win, n, cd, ev in rows:
+        if len(out) >= top:
+            break
+        f_ = family(cd)
+        if f_ in fam:
+            continue
+        fam.add(f_)
         a_, v = ev["apprentissage"], ev["validation"]
         if id(cd) not in valid_ids:
             why = "validation : %.0f %% sur %d trades, facteur de profit %.2f" % (
@@ -752,8 +768,7 @@ def merge(parts_dir="parts", old_path="strategies.json"):
             rows += [r for r in oc.get(key, []) if now_s - r.get("vu", 0) < 86400]
             uniq = {}
             for r in rows:
-                sig = json.dumps([r.get("dir"), r.get("exit") if isinstance(r.get("exit"), str) else r.get("exit", {}).get("id"),
-                                  sorted(map(list, r.get("conds", [])))], default=str)
+                sig = family(r)
                 if sig not in uniq or r.get("vu", 0) > uniq[sig].get("vu", 0):
                     uniq[sig] = r
             f[key] = list(uniq.values())

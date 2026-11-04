@@ -15,7 +15,7 @@ import numpy as np
 
 from . import data, ideas as IDEAS, indicators as IND, positionnement as POS, telegram as TG
 from .config import CFG, EXITS, UNIVERSE
-from .miner import BENCH, align, macro_series, funding_refs, orderflow_refs
+from .miner import BENCH, align, family, macro_series, funding_refs, orderflow_refs
 
 FUND = {}
 
@@ -135,7 +135,7 @@ def activated(v):
                             or p["test_win"] < rule["taux_min"] or p["test_n"] < rule["trades_min"]
                             or p.get("test_avg", 0) <= 0):
                         continue
-                    sig = json.dumps([p["dir"], p["exit"], sorted(map(list, p["conds"]))], default=str)
+                    sig = family(p)
                     if sig in seen:
                         continue
                     pa = (p.get("robustesse") or {}).get("par_actif", {})
