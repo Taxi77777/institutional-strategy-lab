@@ -35,6 +35,11 @@ def align(src_ts, src_val, ts):
     return out
 
 
+# memoire : la crypto (60 actifs) garde ses indicateurs en demi-precision (3 chiffres significatifs, largement assez
+# pour des quintiles) ; le forex reste en float32. Les zones des conditions sont calculees sur ces memes valeurs.
+FEAT_DTYPE = {"fx": np.float32, "cr": np.float16 if os.environ.get("CRYPTO_F16", "1") == "1" else np.float32}
+
+
 def family(r):
     """Signature d'une piste par la NATURE de ses conditions (agent, nom), son sens et sa sortie : les variantes d'une
        meme piste (bornes legerement differentes d'une recherche a l'autre, reglage de l'Inventeur) ne comptent qu'une
@@ -185,8 +190,12 @@ def build(kind, tf, fetch=None, fetch_daily=None, symbols=None, macro=None, idea
             for name, x in feats.items():
                 arr = X.get((agent, name))
                 if arr is None:
-                    arr = X[(agent, name)] = np.full(total, np.nan, dtype=np.float32)
+                    arr = X[(agent, name)] = np.full(total, np.nan, dtype=FEAT_DTYPE[kind])
                     CNT[(agent, name)] = 0
+                if arr.dtype == np.float16:              # demi-precision : bascule en float32 si valeurs trop grandes
+                    xm = np.nanmax(np.abs(x)) if np.isfinite(x).any() else 0.0
+                    if xm > 6e4:
+                        arr = X[(agent, name)] = arr.astype(np.float32)
                 arr[off:off + len(a)] = x
                 CNT[(agent, name)] += 1
         del F

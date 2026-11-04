@@ -133,7 +133,8 @@ def activated(v):
                         break
                     if (p["agent"] in rule.get("exclure", []) or any(len(c) != 4 for c in p["conds"])
                             or p["test_win"] < rule["taux_min"] or p["test_n"] < rule["trades_min"]
-                            or p.get("test_avg", 0) <= 0):
+                            or p.get("test_avg", 0) <= 0
+                            or p.get("validation_win", 1) < rule.get("validation_min", 0)):
                         continue
                     sig = family(p)
                     same = ("stats", p["dir"], p["exit"], round(p["test_win"], 4), p["test_n"])
