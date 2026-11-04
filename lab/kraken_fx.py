@@ -115,7 +115,7 @@ def update(budget_s=19000, pause=1.2):
 
 
 def history(pair):
-    """(n, 3) : heure, volume, volume acheteur. Fichier local (recherche) sinon version publiee (direct)."""
+    """(n, 4) : heure, volume, volume acheteur, transactions. Fichier local (recherche) sinon version publiee (direct)."""
     rows = _load(pair)
     if not rows:
         try:
@@ -126,7 +126,7 @@ def history(pair):
                     rows[int(p[0])] = [float(p[1]), float(p[2]), int(p[3])]
         except Exception as ex:
             log.warning("Kraken %s (publie) : %s", pair, ex)
-    return np.array([(t, v[0], v[1]) for t, v in sorted(rows.items())], dtype=float).reshape(-1, 3)
+    return np.array([(t, v[0], v[1], v[2]) for t, v in sorted(rows.items())], dtype=float).reshape(-1, 4)
 
 
 LIVE = {}
@@ -137,7 +137,7 @@ def live_flow(pair, hours=72):
     c = LIVE.get(pair)
     if c and time.time() - c[0] < 600:
         return c[1]
-    hist = {int(r[0]): [r[1], r[2], 0] for r in history(pair)}
+    hist = {int(r[0]): [r[1], r[2], r[3]] for r in history(pair)}
     since = str(int((time.time() - hours * 3600) * 10 ** 9))
     recent = {}
     for _ in range(20):
@@ -156,7 +156,7 @@ def live_flow(pair, hours=72):
     for h, v in recent.items():
         if h < hour_now:                            # heures terminees seulement
             hist[h] = v
-    out = np.array([(t, v[0], v[1]) for t, v in sorted(hist.items())], dtype=float).reshape(-1, 3)
+    out = np.array([(t, v[0], v[1], v[2]) for t, v in sorted(hist.items())], dtype=float).reshape(-1, 4)
     LIVE[pair] = (time.time(), out)
     return out
 

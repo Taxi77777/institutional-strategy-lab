@@ -37,6 +37,67 @@ def _prev(x, k=1):
     return np.r_[np.full(k, NAN), x[:-k]]
 
 
+def _z(x, w=100):
+    out = np.full(len(x), NAN)
+    if len(x) > w:
+        from numpy.lib.stride_tricks import sliding_window_view as sw
+        W = sw(x[:-1], w)                                           # fenetre passee (sans la bougie actuelle)
+        m, sd = np.nanmean(W, axis=1), np.nanstd(W, axis=1)
+        out[w:] = (x[w:] - m) / (sd + 1e-12)
+    return out
+
+
+def _rmean(x, w):
+    out = np.full(len(x), NAN)
+    if len(x) >= w:
+        from numpy.lib.stride_tricks import sliding_window_view as sw
+        out[w - 1:] = np.nanmean(sw(x, w), axis=1)
+    return out
+
+
+def avance(o, h, l, c, vol, delta, trades):
+    """Order flow avance (microstructure) : taille moyenne des transactions (gros acteurs), intensite, delta par
+       transaction, toxicite du flux (VPIN, Easley - Lopez de Prado - O'Hara), impact de prix (lambda de Kyle), memoire
+       du flux (meta-ordres, Lillo - Farmer), acceleration du delta cumule, traders pieges, initiative / reponse."""
+    n = len(c)
+    out = {}
+    ratio = _div(delta, vol)
+    if trades is not None and len(trades) == n:
+        tr = np.asarray(trades, dtype=float)
+        size = _div(vol, tr)
+        out["taille_moyenne_transactions_z"] = _z(size)              # gros acteurs : transactions plus grosses
+        out["intensite_transactions_z"] = _z(tr)
+        out["delta_par_transaction"] = _div(_div(delta, tr), _rmean(size, 100))
+    out["vpin_50"] = _rmean(np.abs(ratio), 50)                       # flux toxique (informe) : risque de cascade
+    r = np.diff(np.log(c), prepend=np.log(c[0]))
+    lam, mem = np.full(n, NAN), np.full(n, NAN)
+    for i in range(48, n):
+        x, y = ratio[i - 47:i + 1], r[i - 47:i + 1]
+        ok = np.isfinite(x) & np.isfinite(y)
+        if ok.sum() > 30:
+            xv = x[ok] - x[ok].mean()
+            vx = (xv ** 2).mean()
+            sy = y[ok].std()
+            if vx > 0 and sy > 0:
+                lam[i] = (xv * (y[ok] - y[ok].mean())).mean() / vx / sy     # normalise sur la fenetre passee
+        z = ratio[i - 23:i + 1]
+        if np.isfinite(z).all() and z.std() > 0:
+            mem[i] = np.corrcoef(z[:-1], z[1:])[0, 1]
+    out["impact_kyle_48h"] = lam
+    out["memoire_flux_24h"] = mem
+    cs = np.cumsum(np.nan_to_num(delta))
+    cvd = np.full(n, NAN)
+    cvd[24:] = cs[24:] - cs[:-24]
+    vs = _rmean(np.nan_to_num(vol), 24) * 24
+    cvd = _div(cvd, vs)
+    out["acceleration_delta_cumule"] = cvd - np.r_[np.full(6, NAN), cvd[:-6]]
+    out["traders_pieges"] = np.where((ratio > 0.3) & (c < o), -1.0, np.where((ratio < -0.3) & (c > o), 1.0, 0.0))
+    hh = np.r_[np.full(24, NAN), [h[i - 24:i].max() for i in range(24, n)]] if n > 24 else np.full(n, NAN)
+    ll = np.r_[np.full(24, NAN), [l[i - 24:i].min() for i in range(24, n)]] if n > 24 else np.full(n, NAN)
+    out["initiative_reponse"] = np.where(h > hh, np.sign(np.nan_to_num(ratio)), np.where(l < ll, np.sign(np.nan_to_num(ratio)), 0.0))
+    return out
+
+
 def compute_orderflow(kind, ts, o, h, l, c, atr, F, flow):
     """flow : {"vol": volume aligne, "buy": volume acheteur aligne (crypto) ou None (forex : delta estime)}."""
     n = len(c)
@@ -130,6 +191,7 @@ def compute_orderflow(kind, ts, o, h, l, c, atr, F, flow):
     steps_dn = zone_recent_dn.astype(int) + (zone_recent_dn & div_dn).astype(int) + (zone_recent_dn & div_dn & trig_dn).astype(int)
     out["checklist_etapes"] = np.where(steps_up >= steps_dn, steps_up, -steps_dn).astype(float)
     out["modele_order_flow"] = np.where(steps_up == 3, 1.0, np.where(steps_dn == 3, -1.0, 0.0))
+    out.update(avance(o, h, l, c, vol, delta, flow.get("trades")))
     valid = np.isfinite(vol)
     for k in out:
         out[k] = np.where(valid, out[k], NAN)                       # volume inconnu : aucun signal d'order flow
@@ -144,6 +206,8 @@ def compute_orderflow(kind, ts, o, h, l, c, atr, F, flow):
         out["flux_devise_%s" % side] = _div(pd, pv)
         cum[side] = _div(_rsum(pd, 24), _rsum(pv, 24))
         out["flux_devise_%s_24h" % side] = cum[side]
+        if d_.get("trades") is not None:                           # gros acteurs sur la devise (taille des transactions)
+            out["taille_transactions_devise_%s_z" % side] = _z(_div(pv, np.asarray(d_["trades"], dtype=float)))
     if dv:
         b_ = cum.get("base", np.zeros(n) if dv.get("base") is None else None)
         q_ = cum.get("cotee", np.zeros(n) if dv.get("cotee") is None else None)

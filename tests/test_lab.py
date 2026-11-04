@@ -682,3 +682,22 @@ def test_liquidite_tres_avancee_causale():
     F2, _ = IND.compute(a[:1800], "fx")
     for k, x in F2["liquidite"].items():
         assert np.allclose(np.nan_to_num(F["liquidite"][k][:1800]), np.nan_to_num(x)), k
+
+
+def test_order_flow_avance_microstructure():
+    """Taille des transactions, VPIN, impact de Kyle, memoire du flux, traders pieges : aucun regard vers le futur."""
+    from lab import orderflow as OF
+    a = synth(41)
+    ts, o, h, l, c, v = (a[:, i] for i in range(6))
+    F, atr = IND.compute(a, "cr")
+    rng = np.random.default_rng(5)
+    vol = rng.uniform(100, 200, len(c))
+    flow = {"vol": vol, "buy": vol * rng.uniform(0.3, 0.7, len(c)), "trades": rng.uniform(50, 100, len(c))}
+    G = OF.compute_orderflow("cr", ts, o, h, l, c, atr, F, flow)
+    for k in ("taille_moyenne_transactions_z", "vpin_50", "impact_kyle_48h", "memoire_flux_24h", "traders_pieges"):
+        assert k in G
+    m = 1800
+    Fm, atm = IND.compute(a[:m], "cr")
+    G2 = OF.compute_orderflow("cr", ts[:m], o[:m], h[:m], l[:m], c[:m], atm, Fm, {k: x[:m] for k, x in flow.items()})
+    for k, x in G2.items():
+        assert np.allclose(np.nan_to_num(G[k][:m]), np.nan_to_num(x)), k

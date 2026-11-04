@@ -59,7 +59,7 @@ def currency_flow(cur, ts, live=False):
        Kraken. Dollar americain = reference (None)."""
     from lab import kraken_fx as KF
     days = int((ts[-1] - ts[0]) / 86400) + 2
-    vol, buy = np.zeros(len(ts)), np.zeros(len(ts))
+    vol, buy, trd = np.zeros(len(ts)), np.zeros(len(ts)), np.zeros(len(ts))
     found = False
     srcs = []
     if cur in data.FX_CRYPTO_PROXY:
@@ -81,10 +81,13 @@ def currency_flow(cur, ts, live=False):
         b_cur = b if sg > 0 else v - b              # USDJPY achete = yen vendu : acheteurs de la devise = vendeurs
         vol += np.where(ok, v, 0.0)
         buy += np.where(ok, b_cur, 0.0)
+        if f.shape[1] > 3:
+            trd += np.where(ok, np.nan_to_num(exact_align(f[:, 0], f[:, 3], ts)), 0.0)
     if not found:
         return None
     vol[vol <= 0] = np.nan
-    return {"vol": vol, "buy": buy}
+    trd[trd <= 0] = np.nan
+    return {"vol": vol, "buy": buy, "trades": trd}
 
 
 def orderflow_refs(sym, kind, ts, flow=None, live=False):
@@ -96,7 +99,8 @@ def orderflow_refs(sym, kind, ts, flow=None, live=False):
             bf = flow if flow is not None else data.binance_flow(sym)
             if len(bf) == 0:
                 return None
-            return {"vol": exact_align(bf[:, 0], bf[:, 1], ts), "buy": exact_align(bf[:, 0], bf[:, 2], ts)}
+            return {"vol": exact_align(bf[:, 0], bf[:, 1], ts), "buy": exact_align(bf[:, 0], bf[:, 2], ts),
+                    "trades": exact_align(bf[:, 0], bf[:, 3], ts) if bf.shape[1] > 3 else None}
         tv = data.VOLUME.get(sym)
         res = {"vol": exact_align(tv[0], tv[1], ts), "buy": None} if tv is not None else None
         if res is not None and len(sym) == 6:         # flux reel de chaque devise (Binance + Kraken)
