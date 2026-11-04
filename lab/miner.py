@@ -396,7 +396,7 @@ def search(ds, log_every=50):
                 if sc > 0:
                     cands.append({"agent": agent, "exit": eid, "dir": dr, "conds": combo})
     nt, nc = ichimoku_core(ds, by_agent, cands, beam, depth, min_n, tr) if not only else (0, 0)
-    lt, lc = liquidity_core(ds, by_agent, cands, beam, depth, min_n, tr) if not only else (0, 0)
+    lt, lc = liquidity_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=350) if not only else (0, 0)  # priorite
     tested += nt + lt
     log.info("%s %s : %d conditions, %d combinaisons testees, %d candidates (dont %d noyau Ichimoku, %d noyau liquidite)",
              ds["kind"], ds["tf"], len(conds), tested, len(cands), nc, lc)

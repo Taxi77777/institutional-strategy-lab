@@ -128,7 +128,8 @@ def activated(v):
                 if cl["kind"] != rule["kind"] or cl["tf"] != rule.get("tf", "1H"):
                     continue
                 taken = 0
-                pool = sorted(cl.get("activables", []) + cl.get("plafond", []), key=lambda r: -r["test_win"])
+                pool = sorted(cl.get("activables", []) + cl.get("plafond", []),
+                              key=lambda r: (-is_liquidity(r), -r["test_win"]))   # priorite du trader : liquidite
                 for p in pool:
                     if taken >= rule.get("max", 3):
                         break
@@ -150,7 +151,8 @@ def activated(v):
                         continue
                     seen.add(sig)
                     taken += 1
-                    nom = "%s · %.0f %% (%d trades jamais vus)" % (rule["nom"], 100 * p["test_win"], p["test_n"])
+                    nom = "%s%s · %.0f %% (%d trades jamais vus)" % ("💧 Liquidité · " if is_liquidity(p) else "", rule["nom"],
+                                                                 100 * p["test_win"], p["test_n"])
                     out.append({"id": "activee-%s-%s" % (cl["kind"], hashlib.md5(sig.encode()).hexdigest()[:8]),
                                 "kind": cl["kind"], "tf": cl["tf"], "agent": p["agent"], "dir": p["dir"], "exit": ex,
                                 "conds": [list(c) for c in p["conds"]],
@@ -238,9 +240,17 @@ def record_heat(sym, h, path=None):
         log.warning("heatmap %s : %s", sym, ex)
 
 
+LIQ_AGENTS = {"liquidite", "smc", "orderflow", "noyau_liquidite"}
+
+
+def is_liquidity(r):
+    """Piste de liquidite (priorite du trader) : noyau liquidite, ou une condition liquidite / SMC / order flow."""
+    return int(r.get("agent") in LIQ_AGENTS or any(c[0] in LIQ_AGENTS for c in r.get("conds", [])))
+
+
 def activated_signals(st, lab, kind, tf, sym, fx):
     """Signal d'une strategie activee par le trader (a part du vote de l'armee)."""
-    for s in lab.get("activees", []):
+    for s in sorted(lab.get("activees", []), key=lambda a: -is_liquidity(a)):
         if (s["kind"] != kind or s["tf"] != tf or sym not in s["paires_ok"] or s["id"] in set(st["retired"])
                 or not active(s, fx["last"])):
             continue
