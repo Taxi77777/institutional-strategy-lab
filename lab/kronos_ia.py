@@ -157,6 +157,11 @@ def avis():
             except Exception as ex:
                 log.warning("avis %s : %s", sym, ex)
     rows.sort(key=lambda r: -abs(r[2]))
+    import json
+    os.makedirs(DIR, exist_ok=True)
+    with open(os.path.join(DIR, "avis.json"), "w") as f:       # lu par l'armee : sens de Kronos pour chaque actif
+        json.dump({"genere": int(time.time()), "actifs": {sym: {"marche": kind, "atr": round(z, 3), "pct": round(pct, 3)}
+                                                          for kind, sym, z, pct, last, fin in rows}}, f, indent=1)
     print("AVIS KRONOS (5 prochaines bougies jour, depuis la cloture du %s UTC)" % time.strftime("%d/%m", time.gmtime()))
     for kind, sym, z, pct, last, fin in rows:
         print("AVIS %s %-7s %s %+.2f ATR (%+.2f %%) cloture %.6g -> prevue %.6g" % (

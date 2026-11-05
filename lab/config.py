@@ -47,6 +47,7 @@ CFG = {
     "PF_FLOOR_2": envf("PF_FLOOR_2", 1.15),  # mode gain : tri des combinaisons et de l'apprentissage
     "ELITE_PF": envf("ELITE_PF", 1.5),       # mode gain : setup elite (peut signaler seul, >= 100 trades jamais vus)
     "HEURES_SIGNAUX": [envf("HEURE_DEBUT", 9.0), envf("HEURE_FIN", 18.5)],   # heures de volume (Paris), demande du 5 nov.
+    "KRONOS_ACCORD": int(envf("KRONOS_ACCORD", 1)),   # demande du 5 nov. : signal seulement dans le sens de Kronos
     "LIQUIDITE_SEULE": int(envf("LIQUIDITE_SEULE", 1)),   # demande du 5 nov. : liquidite + prix avance uniquement
     "TIMEFRAMES": envl("TIMEFRAMES", "1H,30M,15M,4H,1D"),    # demande du trader (5 nov.) : 1 h + 4 h + 15 min
     "MIN_WIN": envf("MIN_WIN", 0.90 if MODE == "tendance90" else 0.92),        # exigence du trader : le labo ne garde que les strategies >= 92 % (jamais vues)

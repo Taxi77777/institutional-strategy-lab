@@ -2,11 +2,19 @@ name: Kronos - avis immediat
 
 # Demande l'avis de Kronos tout de suite : 5 prochaines bougies jour prevues pour chaque actif (pas un signal).
 on:
+  schedule:
+    - cron: '7 */4 * * *'        # toutes les 4 h : l'armee ne donne un signal que dans le sens de Kronos
   workflow_dispatch:
+
+concurrency:
+  group: kronos-avis
+  cancel-in-progress: false
 
 jobs:
   avis:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
@@ -28,3 +36,17 @@ jobs:
           KRONOS_DIR: kronos_src
           PYTHONUNBUFFERED: '1'
         run: python -m lab.kronos_ia avis
+      - name: Publication de l'avis
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          cp donnees/kronos/avis.json /tmp/avis.json
+          for i in 1 2 3 4 5; do
+            git fetch -q origin main && git reset -q --hard origin/main
+            mkdir -p donnees/kronos && cp /tmp/avis.json donnees/kronos/avis.json
+            git add donnees/kronos/avis.json
+            git diff --cached --quiet && exit 0
+            git commit -qm "Kronos : avis [skip ci]"
+            git push -q origin HEAD:main && exit 0
+            sleep 5
+          done

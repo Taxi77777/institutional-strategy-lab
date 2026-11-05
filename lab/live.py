@@ -292,6 +292,25 @@ def in_hours(t):
     return a * 60 <= p.hour * 60 + p.minute <= b * 60
 
 
+KAVIS = {"t": 0, "v": {}}
+KAVIS_URL = STRAT_URL.replace("strategies.json", "donnees/kronos/avis.json")
+
+
+def kronos_avis(sym):
+    """Sens prevu par Kronos (5 prochaines bougies jour, en ATR) ; rafraichi toutes les 30 min, None si inconnu."""
+    if time.time() - KAVIS["t"] > 1800:
+        try:
+            r = data.SESSION.get(KAVIS_URL, params={"t": int(time.time() // 1800)}, timeout=20)
+            if r.ok:
+                j = r.json()
+                if time.time() - j.get("genere", 0) < 36 * 3600:     # avis de plus de 36 h : ignore
+                    KAVIS["v"] = j.get("actifs", {})
+        except Exception as ex:
+            log.warning("avis Kronos : %s", ex)
+        KAVIS["t"] = time.time()
+    return KAVIS["v"].get(sym)
+
+
 def activated_signals(st, lab, kind, tf, sym, fx):
     """Signal d'une strategie activee par le trader (a part du vote de l'armee)."""
     if not in_hours(time.time()):
@@ -302,6 +321,13 @@ def activated_signals(st, lab, kind, tf, sym, fx):
             continue
         if any(o["sym"] == sym for o in st["open"]):
             return 0
+        kv = kronos_avis(sym)
+        if CFG["KRONOS_ACCORD"] and (kv is None or kv["atr"] * s["dir"] <= 0):
+            dz = st.setdefault("diag", {}).setdefault("kronos_pas_d_accord", {})
+            dz["%s %s" % (sym, tf)] = "%s %s : piste %s, Kronos %s" % (
+                paris(time.time()).strftime("%d/%m %H:%M"), sym, "achat" if s["dir"] > 0 else "vente",
+                "sans avis" if kv is None else "%+.2f ATR" % kv["atr"])
+            continue                                # demande du trader : tout le monde dans le meme sens que Kronos
         key = "act|%s|%s|%d|%d" % (sym, tf, s["dir"], int(fx["ts"]))
         if key in st["alerts"]:
             continue
@@ -312,6 +338,9 @@ def activated_signals(st, lab, kind, tf, sym, fx):
                 "%s %s %s" % (paris(time.time()).strftime("%d/%m %H:%M"), sym, tf))
             st["diag"]["murs_signales"] = st["diag"]["murs_signales"][-20:]
         st["alerts"][key] = time.time()
+        kt = ("🤖 Kronos (IA) d'accord : %s %+.1f ATR (%+.1f %%) sur 5 jours" % (
+            "hausse" if kv["atr"] > 0 else "baisse", kv["atr"], kv["pct"]) if kv else None)
+        heat = " · ".join(x for x in (kt, heat) if x) or None
         send_signal(st, kind, tf, sym, s["dir"], fx, dict(s, heat=heat), {s["agent"]: s}, {}, lab, activee=True)
         return 1
     return 0
