@@ -358,6 +358,7 @@ def hist(sym, kind, tf):
         except Exception:
             FAIL[key] = now
             raise
+        a = np.asarray(a, dtype=float).reshape(-1, 6)       # actif sans donnees (ex. retire de Coinbase) : tableau vide
         CACHE[key] = {"a": a[-KEEP[tf]:], "full": now, "vol": data.VOLUME.get(sym) if kind == "fx" else None}
     else:
         try:
@@ -367,7 +368,7 @@ def hist(sym, kind, tf):
             new, data.VOLUME[sym] = np.zeros((0, 6)), None
         rows = {int(r[0]): r for r in c["a"]}
         rows.update({int(r[0]): r for r in new})
-        c["a"] = np.array([rows[k] for k in sorted(rows)])[-KEEP[tf]:]
+        c["a"] = np.array([rows[k] for k in sorted(rows)], dtype=float).reshape(-1, 6)[-KEEP[tf]:]
         if kind == "fx" and data.VOLUME.get(sym) is not None:      # volume des ticks : propre a chaque unite
             old_v = c.get("vol")
             vd = dict(zip(old_v[0].tolist(), old_v[1].tolist())) if old_v is not None else {}
