@@ -118,39 +118,51 @@ def signaux():
         print("  %s prix %s, bougie %s" % (sym, fx["close"], time.strftime("%H:%M", time.gmtime(fx["ts"]))), flush=True)
 
 
-def rejeu(heures=48):
-    """Rejoue les dernieres heures avec les memes calculs que l'armee : ou les pistes actives auraient-elles signale ?"""
+def rejeu(heures=120):
+    """Rejoue les 5 derniers jours avec les memes calculs et les memes regles que l'armee (pistes activees, actifs
+       autorises, heures de volume 9 h - 18 h 30) : combien de signaux seraient partis, et quand ?"""
+    import concurrent.futures as cf
     from lab import live
     live.KEEP_FULL[0] = True
     lab = live.load_strategies()
     acts = lab.get("activees", [])
     print("pistes actives :", len(acts), flush=True)
     now = time.time()
-    tot = 0
-    for kind in ("fx", "cr"):
-        for sym in live.UNIVERSE[kind]:
-            ok_acts = [a for a in acts if a["kind"] == kind and sym in a["paires_ok"]]
-            if not ok_acts:
-                continue
-            try:
-                fx = live.features(sym, kind, "1H", now, lab.get("idees"))
-            except Exception as ex:
-                print("  %s : erreur %s" % (sym, str(ex)[:80]), flush=True)
-                continue
-            if not fx or "F" not in fx:
-                continue
-            F, a = fx["F"], fx["a"]
-            n = len(a)
-            for i in range(max(0, n - heures), n):
-                last = {(ag, nm): float(x[i]) for ag, d in F.items() for nm, x in d.items()}
-                for act in ok_acts:
-                    if live.active(act, last):
-                        tot += 1
-                        print("  AURAIT SIGNALE %s %s cloture %s | %s" % (kind, sym, time.strftime("%d/%m %H:%M",
-                              time.gmtime(a[i, 0] + 3600)), act["activee"][-42:]), flush=True)
-                        break
-    print("total signaux rejoues sur %d h : %d" % (heures, tot), flush=True)
+    jobs = sorted({(a["kind"], a["tf"], sym) for a in acts for sym in a["paires_ok"]})
 
+    def one(j):
+        kind, tf, sym = j
+        try:
+            fx = live.features(sym, kind, tf, now, lab.get("idees"))
+        except Exception as ex:
+            return [("erreur", "%s %s : %s" % (sym, tf, str(ex)[:80]))]
+        if not fx or "F" not in fx:
+            return [("erreur", "%s %s : pas de donnees" % (sym, tf))]
+        F, a = fx["F"], fx["a"]
+        out, n = [], len(a)
+        mine = [s for s in acts if s["kind"] == kind and s["tf"] == tf and sym in s["paires_ok"]]
+        for i in range(n):
+            t_close = a[i, 0] + live.STEP[tf]
+            if t_close < now - heures * 3600 or not live.in_hours(t_close):
+                continue
+            last = {(ag, nm): float(x[i]) for ag, d in F.items() for nm, x in d.items()}
+            for s in mine:
+                if live.active(s, last):
+                    out.append(("signal", "%s %s %s %s | %s" % (time.strftime("%d/%m %H:%M", time.gmtime(t_close + 3600)),
+                                                              sym, tf, "ACHAT" if s["dir"] > 0 else "VENTE", s["activee"][:60])))
+                    break
+        return out
+    res = []
+    with cf.ThreadPoolExecutor(4) as ex:
+        for r in ex.map(one, jobs):
+            res += r
+    sig = sorted(x for k, x in res if k == "signal")
+    for x in sig:
+        print("  AURAIT SIGNALE", x, flush=True)
+    for k, x in res:
+        if k == "erreur":
+            print("  erreur", x, flush=True)
+    print("total signaux rejoues sur %d h (heures de volume) : %d" % (heures, len(sig)), flush=True)
 
 if __name__ == "__main__":
     if os.environ.get("SONDE_REJEU", "1") == "1":
