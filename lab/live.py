@@ -15,7 +15,7 @@ import numpy as np
 
 from . import data, ideas as IDEAS, indicators as IND, positionnement as POS, telegram as TG
 from .config import CFG, EXITS, UNIVERSE
-from .miner import BENCH, align, family, macro_series, funding_refs, orderflow_refs
+from .miner import BENCH, align, family, is_pa, macro_series, funding_refs, orderflow_refs
 
 FUND = {}
 
@@ -143,6 +143,7 @@ def activated(v):
                     if taken >= rule.get("max", 3):
                         break
                     if (p["agent"] in rule.get("exclure", []) or any(len(c) != 4 for c in p["conds"])
+                            or (rule.get("liquidite_seule") and not is_pa(p))
                             or p["test_win"] < rule["taux_min"] or p["test_n"] < rule["trades_min"]
                             or p.get("test_avg", 0) <= 0
                             or p.get("validation_win", 1) < rule.get("validation_min", 0)):

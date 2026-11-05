@@ -31,6 +31,7 @@ def fast(monkeypatch, tmp_path):
     monkeypatch.setenv("POSITIONNEMENT", "0")                      # pas de COT / DVOL reseau pendant les tests
     monkeypatch.setenv("ORDERFLOW", "0")                           # pas de Binance reseau pendant les tests
     monkeypatch.setitem(config.CFG, "SEULEMENT_ACTIVEES", 0)       # anciens tests : messages de l'armee actifs
+    monkeypatch.setitem(config.CFG, "LIQUIDITE_SEULE", 0)          # anciens tests : toutes les familles
     monkeypatch.setitem(config.CFG, "MODE", "win")
     monkeypatch.setitem(config.CFG, "PAUSE", 0)
     monkeypatch.setitem(config.CFG, "SIMS", 500)
@@ -763,3 +764,12 @@ def test_activation_sessions_en_premier(monkeypatch, tmp_path):
     act = live.activated(lab)
     assert len(act) == 2 and "Session Asie" in act[0]["activee"] and act[0]["tf"] == "4H"
     assert act[0]["id"].startswith("activee-cr-4h-")
+
+
+def test_liquidite_et_prix_seulement():
+    """Demande du 5 nov. : seules les pistes liquidite / prix avance / flux des banques restent."""
+    pa = {"conds": [["flux", "heures_fixing_londres", 0, 1], ["smc", "ict_baissier_ote", 0, 1]]}
+    assert miner.is_pa(pa)
+    assert not miner.is_pa({"conds": [["flux", "x", 0, 1], ["momentum", "rsi5", 0, 1]]})
+    assert not miner.is_pa({"conds": [["structure", "x", 0, 1]]})          # il faut une condition de liquidite / flux
+    assert miner.is_pa({"conds": [["inventeur", "accord(structure.vs_bas_2j,flux.heures_nfp,6)", 0, 1]]})

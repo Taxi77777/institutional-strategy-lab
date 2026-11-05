@@ -58,6 +58,29 @@ def exact_align(src_ts, val, ts):
     return np.where(np.abs(src_ts[idx] - ts) < 1, val[idx], np.nan)
 
 
+# demande du trader (5 nov.) : uniquement la liquidite et le prix avance (SMC / ICT, order blocks, FVG, chasses de
+# stops, structure, order flow) ; plus aucune strategie a base d'indicateurs classiques
+PA_AGENTS = {"liquidite", "smc", "orderflow", "flux", "positionnement", "structure", "amd", "chiffres_ronds", "fibonacci",
+             "bougies", "chandeliers", "profil", "vwap", "carnet", "noyau_liquidite"}
+PA_CORE = {"liquidite", "smc", "orderflow", "flux"}            # flux = flux des operateurs / banques (fixing, NFP...)
+
+
+def cond_agents(c_):
+    if c_[0] == "inventeur":                       # idee de l'Inventeur : les specialistes qu'elle combine
+        import re
+        return set(re.findall(r"([a-z_]+)\.", str(c_[1])))
+    return {c_[0]}
+
+
+def is_pa(r):
+    """Piste 100 % liquidite / prix avance : toutes ses conditions viennent de ces specialistes, dont au moins une
+       condition de liquidite, SMC / ICT ou order flow."""
+    ags = set()
+    for c_ in r.get("conds", []):
+        ags |= cond_agents(c_)
+    return bool(ags) and ags <= PA_AGENTS and bool(ags & PA_CORE)
+
+
 def bar_align(src_ts, val, ts):
     """Flux d'une source sur les bougies : meme unite -> bougie de meme heure ; source plus fine (1 h -> 4 h) -> somme
        des sous-bougies ; source plus grossiere (1 h -> 15 min) -> NaN (jamais de valeur inventee ni future)."""
@@ -646,7 +669,7 @@ def run_class(ds):
     plafond = near_misses(ds, allev, {id(cd) for cd, _ in evals}, {id(evals[i][0]) for i in keep})
     # pistes activables (demande du trader) : >= 73 %, >= 50 trades jamais vus, validation >= 60 %
     activables = near_misses(ds, allev, {id(cd) for cd, _ in evals}, {id(evals[i][0]) for i in keep},
-                             filt=lambda t, v: t["n"] >= 50 and t["win"] >= 0.73 and v.get("win", 0) >= 0.6)
+                             filt=lambda t, v: t["n"] >= 30 and t["win"] >= 0.70 and v.get("win", 0) >= 0.6)
     sessions = session_pistes(ds, allev, {id(cd) for cd, _ in evals}, {id(evals[i][0]) for i in keep})
     days = sorted(v[1] for v in ds["hist"].values())
     return {"kind": ds["kind"], "tf": ds["tf"], "symbols": ds["symbols"], "historique_jours": days[len(days) // 2] if days else 0,
@@ -680,7 +703,7 @@ def session_pistes(ds, allev, valid_ids, fdr_ids, per=5, scan=400):
 
     for nm in SESSIONS:
         rows = near_misses(ds, allev, valid_ids, fdr_ids, top=per, scan=scan,
-                           filt=lambda t, v: t["n"] >= 30 and t["win"] >= 0.73 and v.get("win", 0) >= 0.6,
+                           filt=lambda t, v: t["n"] >= 30 and t["win"] >= 0.70 and v.get("win", 0) >= 0.6,
                            post=lambda cd, nm=nm: dominant(cd) == nm)
         out += [dict(r, session=nm) for r in rows]
     return out
@@ -868,6 +891,11 @@ def merge(parts_dir="parts", old_path="strategies.json"):
         out["idees"].update(p.get("idees", {}))
         tested += p.get("inventeur", {}).get("idees_testees", 0)
     now_s = time.time()
+    if CFG["LIQUIDITE_SEULE"]:                      # seulement la liquidite et le prix avance (anciennes pistes retirees)
+        for c in list(classes.values()) + list(fresh.values()):
+            for key in ("strategies", "plafond", "activables", "sessions"):
+                if key in c:
+                    c[key] = [r for r in c[key] if is_pa(r)]
     for k, f in fresh.items():                      # deux voies en parallele : on garde aussi les resultats recents
         oc = classes.get(k, {})                    # de l'autre voie (moins de 24 h), sans doublons
         for key in ("strategies", "plafond", "activables", "sessions"):

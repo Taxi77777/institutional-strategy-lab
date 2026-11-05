@@ -46,6 +46,7 @@ CFG = {
     "PF_FLOOR_1": envf("PF_FLOOR_1", 1.05),  # mode gain : tri de depart de la recherche (une condition)
     "PF_FLOOR_2": envf("PF_FLOOR_2", 1.15),  # mode gain : tri des combinaisons et de l'apprentissage
     "ELITE_PF": envf("ELITE_PF", 1.5),       # mode gain : setup elite (peut signaler seul, >= 100 trades jamais vus)
+    "LIQUIDITE_SEULE": int(envf("LIQUIDITE_SEULE", 1)),   # demande du 5 nov. : liquidite + prix avance uniquement
     "TIMEFRAMES": envl("TIMEFRAMES", "1H,4H,15M"),    # demande du trader (5 nov.) : 1 h + 4 h + 15 min
     "MIN_WIN": envf("MIN_WIN", 0.90 if MODE == "tendance90" else 0.92),        # exigence du trader : le labo ne garde que les strategies >= 92 % (jamais vues)
     # tri de depart de la recherche (pieces a assembler) : volontairement plus large que la barre finale, car une
