@@ -648,6 +648,27 @@ def prefetch(lab):
 SAVED = [0.0]
 
 
+def warm(lab, kind, tf, syms, now):
+    """Calcule en parallele (4 a la fois) les indicateurs des actifs dont une nouvelle bougie vient de se fermer :
+       avant, 60 cryptos l'une apres l'autre prenaient plus de 10 minutes et les dernieres arrivaient trop tard."""
+    import concurrent.futures as cf
+
+    def one(sym):
+        try:
+            features(sym, kind, tf, now, lab.get("idees"))
+        except Exception:
+            pass                                    # l'erreur sera notee par la boucle normale
+    todo = []
+    for sym in syms:
+        c = CACHE.get((sym, kind, tf))
+        f = FEAT.get((sym, kind, tf, len(lab.get("idees") or {})))
+        if not c or not f or f["ts"] + 2 * STEP[tf] <= now:     # bougie fermee pas encore calculee
+            todo.append(sym)
+    if len(todo) > 1:
+        with cf.ThreadPoolExecutor(4) as ex:
+            list(ex.map(one, todo))
+
+
 def scan(st, lab, tf, now):
     sent = 0
     for kind, syms in sorted(UNIVERSE.items(), key=lambda kv: kv[0] != "cr"):   # crypto d'abord (24 h/24)
@@ -655,6 +676,7 @@ def scan(st, lab, tf, now):
                  and not CFG["SEULEMENT_ACTIVEES"])
                 or any(a["kind"] == kind and a["tf"] == tf for a in lab.get("activees", []))):
             continue
+        warm(lab, kind, tf, syms, now)              # nouvelle bougie : indicateurs de tous les actifs calcules en parallele
         for sym in syms:
             if STOP[0]:
                 return sent
@@ -679,7 +701,9 @@ def scan(st, lab, tf, now):
             sv.pop(kind, None)
             if fx is None:
                 sv.setdefault("erreurs", {})["%s %s" % (sym, tf)] = NOTE.get((sym, kind, tf), "donnees vides")
-            late = 2400 if kind == "fx" else 600          # forex : Dukascopy publie chaque heure avec un leger retard
+            # forex : Dukascopy publie chaque heure avec un leger retard ; crypto : jusqu'a la moitie de la bougie (30 min
+            # en 1 h), le prix d'entree reste celui de la cloture et l'heure limite est donnee dans le message
+            late = max(2400, STEP[tf] // 4) if kind == "fx" else max(450, min(1800, STEP[tf] // 2))
             if not fx or now - fx["ts"] - STEP[tf] > late:
                 continue                            # bougie trop ancienne : jamais de signal en retard
             near(st, lab, kind, tf, sym, fx)                          # pistes presque pretes (suivi pour le trader)
