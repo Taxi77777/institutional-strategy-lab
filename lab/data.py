@@ -18,10 +18,15 @@ log = logging.getLogger("lab")
 SESSION = requests.Session()
 SESSION.headers.update({"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) strategy-lab/1.0", "Accept": "*/*"})
 HOSTS = ("https://query2.finance.yahoo.com", "https://query1.finance.yahoo.com")
-TF = {"1H": ("60m", "730d", 3600)}
+TF = {"1H": ("60m", "730d", 3600), "4H": ("60m", "730d", 14400), "15M": ("15m", "60d", 900)}
+NATIVE = {"60m": 3600, "15m": 900}
 # historique long de la recherche (jours) : meme nombre de bougies environ pour chaque unite de temps
-FX_DAYS = {"1H": ("FX_DAYS_1H", 3650)}        # forex : 10 ans de bougies 1 h Dukascopy
-CR_DAYS = {"1H": ("CR_DAYS_1H", 1095)}        # crypto : 3 ans de bougies 1 h Coinbase
+FX_DAYS = {"1H": ("FX_DAYS_1H", 3650),        # forex : 10 ans de bougies 1 h Dukascopy
+           "4H": ("FX_DAYS_4H", 3650),        # 10 ans regroupes en 4 h
+           "15M": ("FX_DAYS_15M", 730)}       # 2 ans de bougies 15 min (fichiers minute)
+CR_DAYS = {"1H": ("CR_DAYS_1H", 1095),        # crypto : 3 ans de bougies 1 h Coinbase
+           "4H": ("CR_DAYS_4H", 1095),
+           "15M": ("CR_DAYS_15M", 365)}       # 1 an de bougies 15 min
 
 
 def ysym(sym, kind):
@@ -68,7 +73,9 @@ def bars(sym, kind, tf, rng=None):
                     continue
                 res = ((r.json().get("chart") or {}).get("result") or [None])[0]
                 if res:
-                    return parse(res, step)
+                    nat = NATIVE.get(interval, step)
+                    a = parse(res, nat)
+                    return _resample(a, step) if nat != step and len(a) else a
                 last = "pas de donnees"
             except Exception as ex:
                 last = str(ex)[:100]
@@ -419,7 +426,10 @@ def long_bars(sym, kind, tf):
         if kind == "fx" and tf in FX_DAYS:
             v, d = FX_DAYS[tf]
             try:
-                return dukascopy_hours(sym, int(os.environ.get(v, d)))       # 10 ans en ~120 fichiers par paire
+                if step < 3600:                                              # 15 min : fichiers minute
+                    return dukascopy(sym, step, int(os.environ.get(v, d)))
+                a = dukascopy_hours(sym, int(os.environ.get(v, d)))       # 10 ans en ~120 fichiers par paire
+                return _resample(a, step) if step != 3600 else a          # 4 h : volume des ticks garde a part (1 h)
             except Exception as ex:
                 log.warning("Dukascopy mensuel %s : %s (fichiers journaliers)", sym, ex)
                 return dukascopy(sym, step, int(os.environ.get(v, d)))
@@ -627,25 +637,25 @@ def cot(years=11):
     return {k: np.array([(t,) + v[t] for t in sorted(v)], dtype=float) for k, v in out.items()}
 
 
-def binance_flow(sym, days=1200):
+def binance_flow(sym, days=1200, interval="1h"):
     """Order flow crypto : bougies 1 h Binance (data-api.binance.vision, public, sans inscription) avec le volume des
        acheteurs agressifs (taker buy). Retourne (n, 4) : temps (debut de bougie, s), volume, volume acheteur, nombre de
        transactions."""
     pair = "%sUSDT" % sym
-    ck = (pair, days)
+    ck = (pair, days, interval)
     if ck in FLOW_CACHE and time.time() - FLOW_CACHE[ck][0] < 1800:
         return FLOW_CACHE[ck][1]
     end = int(time.time() * 1000)
-    step = 1000 * 3600 * 1000
+    step = 1000 * (900 if interval == "15m" else 3600) * 1000
     base = 1500000000000
     t = base + (max(int((time.time() - days * 86400) * 1000), base) - base) // step * step
     rows = {}
     while t < end:
         u = min(t + step, end)
         try:
-            raw = _cached_get("binance_%s_%d.json" % (pair, t),
-                              "https://data-api.binance.vision/api/v3/klines?symbol=%s&interval=1h&startTime=%d"
-                              "&endTime=%d&limit=1000" % (pair, t, u - 1), keep=u < end - 2 * 86400 * 1000)
+            raw = _cached_get("binance_%s_%d%s.json" % (pair, t, "" if interval == "1h" else "_" + interval),
+                              "https://data-api.binance.vision/api/v3/klines?symbol=%s&interval=%s&startTime=%d"
+                              "&endTime=%d&limit=1000" % (pair, interval, t, u - 1), keep=u < end - 2 * 86400 * 1000)
             for k in json.loads(raw):
                 rows[int(k[0]) // 1000] = (float(k[5]), float(k[9]), float(k[8]))   # volume, acheteurs, transactions
         except Exception as ex:

@@ -58,6 +58,27 @@ def exact_align(src_ts, val, ts):
     return np.where(np.abs(src_ts[idx] - ts) < 1, val[idx], np.nan)
 
 
+def bar_align(src_ts, val, ts):
+    """Flux d'une source sur les bougies : meme unite -> bougie de meme heure ; source plus fine (1 h -> 4 h) -> somme
+       des sous-bougies ; source plus grossiere (1 h -> 15 min) -> NaN (jamais de valeur inventee ni future)."""
+    if src_ts is None or len(src_ts) == 0 or len(ts) < 2:
+        return exact_align(src_ts, val, ts)
+    step = float(np.median(np.diff(ts)))
+    sstep = float(np.median(np.diff(src_ts))) if len(src_ts) > 1 else step
+    if sstep >= step * 0.99:
+        return exact_align(src_ts, val, ts) if sstep <= step * 1.01 else np.full(len(ts), np.nan)
+    v = np.asarray(val, dtype=float)
+    cs = np.concatenate([[0.0], np.cumsum(np.where(np.isfinite(v), v, 0.0))])
+    lo = np.searchsorted(src_ts, ts, "left")
+    hi = np.searchsorted(src_ts, ts + step, "left")
+    out = cs[hi] - cs[lo]
+    return np.where(hi > lo, out, np.nan)
+
+
+def bar_step(ts):
+    return float(np.median(np.diff(ts))) if len(ts) > 1 else 3600.0
+
+
 def currency_flow(cur, ts, live=False):
     """Flux reel d'une devise (volume, volume acheteur dans le sens de la devise) : euro = EURUSDT Binance + EURUSD
        Kraken ; or = PAXG Binance ; livre, dollars australien / neo-zelandais, yen, dollar canadien, franc suisse =
@@ -72,13 +93,14 @@ def currency_flow(cur, ts, live=False):
     srcs += [("kraken", p, sg) for p, (c, sg) in KF.PAIRS.items() if c == cur]
     for kind, name, sg in srcs:
         try:
-            f = data.binance_flow(name, days=days) if kind == "binance" else (KF.live_flow(name) if live else KF.history(name))
+            f = (data.binance_flow(name, days=days, interval="15m" if bar_step(ts) < 3600 else "1h") if kind == "binance"
+                 else (KF.live_flow(name) if live else KF.history(name)))
         except Exception as ex:
             log.warning("flux %s %s : %s", cur, name, ex)
             continue
         if len(f) == 0:
             continue
-        v, b = exact_align(f[:, 0], f[:, 1], ts), exact_align(f[:, 0], f[:, 2], ts)
+        v, b = bar_align(f[:, 0], f[:, 1], ts), bar_align(f[:, 0], f[:, 2], ts)
         ok = np.isfinite(v) & (v > 0)
         if not ok.any():
             continue
@@ -87,7 +109,7 @@ def currency_flow(cur, ts, live=False):
         vol += np.where(ok, v, 0.0)
         buy += np.where(ok, b_cur, 0.0)
         if f.shape[1] > 3:
-            trd += np.where(ok, np.nan_to_num(exact_align(f[:, 0], f[:, 3], ts)), 0.0)
+            trd += np.where(ok, np.nan_to_num(bar_align(f[:, 0], f[:, 3], ts)), 0.0)
     if not found:
         return None
     vol[vol <= 0] = np.nan
@@ -101,13 +123,15 @@ def orderflow_refs(sym, kind, ts, flow=None, live=False):
         return None
     try:
         if kind == "cr":
-            bf = flow if flow is not None else data.binance_flow(sym)
+            bf = flow if flow is not None else data.binance_flow(
+                sym, days=int((ts[-1] - ts[0]) / 86400) + 2 if len(ts) else 1200,
+                interval="15m" if bar_step(ts) < 3600 else "1h")
             if len(bf) == 0:
                 return None
-            return {"vol": exact_align(bf[:, 0], bf[:, 1], ts), "buy": exact_align(bf[:, 0], bf[:, 2], ts),
-                    "trades": exact_align(bf[:, 0], bf[:, 3], ts) if bf.shape[1] > 3 else None}
+            return {"vol": bar_align(bf[:, 0], bf[:, 1], ts), "buy": bar_align(bf[:, 0], bf[:, 2], ts),
+                    "trades": bar_align(bf[:, 0], bf[:, 3], ts) if bf.shape[1] > 3 else None}
         tv = data.VOLUME.get(sym)
-        res = {"vol": exact_align(tv[0], tv[1], ts), "buy": None} if tv is not None else None
+        res = {"vol": bar_align(tv[0], tv[1], ts), "buy": None} if tv is not None else None
         if res is not None and len(sym) == 6:         # flux reel de chaque devise (Binance + Kraken)
             res["devises"] = {"base": currency_flow(sym[:3], ts, live), "cotee": currency_flow(sym[3:], ts, live)}
         return res
@@ -500,6 +524,14 @@ def evaluate(ds, cand):
     return out
 
 
+# sessions (heures UTC) : la demande du trader est d'avoir des signaux a toutes les heures, pas seulement au fixing
+SESSIONS = ("asie", "londres", "new_york", "soir")
+
+
+def session_of(h):
+    return "asie" if h >= 23 or h < 7 else "londres" if h < 12 else "new_york" if h < 17 else "soir"
+
+
 def robustness(ds, cand):
     """Sur validation + test (jamais appris) : gagnante sur la majorite des actifs pris un par un, et >= 75 % de
        reussite sur chacune des deux moitiés chronologiques (stabilite)."""
@@ -543,7 +575,14 @@ def robustness(ds, cand):
         ok = tot >= 3 and pos / tot >= 0.7 and min(avgs) > 0 and years_ok and not bad
     else:
         ok = tot >= 3 and pos / tot >= 0.5 and min(wins) >= CFG["MIN_WIN"] - 0.05 and years_ok and not bad
-    return {"ok": bool(ok), "actifs_gagnants": "%d/%d" % (pos, tot), "reussite_moities": [round(w, 3) for w in wins], "gain_moities": [round(a, 4) for a in avgs],
+    hrs = ((ds["ts"][idx] // 3600) % 24).astype(int)
+    sess = np.array([session_of(h_) for h_ in hrs]) if len(hrs) else np.array([], dtype=object)
+    par_session = {}
+    for nm in SESSIONS:
+        sel = idx[sess == nm] if len(sess) else idx[:0]
+        par_session[nm] = {"part": round(len(sel) / max(1, len(idx)), 3), "trades": int(len(sel)),
+                           "reussite": round(float(win[sel].mean()), 3) if len(sel) else 0.0}
+    return {"ok": bool(ok), "actifs_gagnants": "%d/%d" % (pos, tot), "par_session": par_session, "reussite_moities": [round(w, 3) for w in wins], "gain_moities": [round(a, 4) for a in avgs],
             "par_actif": per_asset, "actifs_sous_seuil": bad,
             "par_annee": {str(y): {"reussite": w, "trades": n} for y, (w, n, a) in per_year.items()},
             "annees_reussies": "%d/%d" % (good, len(per_year))}
@@ -608,14 +647,46 @@ def run_class(ds):
     # pistes activables (demande du trader) : >= 73 %, >= 50 trades jamais vus, validation >= 60 %
     activables = near_misses(ds, allev, {id(cd) for cd, _ in evals}, {id(evals[i][0]) for i in keep},
                              filt=lambda t, v: t["n"] >= 50 and t["win"] >= 0.73 and v.get("win", 0) >= 0.6)
+    sessions = session_pistes(ds, allev, {id(cd) for cd, _ in evals}, {id(evals[i][0]) for i in keep})
     days = sorted(v[1] for v in ds["hist"].values())
     return {"kind": ds["kind"], "tf": ds["tf"], "symbols": ds["symbols"], "historique_jours": days[len(days) // 2] if days else 0,
             "bougies": int(sum(v[0] for v in ds["hist"].values())), "conditions": ncond, "combinaisons": tested,
             "candidates": len(cands), "validees": len(evals), "apres_fdr": len(keep), "strategies": final, "armee": army,
-            "plafond": plafond, "activables": activables}
+            "plafond": plafond, "activables": activables, "sessions": sessions}
 
 
-def near_misses(ds, allev, valid_ids, fdr_ids, top=20, filt=None):
+def session_pistes(ds, allev, valid_ids, fdr_ids, per=5, scan=400):
+    """Meilleures pistes activables dont la majorite des trades tombe dans chaque session (Asie, Londres, New York,
+       soir) : des signaux a toutes les heures, pas seulement au fixing de Londres."""
+    out = []
+    te = ds["split"] >= 1
+    hours = ((ds["ts"] // 3600) % 24).astype(int)
+    sess_arr = np.array([session_of(h_) for h_ in range(24)])[hours]
+    cache = {}
+
+    def dominant(cd):
+        k = id(cd)
+        if k not in cache:
+            ex = next(e for e in EXITS if e["id"] == cd["exit"])
+            valid = ds["R"][(cd["exit"], cd["dir"])][2]        # memes trades que la robustesse (un a la fois)
+            m = thin(full_mask(ds, cd["conds"]) & valid & te, ds["aid"], ds["ts"], ex["h"] * ds["step"])
+            if not m.any():
+                cache[k] = None
+            else:
+                vals, cnt = np.unique(sess_arr[m], return_counts=True)
+                i = int(np.argmax(cnt))
+                cache[k] = vals[i] if cnt[i] >= 0.5 * m.sum() else None
+        return cache[k]
+
+    for nm in SESSIONS:
+        rows = near_misses(ds, allev, valid_ids, fdr_ids, top=per, scan=scan,
+                           filt=lambda t, v: t["n"] >= 30 and t["win"] >= 0.73 and v.get("win", 0) >= 0.6,
+                           post=lambda cd, nm=nm: dominant(cd) == nm)
+        out += [dict(r, session=nm) for r in rows]
+    return out
+
+
+def near_misses(ds, allev, valid_ids, fdr_ids, top=20, filt=None, post=None, scan=None):
     """Classement honnete des meilleures pistes qui ont echoue : taux sur les trades jamais vus (>= 30 trades, gain
        moyen positif) et premiere regle qui les a eliminees. Sert a savoir ou en est la recherche."""
     rows = []
@@ -628,9 +699,11 @@ def near_misses(ds, allev, valid_ids, fdr_ids, top=20, filt=None):
     else:
         rows.sort(key=lambda r: (-r[0], -r[1]))
     out, fam = [], set()
-    for win, n, cd, ev in rows:
-        if len(out) >= top:
+    for k_, (win, n, cd, ev) in enumerate(rows):
+        if len(out) >= top or (scan and k_ >= scan):
             break
+        if post is not None and not post(cd):
+            continue
         f_ = family(cd)
         same = (cd["dir"], cd["exit"], round(win, 4), n)
         if f_ in fam or same in fam:
@@ -660,7 +733,7 @@ def near_misses(ds, allev, valid_ids, fdr_ids, top=20, filt=None):
                     "test_win": round(win, 4), "test_n": n, "test_avg": round(ev["test"]["avg"], 4),
                     "test_pf": ev["test"].get("pf", 0), "test_total": round(total(ev["test"]), 3),
                     "apprentissage_win": round(a_.get("win", 0), 4), "validation_win": round(v.get("win", 0), 4),
-                    "raison": why, "robustesse": {k: rob[k] for k in ("actifs_gagnants", "par_actif", "par_annee",
+                    "raison": why, "robustesse": {k: rob[k] for k in ("actifs_gagnants", "par_actif", "par_annee", "par_session",
                                                                          "reussite_moities", "annees_reussies")}})
     return out
 
@@ -719,14 +792,15 @@ def run_all(fetch=None, fetch_daily=None, kinds=None, tfs=None):
                 continue
             all_specs.update({IDEAS.name(sp): sp for sp in specs})
             res = run_class(ds)
-            memory = IDEAS.remember(res["strategies"] + res.get("plafond", []) + res.get("activables", []), all_specs, memory)
+            memory = IDEAS.remember(res["strategies"] + res.get("plafond", []) + res.get("activables", []) + res.get("sessions", []),
+                                    all_specs, memory)
             out["classes"].append(res)
             log.info("%s %s : %d strategies retenues", kind, tf, len(res["strategies"]))
             del ds
     out["duree_min"] = round((time.time() - t0) / 60, 1)
     out["total"] = {k: sum(c[k] for c in out["classes"]) for k in ("conditions", "combinaisons", "candidates")}
     out["total"]["strategies"] = sum(len(c["strategies"]) for c in out["classes"])
-    used = {nm for c in out["classes"] for s in c["strategies"] + c.get("plafond", []) + c.get("activables", [])
+    used = {nm for c in out["classes"] for s in c["strategies"] + c.get("plafond", []) + c.get("activables", []) + c.get("sessions", [])
             for ag, nm, *_r in s["conds"]
             if ag == "inventeur"}             # recettes de l'Inventeur aussi pour le plafond (strategies activables)
     out["idees"] = {nm: all_specs[nm] for nm in used if nm in all_specs}
@@ -737,7 +811,19 @@ def run_all(fetch=None, fetch_daily=None, kinds=None, tfs=None):
     return out
 
 
-ORDER = ["fx-1H", "cr-1H"]
+ORDER = ["fx-1H", "cr-1H", "fx-4H", "cr-4H", "fx-15M", "cr-15M"]
+
+
+def top_sessions(rows, per=5):
+    """Les `per` meilleures pistes de chaque session, sans doublons."""
+    out, seen = [], set()
+    for r in sorted(rows, key=lambda r: (-r["test_win"], -r["test_n"])):
+        sig = (r.get("session"), family(r))
+        if sig in seen or sum(1 for o in out if o.get("session") == r.get("session")) >= per:
+            continue
+        seen.add(sig)
+        out.append(r)
+    return out
 
 
 def merge(parts_dir="parts", old_path="strategies.json"):
@@ -775,6 +861,7 @@ def merge(parts_dir="parts", old_path="strategies.json"):
                 f[key] = sorted(f.get(key, []) + c.get(key, []),
                                 key=(lambda r: (-r.get("test_total", 0), -r["test_win"])) if gain_mode()
                                 else (lambda r: (-r["test_win"], -r["test_n"])))[:20]
+            f["sessions"] = top_sessions(f.get("sessions", []) + c.get("sessions", []))
             for side, a_ in c.get("armee", {}).items():
                 if side not in f["armee"] or a_.get("win", 0) > f["armee"][side].get("win", 0):
                     f["armee"][side] = a_
@@ -783,12 +870,12 @@ def merge(parts_dir="parts", old_path="strategies.json"):
     now_s = time.time()
     for k, f in fresh.items():                      # deux voies en parallele : on garde aussi les resultats recents
         oc = classes.get(k, {})                    # de l'autre voie (moins de 24 h), sans doublons
-        for key in ("strategies", "plafond", "activables"):
+        for key in ("strategies", "plafond", "activables", "sessions"):
             rows = [dict(r, vu=r.get("vu", now_s)) for r in f.get(key, [])]
             rows += [r for r in oc.get(key, []) if now_s - r.get("vu", 0) < 86400]
             uniq = {}
             for r in rows:
-                sig = family(r)
+                sig = family(r) + "|" + r.get("session", "")
                 if sig not in uniq or r.get("vu", 0) > uniq[sig].get("vu", 0):
                     uniq[sig] = r
             f[key] = list(uniq.values())
@@ -799,6 +886,7 @@ def merge(parts_dir="parts", old_path="strategies.json"):
         for key in ("plafond", "activables"):
             f[key] = sorted(f.get(key, []), key=(lambda r: (-r.get("test_total", 0), -r["test_win"])) if gain_mode()
                             else (lambda r: (-r["test_win"], -r["test_n"])))[:20]
+        f["sessions"] = top_sessions(f.get("sessions", []))
         classes[k] = f
     for p in parts:
         for g in p.get("memoire", {}).get("gagnantes", []):
@@ -807,7 +895,7 @@ def merge(parts_dir="parts", old_path="strategies.json"):
     out["regle"] = out["regle"] or old.get("regle")
     out["classes"] = sorted(classes.values(), key=lambda c: ORDER.index("%s-%s" % (c["kind"], c["tf"]))
                             if "%s-%s" % (c["kind"], c["tf"]) in ORDER else 99)
-    used = {nm for c in out["classes"] for s in c["strategies"] + c.get("plafond", []) + c.get("activables", [])
+    used = {nm for c in out["classes"] for s in c["strategies"] + c.get("plafond", []) + c.get("activables", []) + c.get("sessions", [])
             for ag, nm, *_r in s["conds"]
             if ag == "inventeur"}             # recettes de l'Inventeur aussi pour le plafond (strategies activables)
     out["idees"] = {nm: sp for nm, sp in {**old.get("idees", {}), **out["idees"]}.items() if nm in used}

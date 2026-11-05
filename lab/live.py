@@ -22,8 +22,10 @@ FUND = {}
 log = logging.getLogger("lab")
 PARIS = ZoneInfo("Europe/Paris")
 STATE_FILE = "lab_state.json"
-STEP = {"1H": 3600}
-KEEP = {"1H": 2500}
+STEP = {"1H": 3600, "4H": 14400, "15M": 900}
+KEEP = {"1H": 2500, "4H": 900, "15M": 1500}      # 4 h : ~7 mois ; 15 min : ~3 semaines (fenetres max ~300 bougies)
+SESSION_NOM = {"asie": "🌏 Session Asie", "londres": "🇬🇧 Session Londres", "new_york": "🇺🇸 Session New York",
+               "soir": "🌙 Session du soir"}
 CACHE = {}
 STOP = [False]
 SEP = "━━━━━━━━━━━━━━━"
@@ -128,8 +130,15 @@ def activated(v):
                 if cl["kind"] != rule["kind"] or cl["tf"] != rule.get("tf", "1H"):
                     continue
                 taken = 0
-                pool = sorted(cl.get("activables", []) + cl.get("plafond", []),
-                              key=lambda r: (-is_liquidity(r), -r["test_win"]))   # priorite du trader : liquidite
+                # d'abord les meilleures pistes de chaque session (signaux a toutes les heures, demande du 5 nov.),
+                # puis le reste par priorite du trader : liquidite
+                per_s = rule.get("par_session", 0)
+                sess = []
+                for nm in SESSION_NOM:
+                    sess += sorted([r for r in cl.get("sessions", []) if r.get("session") == nm],
+                                   key=lambda r: (-is_liquidity(r), -r["test_win"]))[:per_s]
+                pool = sess + sorted(cl.get("activables", []) + cl.get("plafond", []) + cl.get("sessions", []),
+                                     key=lambda r: (-is_liquidity(r), -r["test_win"]))
                 for p in pool:
                     if taken >= rule.get("max", 3):
                         break
@@ -138,8 +147,8 @@ def activated(v):
                             or p.get("test_avg", 0) <= 0
                             or p.get("validation_win", 1) < rule.get("validation_min", 0)):
                         continue
-                    sig = family(p)
-                    same = ("stats", p["dir"], p["exit"], round(p["test_win"], 4), p["test_n"])
+                    sig = cl["tf"] + family(p)                # une meme piste peut vivre en 1 h, 4 h et 15 min
+                    same = ("stats", cl["kind"], cl["tf"], p["dir"], p["exit"], round(p["test_win"], 4), p["test_n"])
                     if sig in seen or same in seen:
                         continue                    # meme piste (memes trades) ecrite autrement : une seule fois
                     seen.add(same)
@@ -151,9 +160,12 @@ def activated(v):
                         continue
                     seen.add(sig)
                     taken += 1
-                    nom = "%s%s · %.0f %% (%d trades jamais vus)" % ("💧 Liquidité · " if is_liquidity(p) else "", rule["nom"],
-                                                                 100 * p["test_win"], p["test_n"])
-                    out.append({"id": "activee-%s-%s" % (cl["kind"], hashlib.md5(sig.encode()).hexdigest()[:8]),
+                    nom = "%s%s%s · %.0f %% (%d trades jamais vus)" % (
+                        "💧 Liquidité · " if is_liquidity(p) else "", rule["nom"],
+                        " · " + SESSION_NOM[p["session"]] if p.get("session") in SESSION_NOM else "",
+                        100 * p["test_win"], p["test_n"])
+                    out.append({"id": "activee-%s-%s%s" % (cl["kind"], "" if cl["tf"] == "1H" else cl["tf"].lower() + "-",
+                                                           hashlib.md5(sig[len(cl["tf"]):].encode()).hexdigest()[:8]),
                                 "kind": cl["kind"], "tf": cl["tf"], "agent": p["agent"], "dir": p["dir"], "exit": ex,
                                 "conds": [list(c) for c in p["conds"]],
                                 "stats": {"test": {"win": p["test_win"], "n": p["test_n"], "avg": p["test_avg"]}},
@@ -349,13 +361,14 @@ def features(sym, kind, tf, now, specs=None):
         POSC[kind] = ps
     refs.update(ps[1])
     if kind == "cr":                                # order flow crypto : Binance, rafraichi a chaque heure
-        of = OFC.get(sym)
-        if not of or time.time() - of[0] > 1800:
+        of = OFC.get((sym, tf))
+        if not of or time.time() - of[0] > min(1800, STEP[tf]):
             try:
-                of = (time.time(), data.binance_flow(sym, days=int(KEEP[tf] * STEP[tf] / 86400) + 2))
+                of = (time.time(), data.binance_flow(sym, days=int(KEEP[tf] * STEP[tf] / 86400) + 2,
+                                                     interval="15m" if STEP[tf] < 3600 else "1h"))
             except Exception:
                 of = (time.time(), None)
-            OFC[sym] = of
+            OFC[(sym, tf)] = of
         refs["orderflow"] = orderflow_refs(sym, kind, a[:, 0], flow=of[1]) if of[1] is not None else None
     else:
         refs["orderflow"] = orderflow_refs(sym, kind, a[:, 0], live=True)

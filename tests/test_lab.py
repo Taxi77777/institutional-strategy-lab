@@ -720,3 +720,46 @@ def test_dukascopy_direct_reprise(monkeypatch):
     monkeypatch.setattr(data, "_duka_hour", lambda sym, dt: None)
     a = data.dukascopy_live("GBPUSD", 3600, 5)
     assert len(a) > 50 and max(calls.values()) == 2
+
+
+def test_unites_4h_15m_et_sessions():
+    """Demande du 5 nov. : recherche en 4 h et 15 min, avec les meilleures pistes de chaque session."""
+    for tf, step in (("4H", 14400), ("15M", 900)):
+        def fetch(s, k, tf_, step=step):
+            a = synth(sum(map(ord, s)), edge=True)
+            a[:, 0] = np.arange(len(a)) * step + 1790006400
+            return a
+        ds = miner.build("cr", tf, fetch, symbols=["BTC", "ETH", "SOL"], macro={})
+        res = miner.run_class(ds)
+        assert res["tf"] == tf and ds["step"] == step and "sessions" in res
+        for r in res["sessions"]:
+            assert r["session"] in miner.SESSIONS and r["test_win"] >= 0.73
+            assert r["robustesse"]["par_session"][r["session"]]["part"] >= 0.5
+
+
+def test_flux_regroupe_par_bougie():
+    """Order flow 1 h additionne sur les bougies 4 h ; jamais invente sur les bougies 15 min."""
+    src = np.arange(48) * 3600.0
+    val = np.ones(48)
+    ts4 = np.arange(12) * 14400.0
+    assert np.allclose(miner.bar_align(src, val, ts4), 4.0)
+    ts15 = np.arange(40) * 900.0
+    assert np.isnan(miner.bar_align(src, val, ts15)).all()
+    assert np.allclose(miner.bar_align(src, val, src), 1.0)
+
+
+def test_activation_sessions_en_premier(monkeypatch, tmp_path):
+    """Les meilleures pistes de chaque session passent avant les autres (signaux a toutes les heures)."""
+    json.dump({"regles": [{"nom": "Meilleure piste crypto 4 h", "auto": True, "kind": "cr", "tf": "4H", "taux_min": 0.73,
+                           "trades_min": 30, "max": 2, "par_session": 1, "paire_taux_min": 0.65,
+                           "paire_trades_min": 3}]}, open(tmp_path / "activation.json", "w"))
+    monkeypatch.setattr(live, "ACT_URL", "http://127.0.0.1:9/activation.json")
+    pa = {"BTC": {"reussite": 0.9, "trades": 8, "gain_moyen": 0.2}}
+    mk = lambda w, nm, sess=None: dict({"agent": "ichimoku", "dir": 1, "exit": config.EXITS[0]["id"], "test_win": w,
+                                        "test_n": 60, "test_avg": 0.1, "conds": [["ichimoku", nm, 0.0, 1.0]],
+                                        "robustesse": {"par_actif": pa}}, **({"session": sess} if sess else {}))
+    lab = {"classes": [{"kind": "cr", "tf": "4H", "plafond": [mk(0.95, "a"), mk(0.94, "b")],
+                        "sessions": [mk(0.80, "c", "asie")]}]}
+    act = live.activated(lab)
+    assert len(act) == 2 and "Session Asie" in act[0]["activee"] and act[0]["tf"] == "4H"
+    assert act[0]["id"].startswith("activee-cr-4h-")
