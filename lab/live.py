@@ -410,6 +410,8 @@ def fetch_live(sym, kind, tf, full):
         ks = sorted(vol)
         data.VOLUME[sym] = (np.array(ks, dtype=float), np.array([vol[k] for k in ks], dtype=float))   # 1 h, additionne
         a = data._resample(h, step)
+        if step >= 86400:
+            a = a[((a[:, 0] // 86400 + 3) % 7) != 6]    # 1 jour : sans la petite bougie du dimanche soir
         if len(a) and h[-1, 0] < a[-1, 0] + step - 3600 and time.time() < a[-1, 0] + step + 2 * 3600:
             a = a[:-1]                              # derniere bougie 4 h pas encore complete : jamais de signal dessus
         return a
@@ -533,12 +535,12 @@ def near(st, lab, kind, tf, sym, fx):
         px["%s %s %s" % (sym, tf, s["id"][-8:])] = {"reunies": "%d/%d" % (ok, len(s["conds"])), "manque": miss[:2],
                                                     "piste": s["activee"][:70], "sens": "achat" if s["dir"] > 0 else "vente",
                                                     "heure": paris(time.time()).strftime("%d/%m %H:%M"),
-                                                    "score": ok / max(1, len(s["conds"]))}
+                                                    "score": ok / max(1, len(s["conds"])), "t": time.time()}
     if len(px) > 400:
-        for k in sorted(px, key=lambda k: px[k]["heure"])[:len(px) - 400]:
+        for k in sorted(px, key=lambda k: px[k]["t"])[:len(px) - 400]:
             px.pop(k)
     st.setdefault("diag", {})["plus_proches"] = sorted(({"actif": k, **v} for k, v in px.items() if v["score"] < 1),
-                                                       key=lambda x: (x["score"], x["heure"]), reverse=True)[:15]
+                                                       key=lambda x: (x["score"], x["t"]), reverse=True)[:15]
 
 
 def active(strat, last):
@@ -763,7 +765,8 @@ def scan(st, lab, tf, now, kinds=None):
             late = max(2400, STEP[tf] // 4) if kind == "fx" else max(450, min(1800, STEP[tf] // 2))
             if tf == "1D":
                 late = 20 * 3600                    # bougie du jour fermee la nuit : signal envoye a 9 h (heures de volume)
-            if not fx or now - fx["ts"] - STEP[tf] > late:
+            t_chk = max(now, time.time()) if abs(time.time() - now) < 3600 else now    # heure reelle (tour long)
+            if not fx or t_chk - fx["ts"] - STEP[tf] > late:
                 continue                            # bougie trop ancienne : jamais de signal en retard
             near(st, lab, kind, tf, sym, fx)                          # pistes presque pretes (suivi pour le trader)
             sent += activated_signals(st, lab, kind, tf, sym, fx)       # activee par le trader (sous 92 %)
@@ -838,7 +841,7 @@ def send_signal(st, kind, tf, sym, dr, fx, lead, agents, against, lab, elite=Fal
           "📈 <b>Pas d'objectif fixe : on laisse courir la tendance.</b> Stop suiveur à %.1f ATR du meilleur cours de "
           "clôture : je t'envoie chaque déplacement du stop." % ex["trail"] if ex.get("trail") else
           "🎯 Prendre le gain : <code>%s</code>  (%+.2f %%)" % (fmt(tp), dr * 100 * ex["tp"] * atr / px)),
-         "⏰ Fermer de toute façon à %s (Paris)" % paris(t_exit).strftime("%H:%M"),
+         "⏰ Fermer de toute façon à %s (Paris)" % paris(t_exit).strftime("%d/%m %H:%M" if t_exit - time.time() > 20 * 3600 else "%H:%M"),
          "<i>Chez ton courtier le prix peut différer un peu : garde les mêmes % depuis ton prix d'entrée.</i>", SEP,
          ("✅ Meilleure stratégie : <b>%.0f %% de trades gagnants</b> (moitié encaissée) sur %d trades jamais vus, gain "
           "moyen <b>%+.2f × le risque</b> (frais inclus)" % (100 * t["win"], t["n"], t["avg"])

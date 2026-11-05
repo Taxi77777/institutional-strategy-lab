@@ -238,7 +238,8 @@ def build(kind, tf, fetch=None, fetch_daily=None, symbols=None, macro=None, idea
         F["kronos"] = kronos_feats(kind, tf, s, a[:, 0])   # IA chinoise Kronos (bougies jour) : un specialiste de plus
         if idea_specs is not None:                  # l'Inventeur : ses idees deviennent des indicateurs testes
             if not idea_specs:
-                idea_specs.extend(IDEAS.generate([(ag, nm) for ag, d in F.items() for nm in d],
+                only_ = [x for x in os.environ.get("AGENTS_ONLY", "").split(",") if x and x != "inventeur"]
+                idea_specs.extend(IDEAS.generate([(ag, nm) for ag, d in F.items() for nm in d if not only_ or ag in only_],
                                                  seed=int(os.environ.get("IDEA_SEED", time.time() // 3600)), memory=IDEAS.load_memory(),
                                                  weights=IDEAS.load_scout()))
             for sp in idea_specs:
@@ -727,6 +728,8 @@ DAY_CACHE = {}
 
 def day_share(ds, cd):
     """Part des trades (validation + test, un a la fois) pris en journee : 7 h - 17 h UTC (8 h - 18 h a Paris)."""
+    if ds["step"] >= 86400:
+        return 1.0                                  # bougie jour : toute la journee
     k = (id(ds), id(cd))
     if k not in DAY_CACHE:
         ex = next(e for e in EXITS if e["id"] == cd["exit"])
@@ -774,6 +777,8 @@ def near_misses(ds, allev, valid_ids, fdr_ids, top=20, filt=None, post=None, sca
     rows = []
     for cd, ev in allev:
         t = ev["test"]
+        if CFG["LIQUIDITE_SEULE"] and not is_pa(cd):
+            continue                                # demande du trader : liquidite / prix / flux seulement, AVANT le top
         if t.get("n", 0) >= CFG["MIN_TRADES_TEST"] and t.get("avg", 0) > 0 and (filt is None or filt(t, ev["validation"])):
             rows.append((t["win"], t["n"], cd, ev))
     if gain_mode():
@@ -869,7 +874,7 @@ def run_all(fetch=None, fetch_daily=None, kinds=None, tfs=None):
     for kind in kinds or [k for k in ("cr", "fx", "stocks") if UNIVERSE[k]]:
         for tf in tfs or CFG["TIMEFRAMES"]:
             specs = []
-            ds = build(kind, tf, fetch, macro=macro, idea_specs=None if os.environ.get("AGENTS_ONLY") else specs)
+            ds = build(kind, tf, fetch, macro=macro, idea_specs=specs)
             if not ds:
                 continue
             all_specs.update({IDEAS.name(sp): sp for sp in specs})
@@ -888,7 +893,7 @@ def run_all(fetch=None, fetch_daily=None, kinds=None, tfs=None):
             if ag == "inventeur"}             # recettes de l'Inventeur aussi pour le plafond (strategies activables)
     out["idees"] = {nm: all_specs[nm] for nm in used if nm in all_specs}
     out["inventeur"] = {"idees_testees": len(all_specs), "idees_gagnantes": len(used)}
-    if not os.environ.get("AGENTS_ONLY"):
+    if True:                                        # memoire de l'Inventeur gardee (idees liquidite / flux)
         with open(IDEAS.MEMORY, "w") as f:
             json.dump(memory, f, indent=1)
     return out
@@ -929,6 +934,10 @@ def merge(parts_dir="parts", old_path="strategies.json"):
     for p in parts:
         out["regle"] = p["regle"]
         for c in p["classes"]:
+            if CFG["LIQUIDITE_SEULE"]:              # filtre AVANT toute coupe au top 20
+                for key in ("strategies", "plafond", "activables", "sessions", "continuation", "achats", "ventes"):
+                    if key in c:
+                        c[key] = [r for r in c[key] if is_pa(r)]
             k = "%s-%s" % (c["kind"], c["tf"])
             if k not in fresh:                          # premiere part de cette classe
                 fresh[k] = dict(c, strategies=list(c["strategies"]), armee=dict(c.get("armee", {})))

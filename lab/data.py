@@ -200,7 +200,7 @@ def _duka_month(sym, year, month):
     rows = []
     for off in range(0, len(raw) - 23, 24):
         t, o, c, lo, hi, v = struct.unpack(">5if", raw[off:off + 24])
-        rows.append((t0 + t, o * pt, hi * pt, lo * pt, c * pt, 0.0))
+        rows.append((t0 + t, o * pt, hi * pt, lo * pt, c * pt, float(v)))   # volume des ticks garde (order flow)
     return rows
 
 
@@ -447,7 +447,8 @@ def long_bars(sym, kind, tf):
                 if step < 3600:                                              # 15 min : fichiers minute
                     return dukascopy(sym, step, int(os.environ.get(v, d)))
                 a = dukascopy_hours(sym, int(os.environ.get(v, d)))       # 10 ans en ~120 fichiers par paire
-                return _resample(a, step) if step != 3600 else a          # 4 h : volume des ticks garde a part (1 h)
+                a = _resample(a, step) if step != 3600 else a             # 4 h : volume des ticks garde a part (1 h)
+                return a[((a[:, 0] // 86400 + 3) % 7) != 6] if step >= 86400 else a   # 1 jour : sans le dimanche soir
             except Exception as ex:
                 log.warning("Dukascopy mensuel %s : %s (fichiers journaliers)", sym, ex)
                 return dukascopy(sym, step, int(os.environ.get(v, d)))
@@ -661,7 +662,8 @@ def binance_flow(sym, days=1200, interval="1h"):
        transactions."""
     pair = "%sUSDT" % sym
     ck = (pair, days, interval)
-    if ck in FLOW_CACHE and time.time() - FLOW_CACHE[ck][0] < 1800:
+    sec = 900 if interval == "15m" else 3600
+    if ck in FLOW_CACHE and time.time() - FLOW_CACHE[ck][0] < min(1800, sec // 2):
         return FLOW_CACHE[ck][1]
     end = int(time.time() * 1000)
     step = 1000 * (900 if interval == "15m" else 3600) * 1000
@@ -679,7 +681,8 @@ def binance_flow(sym, days=1200, interval="1h"):
         except Exception as ex:
             log.warning("Binance %s : %s", pair, ex)
         t = u
-    out = np.array([(k,) + v for k, v in sorted(rows.items())], dtype=float).reshape(-1, 4)
+    now_s = time.time()
+    out = np.array([(k,) + v for k, v in sorted(rows.items()) if k + sec <= now_s], dtype=float).reshape(-1, 4)  # fermees
     FLOW_CACHE[ck] = (time.time(), out)
     return out
 
