@@ -27,6 +27,7 @@ KEEP = {"1H": 2500, "4H": 900, "15M": 1500}      # 4 h : ~7 mois ; 15 min : ~3 s
 SESSION_NOM = {"asie": "🌏 Session Asie", "londres": "🇬🇧 Session Londres", "new_york": "🇺🇸 Session New York",
                "soir": "🌙 Session du soir"}
 CACHE = {}
+FAIL = {}
 STOP = [False]
 SEP = "━━━━━━━━━━━━━━━"
 MAJORS = [("cr", "BTC"), ("cr", "ETH"), ("cr", "SOL"), ("fx", "EURUSD"), ("fx", "GBPUSD"), ("fx", "USDJPY"),
@@ -320,7 +321,13 @@ def hist(sym, kind, tf):
     c = CACHE.get(key)
     now = time.time()
     if not c or now - c["full"] > 6 * 3600:
-        a = fetch_live(sym, kind, tf, full=True)
+        if now - FAIL.get(key, 0) < 1800:           # echec recent : on n'arrete pas toute l'armee 10 minutes dessus
+            raise RuntimeError("source indisponible, nouvel essai dans %d min" % ((1800 - now + FAIL[key]) // 60 + 1))
+        try:
+            a = fetch_live(sym, kind, tf, full=True)
+        except Exception:
+            FAIL[key] = now
+            raise
         CACHE[key] = {"a": a[-KEEP[tf]:], "full": now, "vol": data.VOLUME.get(sym) if kind == "fx" else None}
     else:
         try:
@@ -354,7 +361,12 @@ def fetch_live(sym, kind, tf, full):
         step = STEP[tf]
         rows, vol = {}, {}
         if full:
-            base = data.dukascopy_hours(sym, int(KEEP[tf] * step / 86400 * 7 / 5) + 10)
+            try:
+                base = data.dukascopy_hours(sym, int(KEEP[tf] * step / 86400 * 7 / 5) + 10)
+            except Exception as ex:                 # fichiers mensuels refuses : fichiers journaliers (plus long)
+                log.warning("%s 4 h mensuel : %s (journalier)", sym, ex)
+                return data.dukascopy_live(sym, step, int(KEEP[tf] * step / 86400 * 7 / 5) + 4,
+                                           recent=data.truefx_minutes(sym, step))
             vb = data.VOLUME.get(sym)
             rows.update({int(r[0]): r for r in base})
             if vb is not None:
@@ -681,9 +693,11 @@ def warm(lab, kind, tf, syms, now):
             list(ex.map(one, todo))
 
 
-def scan(st, lab, tf, now):
+def scan(st, lab, tf, now, kinds=None):
     sent = 0
     for kind, syms in sorted(UNIVERSE.items(), key=lambda kv: kv[0] != "cr"):   # crypto d'abord (24 h/24)
+        if kinds and kind not in kinds:
+            continue
         if not ((any(cl["kind"] == kind and cl["tf"] == tf and cl["strategies"] for cl in lab["classes"])
                  and not CFG["SEULEMENT_ACTIVEES"])
                 or any(a["kind"] == kind and a["tf"] == tf for a in lab.get("activees", []))):
@@ -1056,8 +1070,10 @@ def main():
             if q != done15 and now % 300 >= 40:          # controle toutes les 5 minutes
                 done15 = q
                 lab = load_strategies()
-                for tf_ in CFG["TIMEFRAMES"]:            # 1 heure (demande du trader)
-                    scan(st, lab, tf_, now)
+                for kd in ("cr", "fx"):                  # toute la crypto d'abord (rapide), puis le forex
+                    for tf_ in CFG["TIMEFRAMES"]:
+                        scan(st, lab, tf_, now, kinds=(kd,))
+                        save_state(st)
                 st.setdefault("diag", {})["truefx"] = {"mode": data.TRUEFX["mode"], "paires_temps_reel": data.TRUEFX["paires"]}
                 heat_record_all()                       # historique horaire de la heatmap crypto
                 save_state(st)
