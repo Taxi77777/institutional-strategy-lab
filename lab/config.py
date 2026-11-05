@@ -59,7 +59,7 @@ CFG = {
     "MIN_TRADES_TEST": envf("MIN_TRADES_TEST", 30),
     "FDR": envf("FDR", 0.05),                # taux de fausses decouvertes toleré (Benjamini-Hochberg)
     "CONSENSUS": envf("CONSENSUS", 3),       # specialistes d'accord minimum pour un signal
-    "SEULEMENT_ACTIVEES": envf("SEULEMENT_ACTIVEES", 0),   # exigence du trader : sur Telegram, seulement les strategies
+    "SEULEMENT_ACTIVEES": int(envf("SEULEMENT_ACTIVEES", 1)),   # seules les pistes activees (liquidite + Kronos) donnent un signal
                                                           # activees (activation.json) et leurs resultats
     "INFOS": envf("INFOS", 0),               # briefings / veille sur Telegram : coupes par defaut (signaux + resultats seulement)
     "SIGNAL_MIN_WIN": envf("SIGNAL_MIN_WIN", 0.90 if MODE == "tendance90" else 0.92),   # exigence du trader : aucun signal sous 92 % de reussite prouvee

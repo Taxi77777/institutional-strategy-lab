@@ -303,8 +303,7 @@ def kronos_avis(sym):
             r = data.SESSION.get(KAVIS_URL, params={"t": int(time.time() // 1800)}, timeout=20)
             if r.ok:
                 j = r.json()
-                if time.time() - j.get("genere", 0) < 36 * 3600:     # avis de plus de 36 h : ignore
-                    KAVIS["v"] = j.get("actifs", {})
+                KAVIS["v"] = j.get("actifs", {}) if time.time() - j.get("genere", 0) < 36 * 3600 else {}  # perime : ignore
         except Exception as ex:
             log.warning("avis Kronos : %s", ex)
         KAVIS["t"] = time.time()
@@ -313,7 +312,7 @@ def kronos_avis(sym):
 
 def activated_signals(st, lab, kind, tf, sym, fx):
     """Signal d'une strategie activee par le trader (a part du vote de l'armee)."""
-    if kind == "fx" and not in_hours(time.time()):
+    if kind == "fx" and (not in_hours(time.time()) or paris(time.time()).weekday() >= 5):
         return 0                                    # forex hors des heures de volume : aucun signal (crypto : 24 h/24)
     for s in sorted(lab.get("activees", []), key=lambda a: -is_liquidity(a)):
         if (s["kind"] != kind or s["tf"] != tf or sym not in s["paires_ok"] or s["id"] in set(st["retired"])
