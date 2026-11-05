@@ -50,6 +50,7 @@ jobs:
           PYTHONUNBUFFERED: '1'
         run: python -m lab.miner part ${{ matrix.kind }} ${{ matrix.tf }}
       - uses: actions/upload-artifact@v4
+        if: always()                     # meme coupee par le temps, la partie deja trouvee est gardee
         with:
           name: part-${{ matrix.kind }}-${{ matrix.tf }}-${{ matrix.shard }}
           path: parts/
