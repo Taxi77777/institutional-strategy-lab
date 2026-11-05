@@ -134,7 +134,7 @@ def activated(v):
                 # puis le reste par priorite du trader : liquidite
                 per_s = rule.get("par_session", 0)
                 sess = []
-                for nm in SESSION_NOM:
+                for nm in rule.get("sessions", list(SESSION_NOM)):
                     sess += sorted([r for r in cl.get("sessions", []) if r.get("session") == nm],
                                    key=lambda r: (-is_liquidity(r), -r["test_win"]))[:per_s]
                 cont = sorted(cl.get("continuation", []), key=lambda r: -r["test_win"])[:rule.get("par_continuation", 0)]
@@ -144,7 +144,10 @@ def activated(v):
                 for pass_, p in [(0, p) for p in pool] + [(1, p) for p in pool]:   # 2e passage : places libres
                     if taken >= rule.get("max", 3):
                         break
+                    ps = (p.get("robustesse") or {}).get("par_session") or {}
                     if (p["agent"] in rule.get("exclure", []) or any(len(c) != 4 for c in p["conds"])
+                            or (rule.get("heures_de_volume") and ps and ps.get("asie", {}).get("part", 0)
+                                + ps.get("soir", {}).get("part", 0) > 0.5)
                             or (rule.get("liquidite_seule") and not is_pa(p))
                             or p["test_win"] < rule["taux_min"] or p["test_n"] < rule["trades_min"]
                             or p.get("test_avg", 0) <= 0
@@ -281,8 +284,17 @@ def is_liquidity(r):
     return int(r.get("agent") in LIQ_AGENTS or any(c[0] in LIQ_AGENTS for c in r.get("conds", [])))
 
 
+def in_hours(t):
+    """Demande du trader : signaux seulement quand il y a du volume, de 9 h a 18 h 30 (heure de Paris)."""
+    p = paris(t)
+    a, b = CFG["HEURES_SIGNAUX"]
+    return a * 60 <= p.hour * 60 + p.minute <= b * 60
+
+
 def activated_signals(st, lab, kind, tf, sym, fx):
     """Signal d'une strategie activee par le trader (a part du vote de l'armee)."""
+    if not in_hours(time.time()):
+        return 0                                    # hors des heures de volume : aucun signal
     for s in sorted(lab.get("activees", []), key=lambda a: -is_liquidity(a)):
         if (s["kind"] != kind or s["tf"] != tf or sym not in s["paires_ok"] or s["id"] in set(st["retired"])
                 or not active(s, fx["last"])):

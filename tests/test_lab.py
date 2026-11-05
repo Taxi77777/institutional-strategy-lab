@@ -32,6 +32,7 @@ def fast(monkeypatch, tmp_path):
     monkeypatch.setenv("ORDERFLOW", "0")                           # pas de Binance reseau pendant les tests
     monkeypatch.setitem(config.CFG, "SEULEMENT_ACTIVEES", 0)       # anciens tests : messages de l'armee actifs
     monkeypatch.setitem(config.CFG, "LIQUIDITE_SEULE", 0)          # anciens tests : toutes les familles
+    monkeypatch.setitem(config.CFG, "HEURES_SIGNAUX", [0, 24])     # tests : a toute heure
     monkeypatch.setitem(config.CFG, "MODE", "win")
     monkeypatch.setitem(config.CFG, "PAUSE", 0)
     monkeypatch.setitem(config.CFG, "SIMS", 500)
