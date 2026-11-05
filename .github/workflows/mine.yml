@@ -90,7 +90,7 @@ jobs:
             sleep 5
           done
       - name: Recherche suivante (sans arret, nouvelles idees de l'Inventeur a chaque tour)
-        if: always() && vars.CONTINU != 'stop'
+        if: always() && vars.CONTINU != 'stop' && inputs.voie != '2'     # voie 2 arretee : doublon de la voie 1 (1 h)
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run mine.yml -R ${{ github.repository }} --ref main -f voie=${{ inputs.voie || '1' }}
