@@ -1,0 +1,87 @@
+name: Kronos - IA chinoise (previsions de bougies)
+
+# Kronos (Tsinghua, MIT) prevoit les 5 bougies suivantes a chaque bougie fermee ; ses previsions deviennent un
+# specialiste teste comme les autres. Code pinne sur un commit precis, modele open source (Hugging Face NeoQuasar).
+on:
+  schedule:
+    - cron: '23 1 * * *'         # chaque nuit apres la cloture de la bougie du jour
+  workflow_dispatch:
+
+concurrency:
+  group: kronos
+  cancel-in-progress: false
+
+jobs:
+  prevoir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {kind: fx, part: "0/2"}
+          - {kind: fx, part: "1/2"}
+          - {kind: cr, part: "0/4"}
+          - {kind: cr, part: "1/4"}
+          - {kind: cr, part: "2/4"}
+          - {kind: cr, part: "3/4"}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/checkout@v5
+        with:
+          repository: shiyu-coder/Kronos
+          ref: 67b630e67f6a18c9e9be918d9b4337c960db1e9a
+          path: kronos_src
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - run: |
+          pip install -r requirements.txt
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install einops==0.8.1 huggingface_hub==0.33.1 safetensors==0.6.2 tqdm pandas
+      - uses: actions/cache@v4
+        with:
+          path: .duka_cache
+          key: kronos-${{ matrix.kind }}-${{ github.run_id }}
+          restore-keys: kronos-${{ matrix.kind }}-
+      - name: Previsions ${{ matrix.kind }} ${{ matrix.part }}
+        env:
+          DUKA_CACHE: .duka_cache
+          KRONOS_DIR: kronos_src
+          KRONOS_DATA: sortie_kronos            # seulement les actifs de cette part (pas de copie perimee des autres)
+          KRONOS_BUDGET_S: '17500'
+          PYTHONUNBUFFERED: '1'
+        run: python -m lab.kronos_ia ${{ matrix.kind }} 1D ${{ matrix.part }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kronos-${{ matrix.kind }}-${{ strategy.job-index }}
+          path: sortie_kronos/
+          retention-days: 3
+
+  publier:
+    needs: prevoir
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: kronos-*
+          path: /tmp/kronos
+          merge-multiple: true
+      - name: Publication
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          for i in 1 2 3 4 5; do
+            git fetch -q origin main && git reset -q --hard origin/main
+            mkdir -p donnees/kronos && cp /tmp/kronos/*.csv donnees/kronos/ 2>/dev/null || true
+            git add donnees/kronos
+            git diff --cached --quiet && exit 0
+            git commit -qm "Kronos : previsions [skip ci]"
+            git push -q origin HEAD:main && exit 0
+            sleep 5
+          done

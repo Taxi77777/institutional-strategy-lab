@@ -61,7 +61,7 @@ def exact_align(src_ts, val, ts):
 # demande du trader (5 nov.) : uniquement la liquidite et le prix avance (SMC / ICT, order blocks, FVG, chasses de
 # stops, structure, order flow) ; plus aucune strategie a base d'indicateurs classiques
 PA_AGENTS = {"liquidite", "smc", "orderflow", "flux", "positionnement", "structure", "amd", "chiffres_ronds", "fibonacci",
-             "bougies", "chandeliers", "profil", "vwap", "carnet", "noyau_liquidite", "noyau_continuation"}
+             "bougies", "chandeliers", "profil", "vwap", "carnet", "noyau_liquidite", "noyau_continuation", "kronos"}
 PA_CORE = {"liquidite", "smc", "orderflow", "flux"}            # flux = flux des operateurs / banques (fixing, NFP...)
 
 
@@ -79,6 +79,18 @@ def is_pa(r):
     for c_ in r.get("conds", []):
         ags |= cond_agents(c_)
     return bool(ags) and ags <= PA_AGENTS and bool(ags & PA_CORE)
+
+
+def kronos_feats(kind, tf, sym, ts):
+    """Prevision Kronos (5 bougies, en ATR) connue a la cloture de chaque bougie ; NaN si pas encore calculee."""
+    if tf != "1D":
+        return {}
+    from lab import kronos_ia as KR
+    try:
+        k = KR.load(kind, tf, sym)
+    except Exception:
+        k = np.zeros((0, 2))
+    return {"prevision_5_bougies": exact_align(k[:, 0], k[:, 1], ts) if len(k) else np.full(len(ts), np.nan)}
 
 
 def bar_align(src_ts, val, ts):
@@ -223,6 +235,7 @@ def build(kind, tf, fetch=None, fetch_daily=None, symbols=None, macro=None, idea
             refs["funding"] = funding_refs(s, a[:, 0])
         mac = {k: align(v[0], v[1], a[:, 0]) for k, v in macro.items()}
         F, atr = IND.compute(a, kind, refs, mac)
+        F["kronos"] = kronos_feats(kind, tf, s, a[:, 0])   # IA chinoise Kronos (bougies jour) : un specialiste de plus
         if idea_specs is not None:                  # l'Inventeur : ses idees deviennent des indicateurs testes
             if not idea_specs:
                 idea_specs.extend(IDEAS.generate([(ag, nm) for ag, d in F.items() for nm in d],

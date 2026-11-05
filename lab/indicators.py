@@ -41,6 +41,7 @@ AGENTS = {
     "liquidite": "Liquidité des opérateurs (stops veille / semaine / mois / sessions, chasses de stops, ouvertures institutionnelles, liquidations estimées, delta estimé, Corwin-Schultz, Roll, Amihud)",
     "flux": "Flux des opérateurs (fixing de Londres, Gotobi / Tokyo, fin de mois, NFP, 17 h New York, SMT, force des devises, gaps CME / lundi)",
     "positionnement": "Positionnement des gros acteurs (COT de la CFTC) et peur des options (DVOL Deribit)",
+    "kronos": "IA chinoise Kronos (Tsinghua) : prevision des 5 prochaines bougies",
     "orderflow": "Order flow (delta réel crypto / estimé forex, delta cumulé, divergences, absorption, checklist d'entrée)",
 }
 HTF = ((3600, "1h"), (14400, "4h"), (86400, "jour"))
