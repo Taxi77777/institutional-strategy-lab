@@ -444,8 +444,8 @@ def search(ds, log_every=50):
                     cands.append({"agent": agent, "exit": eid, "dir": dr, "conds": combo})
     nt, nc = ichimoku_core(ds, by_agent, cands, beam, depth, min_n, tr) if "ichimoku" in by_agent else (0, 0)
     pa_only = not only or "liquidite" in only.split(",")     # numerologie a part : pas de noyau liquidite
-    lt, lc = liquidity_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=350) if pa_only else (0, 0)  # priorite
-    kt, kc = continuation_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=350) if pa_only else (0, 0)
+    lt, lc = liquidity_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=600) if pa_only else (0, 0)  # priorite
+    kt, kc = continuation_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=600) if pa_only else (0, 0)
     tested += nt + lt + kt
     log.info("%s %s : %d conditions, %d combinaisons testees, %d candidates (dont %d noyau Ichimoku, %d noyau liquidite, "
              "%d continuation)", ds["kind"], ds["tf"], len(conds), tested, len(cands), nc, lc, kc)

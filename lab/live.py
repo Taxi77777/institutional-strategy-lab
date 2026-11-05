@@ -457,6 +457,35 @@ KEEP_FULL = [False]
 NOTE = {}
 
 
+PROCHES = {}
+
+
+def near(st, lab, kind, tf, sym, fx):
+    """Proximite du signal : pour chaque piste active sur cet actif, nombre de conditions deja reunies et condition
+       manquante (les 15 plus proches gardees dans l'etat : on voit ou le prochain signal va tomber)."""
+    px = PROCHES
+    for s in lab.get("activees", []):
+        if s["kind"] != kind or s["tf"] != tf or sym not in s["paires_ok"]:
+            continue
+        ok, miss = 0, []
+        for ag, nm, lo, hi in s["conds"]:
+            v = fx["last"].get((ag, nm))
+            if v is not None and np.isfinite(v) and lo < v <= hi:
+                ok += 1
+            else:
+                miss.append("%s=%s (zone %s a %s)" % (nm[:40], "?" if v is None or not np.isfinite(v) else "%.3g" % v,
+                                                        "%.3g" % lo, "%.3g" % hi))
+        px["%s %s %s" % (sym, tf, s["id"][-8:])] = {"reunies": "%d/%d" % (ok, len(s["conds"])), "manque": miss[:2],
+                                                    "piste": s["activee"][:70], "sens": "achat" if s["dir"] > 0 else "vente",
+                                                    "heure": paris(time.time()).strftime("%d/%m %H:%M"),
+                                                    "score": ok / max(1, len(s["conds"]))}
+    if len(px) > 400:
+        for k in sorted(px, key=lambda k: px[k]["heure"])[:len(px) - 400]:
+            px.pop(k)
+    st.setdefault("diag", {})["plus_proches"] = sorted(({"actif": k, **v} for k, v in px.items() if v["score"] < 1),
+                                                       key=lambda x: (x["score"], x["heure"]), reverse=True)[:15]
+
+
 def active(strat, last):
     for ag, nm, lo, hi in strat["conds"]:
         v = last.get((ag, nm))
@@ -653,6 +682,7 @@ def scan(st, lab, tf, now):
             late = 2400 if kind == "fx" else 600          # forex : Dukascopy publie chaque heure avec un leger retard
             if not fx or now - fx["ts"] - STEP[tf] > late:
                 continue                            # bougie trop ancienne : jamais de signal en retard
+            near(st, lab, kind, tf, sym, fx)                          # pistes presque pretes (suivi pour le trader)
             sent += activated_signals(st, lab, kind, tf, sym, fx)       # activee par le trader (sous 92 %)
             if CFG["SEULEMENT_ACTIVEES"]:
                 continue                            # le trader ne veut que les strategies activees
