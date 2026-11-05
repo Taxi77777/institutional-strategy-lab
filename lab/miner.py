@@ -68,7 +68,7 @@ PA_CORE = {"liquidite", "smc", "orderflow", "flux"}            # flux = flux des
 def cond_agents(c_):
     if c_[0] == "inventeur":                       # idee de l'Inventeur : les specialistes qu'elle combine
         import re
-        return set(re.findall(r"([a-z_]+)\.", str(c_[1])))
+        return set(re.findall(r"([a-z_0-9]+)\.", str(c_[1])))
     return {c_[0]}
 
 
