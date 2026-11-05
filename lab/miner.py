@@ -877,7 +877,7 @@ def run_all(fetch=None, fetch_daily=None, kinds=None, tfs=None):
     return out
 
 
-ORDER = ["fx-1H", "cr-1H", "fx-4H", "cr-4H", "fx-15M", "cr-15M", "fx-1D", "cr-1D"]
+ORDER = ["fx-1H", "cr-1H", "fx-30M", "cr-30M", "fx-15M", "cr-15M", "fx-4H", "cr-4H", "fx-1D", "cr-1D"]
 
 
 def top_sessions(rows, per=5):

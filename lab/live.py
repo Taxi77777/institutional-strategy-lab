@@ -22,8 +22,8 @@ FUND = {}
 log = logging.getLogger("lab")
 PARIS = ZoneInfo("Europe/Paris")
 STATE_FILE = "lab_state.json"
-STEP = {"1H": 3600, "4H": 14400, "15M": 900, "1D": 86400}
-KEEP = {"1H": 2500, "4H": 900, "15M": 1500, "1D": 500}      # 4 h : ~7 mois ; 15 min : ~3 semaines (fenetres max ~300 bougies)
+STEP = {"1H": 3600, "4H": 14400, "15M": 900, "30M": 1800, "1D": 86400}
+KEEP = {"1H": 2500, "4H": 900, "15M": 1500, "30M": 1500, "1D": 500}      # 4 h : ~7 mois ; 15 min : ~3 semaines (fenetres max ~300 bougies)
 SESSION_NOM = {"asie": "🌏 Session Asie", "londres": "🇬🇧 Session Londres", "new_york": "🇺🇸 Session New York",
                "soir": "🌙 Session du soir"}
 CACHE = {}
