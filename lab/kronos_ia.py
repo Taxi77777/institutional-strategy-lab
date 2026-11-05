@@ -125,7 +125,48 @@ def run(kind, tf, part="0/1", budget_s=17000):
         _save(kind, tf, sym, old)
 
 
-if __name__ == "__main__":
+def avis():
+    """Avis de Kronos maintenant : pour chaque actif, les 5 prochaines bougies jour prevues (moyenne de 5 tirages).
+       Ce n'est PAS un signal : Kronos n'a pas encore prouve ses resultats dans le labo."""
+    import pandas as pd
+    from lab import data
+    from lab.config import UNIVERSE
+    pr = predictor()
+    rows = []
+    for kind in ("cr", "fx"):
+        for sym in UNIVERSE[kind]:
+            try:
+                if kind == "fx":
+                    h = data.dukascopy_hours(sym, 420)
+                    a = data._resample(h, 86400)
+                    a = a[((a[:, 0] // 86400 + 3) % 7) != 6]
+                else:
+                    a = data.coinbase(sym, 86400, 320)
+                a = a[a[:, 0] + 86400 <= time.time()]
+                if len(a) < LOOK:
+                    continue
+                w = a[-LOOK:]
+                df = pd.DataFrame({"open": w[:, 1], "high": w[:, 2], "low": w[:, 3], "close": w[:, 4], "volume": w[:, 5]})
+                xt = pd.Series(pd.to_datetime(w[:, 0], unit="s"))
+                yt = pd.Series(pd.to_datetime(w[-1, 0] + 86400 * np.arange(1, AHEAD + 1), unit="s"))
+                p_ = pr.predict(df, xt, yt, pred_len=AHEAD, T=1.0, top_p=0.9, sample_count=5, verbose=False)
+                atr = _atr(a)[-1]
+                last = a[-1, 4]
+                fin = float(p_["close"].values[-1])
+                rows.append((kind, sym, (fin - last) / atr, 100 * (fin / last - 1), last, fin))
+            except Exception as ex:
+                log.warning("avis %s : %s", sym, ex)
+    rows.sort(key=lambda r: -abs(r[2]))
+    print("AVIS KRONOS (5 prochaines bougies jour, depuis la cloture du %s UTC)" % time.strftime("%d/%m", time.gmtime()))
+    for kind, sym, z, pct, last, fin in rows:
+        print("AVIS %s %-7s %s %+.2f ATR (%+.2f %%) cloture %.6g -> prevue %.6g" % (
+            kind, sym, "HAUSSE" if z > 0 else "BAISSE", z, pct, last, fin))
+
+
+if __name__ == "__main__" and len(sys.argv) > 1 and sys.argv[1] == "avis":
+    logging.basicConfig(level=logging.WARNING)
+    avis()
+elif __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
     run(sys.argv[1], sys.argv[2].upper(), sys.argv[3] if len(sys.argv) > 3 else "0/1",
         float(os.environ.get("KRONOS_BUDGET_S", 17000)))

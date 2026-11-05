@@ -1,0 +1,30 @@
+name: Kronos - avis immediat
+
+# Demande l'avis de Kronos tout de suite : 5 prochaines bougies jour prevues pour chaque actif (pas un signal).
+on:
+  workflow_dispatch:
+
+jobs:
+  avis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/checkout@v5
+        with:
+          repository: shiyu-coder/Kronos
+          ref: 67b630e67f6a18c9e9be918d9b4337c960db1e9a
+          path: kronos_src
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - run: |
+          pip install -r requirements.txt
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install einops==0.8.1 huggingface_hub==0.33.1 safetensors==0.6.2 tqdm pandas
+      - name: Avis de Kronos
+        env:
+          KRONOS_DIR: kronos_src
+          PYTHONUNBUFFERED: '1'
+        run: python -m lab.kronos_ia avis
