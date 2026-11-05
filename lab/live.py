@@ -497,9 +497,40 @@ def is_elite(s):
             and s.get("wilson_test", 0) >= CFG["ELITE_WILSON"])
 
 
+def wanted(lab, kind, tf):
+    return ((any(cl["kind"] == kind and cl["tf"] == tf and cl["strategies"] for cl in lab["classes"])
+             and not CFG["SEULEMENT_ACTIVEES"])
+            or any(a["kind"] == kind and a["tf"] == tf for a in lab.get("activees", [])))
+
+
+def prefetch(lab):
+    """Demarrage rapide : tous les historiques telecharges en parallele (6 a la fois) au lieu d'un par un."""
+    import concurrent.futures as cf
+    jobs = [(sym, kind, tf) for tf in CFG["TIMEFRAMES"] for kind in ("cr", "fx") if UNIVERSE.get(kind)
+            and wanted(lab, kind, tf) for sym in UNIVERSE[kind]]
+    t0 = time.time()
+
+    def one(j):
+        try:
+            hist(*j)
+            return 1
+        except Exception as ex:
+            log.warning("prechargement %s %s %s : %s", j[0], j[1], j[2], ex)
+            return 0
+    # crypto (Coinbase) 6 a la fois, forex (Dukascopy, deja 8 fichiers en parallele par paire) 3 a la fois : en meme temps
+    with cf.ThreadPoolExecutor(6) as ex_cr, cf.ThreadPoolExecutor(3) as ex_fx:
+        futs = [(ex_cr if j[1] == "cr" else ex_fx).submit(one, j) for j in jobs]
+        ok = sum(f.result() for f in futs)
+    log.info("prechargement : %d/%d historiques en %.0f s", ok, len(jobs), time.time() - t0)
+    return {"historiques": "%d/%d" % (ok, len(jobs)), "secondes": round(time.time() - t0)}
+
+
+SAVED = [0.0]
+
+
 def scan(st, lab, tf, now):
     sent = 0
-    for kind, syms in UNIVERSE.items():
+    for kind, syms in sorted(UNIVERSE.items(), key=lambda kv: kv[0] != "cr"):   # crypto d'abord (24 h/24)
         if not ((any(cl["kind"] == kind and cl["tf"] == tf and cl["strategies"] for cl in lab["classes"])
                  and not CFG["SEULEMENT_ACTIVEES"])
                 or any(a["kind"] == kind and a["tf"] == tf for a in lab.get("activees", []))):
@@ -516,6 +547,9 @@ def scan(st, lab, tf, now):
                 continue
             finally:
                 time.sleep(CFG["PAUSE"])
+            if time.time() - SAVED[0] > 120:                # etat visible pendant le premier tour (long)
+                SAVED[0] = time.time()
+                save_state(st)
             sv.get("erreurs", {}).pop(sym, None)            # actif de nouveau lu : l'erreur est effacee
             sv[kind] = {"dernier_controle": paris(time.time()).strftime("%d/%m %H:%M"), "dernier_actif": sym,
                         "actifs": len(syms), "pistes_actives": sum(1 for a in lab.get("activees", []) if a["kind"] == kind),
@@ -831,6 +865,12 @@ def main():
     st["diag"] = {"strategies": sum(len(c["strategies"]) for c in lab["classes"]), "labo": lab.get("genere"),
                   "telegram": "ok" if TG.CHAT["id"] else "destination inconnue : envoyer le code d'appairage au bot"}
     save_state(st)
+    try:
+        lab = load_strategies()
+        st["diag"]["demarrage"] = prefetch(lab)
+        save_state(st)
+    except Exception as ex:
+        log.warning("prechargement : %s", ex)
     end = time.time() + CFG["LOOP_MINUTES"] * 60
     done15 = done_trk = 0
     while not STOP[0] and time.time() < end:
