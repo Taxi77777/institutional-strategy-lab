@@ -313,8 +313,8 @@ def kronos_avis(sym):
 
 def activated_signals(st, lab, kind, tf, sym, fx):
     """Signal d'une strategie activee par le trader (a part du vote de l'armee)."""
-    if not in_hours(time.time()):
-        return 0                                    # hors des heures de volume : aucun signal
+    if kind == "fx" and not in_hours(time.time()):
+        return 0                                    # forex hors des heures de volume : aucun signal (crypto : 24 h/24)
     for s in sorted(lab.get("activees", []), key=lambda a: -is_liquidity(a)):
         if (s["kind"] != kind or s["tf"] != tf or sym not in s["paires_ok"] or s["id"] in set(st["retired"])
                 or not active(s, fx["last"])):
