@@ -22,8 +22,8 @@ FUND = {}
 log = logging.getLogger("lab")
 PARIS = ZoneInfo("Europe/Paris")
 STATE_FILE = "lab_state.json"
-STEP = {"1H": 3600, "4H": 14400, "15M": 900}
-KEEP = {"1H": 2500, "4H": 900, "15M": 1500}      # 4 h : ~7 mois ; 15 min : ~3 semaines (fenetres max ~300 bougies)
+STEP = {"1H": 3600, "4H": 14400, "15M": 900, "1D": 86400}
+KEEP = {"1H": 2500, "4H": 900, "15M": 1500, "1D": 500}      # 4 h : ~7 mois ; 15 min : ~3 semaines (fenetres max ~300 bougies)
 SESSION_NOM = {"asie": "🌏 Session Asie", "londres": "🇬🇧 Session Londres", "new_york": "🇺🇸 Session New York",
                "soir": "🌙 Session du soir"}
 CACHE = {}
@@ -730,6 +730,8 @@ def scan(st, lab, tf, now, kinds=None):
             # forex : Dukascopy publie chaque heure avec un leger retard ; crypto : jusqu'a la moitie de la bougie (30 min
             # en 1 h), le prix d'entree reste celui de la cloture et l'heure limite est donnee dans le message
             late = max(2400, STEP[tf] // 4) if kind == "fx" else max(450, min(1800, STEP[tf] // 2))
+            if tf == "1D":
+                late = 20 * 3600                    # bougie du jour fermee la nuit : signal envoye a 9 h (heures de volume)
             if not fx or now - fx["ts"] - STEP[tf] > late:
                 continue                            # bougie trop ancienne : jamais de signal en retard
             near(st, lab, kind, tf, sym, fx)                          # pistes presque pretes (suivi pour le trader)

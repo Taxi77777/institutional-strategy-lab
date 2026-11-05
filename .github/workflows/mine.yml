@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       voie:
-        description: "Voie de recherche (1 et 2 : bougies 1 h, chacune avec ses idees ; 3 : bougies 4 h et 15 min)"
+        description: "Voie de recherche (1 et 2 : bougies 1 h ; 3 : bougies 4 h et 15 min ; 4 : bougies jour)"
         default: "1"
 
 concurrency:
@@ -23,7 +23,7 @@ jobs:
       fail-fast: false
       matrix:
         # voies 1 et 2 : bougies 1 h ; voie 3 (demande du 5 nov.) : bougies 4 h et 15 min
-        include: ${{ fromJSON(inputs.voie == '3' && '[{"kind":"fx","tf":"4H","shard":"a","exits":"e1,e2,e3,e4"},{"kind":"fx","tf":"4H","shard":"b","exits":"e5,e6,e7"},{"kind":"cr","tf":"4H","shard":"a","exits":"e1,e2,e3,e4"},{"kind":"cr","tf":"4H","shard":"b","exits":"e5,e6,e7"},{"kind":"fx","tf":"15M","shard":"a","exits":"e1,e2,e3,e4"},{"kind":"fx","tf":"15M","shard":"b","exits":"e5,e6,e7"},{"kind":"cr","tf":"15M","shard":"a","exits":"e1,e2,e3,e4"},{"kind":"cr","tf":"15M","shard":"b","exits":"e5,e6,e7"}]' || '[{"kind":"fx","tf":"1H","shard":"a","exits":"e1,e2,e3"},{"kind":"fx","tf":"1H","shard":"b","exits":"e4,e5"},{"kind":"fx","tf":"1H","shard":"c","exits":"e6,e7"},{"kind":"cr","tf":"1H","shard":"a","exits":"e1,e2,e3"},{"kind":"cr","tf":"1H","shard":"b","exits":"e4,e5"},{"kind":"cr","tf":"1H","shard":"c","exits":"e6,e7"}]') }}
+        include: ${{ fromJSON(inputs.voie == '4' && '[{"kind":"fx","tf":"1D","shard":"a","exits":"e1,e2,e3,e4,e5,e6,e7"},{"kind":"cr","tf":"1D","shard":"a","exits":"e1,e2,e3,e4,e5,e6,e7"}]' || inputs.voie == '3' && '[{"kind":"fx","tf":"4H","shard":"a","exits":"e1,e2,e3,e4"},{"kind":"fx","tf":"4H","shard":"b","exits":"e5,e6,e7"},{"kind":"cr","tf":"4H","shard":"a","exits":"e1,e2,e3,e4"},{"kind":"cr","tf":"4H","shard":"b","exits":"e5,e6,e7"},{"kind":"fx","tf":"15M","shard":"a","exits":"e1,e2,e3,e4"},{"kind":"fx","tf":"15M","shard":"b","exits":"e5,e6,e7"},{"kind":"cr","tf":"15M","shard":"a","exits":"e1,e2,e3,e4"},{"kind":"cr","tf":"15M","shard":"b","exits":"e5,e6,e7"}]' || '[{"kind":"fx","tf":"1H","shard":"a","exits":"e1,e2,e3"},{"kind":"fx","tf":"1H","shard":"b","exits":"e4,e5"},{"kind":"fx","tf":"1H","shard":"c","exits":"e6,e7"},{"kind":"cr","tf":"1H","shard":"a","exits":"e1,e2,e3"},{"kind":"cr","tf":"1H","shard":"b","exits":"e4,e5"},{"kind":"cr","tf":"1H","shard":"c","exits":"e6,e7"}]') }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6

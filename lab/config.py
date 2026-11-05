@@ -48,7 +48,7 @@ CFG = {
     "ELITE_PF": envf("ELITE_PF", 1.5),       # mode gain : setup elite (peut signaler seul, >= 100 trades jamais vus)
     "HEURES_SIGNAUX": [envf("HEURE_DEBUT", 9.0), envf("HEURE_FIN", 18.5)],   # heures de volume (Paris), demande du 5 nov.
     "LIQUIDITE_SEULE": int(envf("LIQUIDITE_SEULE", 1)),   # demande du 5 nov. : liquidite + prix avance uniquement
-    "TIMEFRAMES": envl("TIMEFRAMES", "1H,4H,15M"),    # demande du trader (5 nov.) : 1 h + 4 h + 15 min
+    "TIMEFRAMES": envl("TIMEFRAMES", "1H,4H,15M,1D"),    # demande du trader (5 nov.) : 1 h + 4 h + 15 min
     "MIN_WIN": envf("MIN_WIN", 0.90 if MODE == "tendance90" else 0.92),        # exigence du trader : le labo ne garde que les strategies >= 92 % (jamais vues)
     # tri de depart de la recherche (pieces a assembler) : volontairement plus large que la barre finale, car une
     # combinaison a 92 % est faite d'indicateurs qui, seuls, font moins. La barre finale reste MIN_WIN.

@@ -18,15 +18,18 @@ log = logging.getLogger("lab")
 SESSION = requests.Session()
 SESSION.headers.update({"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) strategy-lab/1.0", "Accept": "*/*"})
 HOSTS = ("https://query2.finance.yahoo.com", "https://query1.finance.yahoo.com")
-TF = {"1H": ("60m", "730d", 3600), "4H": ("60m", "730d", 14400), "15M": ("15m", "60d", 900)}
-NATIVE = {"60m": 3600, "15m": 900}
+TF = {"1H": ("60m", "730d", 3600), "4H": ("60m", "730d", 14400), "15M": ("15m", "60d", 900),
+      "1D": ("1d", "10y", 86400)}
+NATIVE = {"60m": 3600, "15m": 900, "1d": 86400}
 # historique long de la recherche (jours) : meme nombre de bougies environ pour chaque unite de temps
 FX_DAYS = {"1H": ("FX_DAYS_1H", 3650),        # forex : 10 ans de bougies 1 h Dukascopy
            "4H": ("FX_DAYS_4H", 3650),        # 10 ans regroupes en 4 h
-           "15M": ("FX_DAYS_15M", 730)}       # 2 ans de bougies 15 min (fichiers minute)
+           "15M": ("FX_DAYS_15M", 730),       # 2 ans de bougies 15 min (fichiers minute)
+           "1D": ("FX_DAYS_1D", 3650)}        # 10 ans de bougies jour
 CR_DAYS = {"1H": ("CR_DAYS_1H", 1095),        # crypto : 3 ans de bougies 1 h Coinbase
            "4H": ("CR_DAYS_4H", 1095),
-           "15M": ("CR_DAYS_15M", 365)}       # 1 an de bougies 15 min
+           "15M": ("CR_DAYS_15M", 365),       # 1 an de bougies 15 min
+           "1D": ("CR_DAYS_1D", 1095)}        # 3 ans de bougies jour
 
 
 def ysym(sym, kind):
@@ -391,7 +394,7 @@ def truefx_minutes(sym, step):
 
 def coinbase(sym, step, days):
     """Crypto : bougies Coinbase (API publique), 300 par requete, sur `days` jours."""
-    gran = 300 if step == 300 else 900 if step in (900, 1800) else 3600     # 30 min = 2 bougies de 15 min
+    gran = 300 if step == 300 else 900 if step in (900, 1800) else 86400 if step == 86400 else 3600   # 30 min = 2 x 15 min
     end = int(time.time()) // gran * gran
     start_all = end - days * 86400
     rows = {}
