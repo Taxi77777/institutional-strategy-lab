@@ -123,7 +123,7 @@ def activated(v):
                 act = json.load(f)
         except Exception:
             act = {}
-    out, seen = [], set()
+    out, seen, evn = [], set(), {}
     for rule in act.get("regles", []):
         if rule.get("auto"):                        # meilleures pistes du plafond, mises a jour a chaque recherche
             for cl in v.get("classes", []):
@@ -139,7 +139,7 @@ def activated(v):
                                    key=lambda r: (-is_liquidity(r), -r["test_win"]))[:per_s]
                 pool = sess + sorted(cl.get("activables", []) + cl.get("plafond", []) + cl.get("sessions", []),
                                      key=lambda r: (-is_liquidity(r), -r["test_win"]))
-                for p in pool:
+                for pass_, p in [(0, p) for p in pool] + [(1, p) for p in pool]:   # 2e passage : places libres
                     if taken >= rule.get("max", 3):
                         break
                     if (p["agent"] in rule.get("exclure", []) or any(len(c) != 4 for c in p["conds"])
@@ -151,14 +151,19 @@ def activated(v):
                     same = ("stats", cl["kind"], cl["tf"], p["dir"], p["exit"], round(p["test_win"], 4), p["test_n"])
                     if sig in seen or same in seen:
                         continue                    # meme piste (memes trades) ecrite autrement : une seule fois
-                    seen.add(same)
                     pa = (p.get("robustesse") or {}).get("par_actif", {})
                     ok = sorted(sym for sym, x in pa.items() if x.get("trades", 0) >= rule["paire_trades_min"]
                                 and x.get("reussite", 0) >= rule["paire_taux_min"] and x.get("gain_moyen", 0) > 0)
                     ex = next((e for e in EXITS if e["id"] == p["exit"]), None)
                     if not ok or ex is None:
                         continue
+                    ev = event_of(p)                        # pistes du meme evenement rare (fixing, NFP...) :
+                    if pass_ == 0 and ev and evn.get((cl["kind"], cl["tf"], ev), 0) >= rule.get("max_meme_evenement", 99):
+                        continue                            # elles se declenchent a la meme heure, place aux autres
+                    if ev:
+                        evn[(cl["kind"], cl["tf"], ev)] = evn.get((cl["kind"], cl["tf"], ev), 0) + 1
                     seen.add(sig)
+                    seen.add(same)
                     taken += 1
                     nom = "%s%s%s · %.0f %% (%d trades jamais vus)" % (
                         "💧 Liquidité · " if is_liquidity(p) else "", rule["nom"],
@@ -253,6 +258,15 @@ def record_heat(sym, h, path=None):
 
 
 LIQ_AGENTS = {"liquidite", "smc", "orderflow", "noyau_liquidite"}
+
+
+EVENTS = ("fixing", "nfp", "cme", "fomc", "gotobi", "fin_de_mois")
+
+
+def event_of(r):
+    """Evenement rare dont depend la piste (toutes ses entrees tombent a ce moment-la), sinon None."""
+    txt = json.dumps(r.get("conds", []))
+    return next((e for e in EVENTS if e in txt), None)
 
 
 def is_liquidity(r):
