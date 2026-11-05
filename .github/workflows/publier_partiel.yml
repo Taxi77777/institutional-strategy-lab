@@ -1,0 +1,48 @@
+name: Labo - publier les resultats deja prets
+
+# Publie tout de suite les recherches deja terminees d'un lancement encore en cours (sans attendre les plus longues).
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Numero du lancement de recherche"
+        required: true
+
+concurrency:
+  group: lab-publier
+  cancel-in-progress: false
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - run: pip install -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: part-*
+          path: parts
+          merge-multiple: true
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Publication
+        run: |
+          ls parts
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          for i in 1 2 3 4 5; do
+            git fetch -q origin main && git reset -q --hard origin/main
+            python -m lab.miner merge
+            git add strategies.json ideas.json 2>/dev/null || git add strategies.json
+            git diff --cached --quiet && exit 0
+            git commit -qm "labo : resultats deja prets publies [skip ci]"
+            git push -q origin HEAD:main && exit 0
+            sleep 5
+          done
