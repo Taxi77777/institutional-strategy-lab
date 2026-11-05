@@ -123,7 +123,7 @@ def activated(v):
                 act = json.load(f)
         except Exception:
             act = {}
-    out, seen, evn = [], set(), {}
+    out, seen, evn, dirn = [], set(), {}, {}
     for rule in act.get("regles", []):
         if rule.get("auto"):                        # meilleures pistes du plafond, mises a jour a chaque recherche
             for cl in v.get("classes", []):
@@ -139,7 +139,8 @@ def activated(v):
                                    key=lambda r: (-is_liquidity(r), -r["test_win"]))[:per_s]
                 cont = sorted(cl.get("continuation", []), key=lambda r: -r["test_win"])[:rule.get("par_continuation", 0)]
                 pool = cont + sess + sorted(cl.get("activables", []) + cl.get("plafond", []) + cl.get("sessions", [])
-                                            + cl.get("continuation", []), key=lambda r: (-is_liquidity(r), -r["test_win"]))
+                                            + cl.get("continuation", []) + cl.get("ventes", []) + cl.get("achats", []),
+                                            key=lambda r: (-is_liquidity(r), -r["test_win"]))
                 for pass_, p in [(0, p) for p in pool] + [(1, p) for p in pool]:   # 2e passage : places libres
                     if taken >= rule.get("max", 3):
                         break
@@ -162,6 +163,9 @@ def activated(v):
                     ev = event_of(p)                        # pistes du meme evenement rare (fixing, NFP...) :
                     if pass_ == 0 and ev and evn.get((cl["kind"], cl["tf"], ev), 0) >= rule.get("max_meme_evenement", 99):
                         continue                            # elles se declenchent a la meme heure, place aux autres
+                    if pass_ == 0 and dirn.get((cl["kind"], cl["tf"], p["dir"]), 0) >= rule.get("max", 3) // 2:
+                        continue                            # achat ET vente : moitie des places pour chaque sens d'abord
+                    dirn[(cl["kind"], cl["tf"], p["dir"])] = dirn.get((cl["kind"], cl["tf"], p["dir"]), 0) + 1
                     if ev:
                         evn[(cl["kind"], cl["tf"], ev)] = evn.get((cl["kind"], cl["tf"], ev), 0) + 1
                     seen.add(sig)

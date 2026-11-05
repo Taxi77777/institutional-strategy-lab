@@ -695,11 +695,16 @@ def run_class(ds):
     continuation = near_misses(ds, allev, {id(cd) for cd, _ in evals}, {id(evals[i][0]) for i in keep}, top=10,
                                filt=lambda t, v: t["n"] >= 30 and t["win"] >= 0.70 and v.get("win", 0) >= 0.6,
                                post=lambda cd: cd["agent"] == "noyau_continuation")
+    # achat ET vente (demande du trader) : les 10 meilleures pistes de chaque sens, publiees a part
+    sens = {key: near_misses(ds, allev, {id(cd) for cd, _ in evals}, {id(evals[i][0]) for i in keep}, top=10,
+                             filt=lambda t, v: t["n"] >= 30 and t["win"] >= 0.70 and v.get("win", 0) >= 0.6,
+                             post=lambda cd, d_=d_: cd["dir"] == d_) for key, d_ in (("achats", 1), ("ventes", -1))}
     days = sorted(v[1] for v in ds["hist"].values())
     return {"kind": ds["kind"], "tf": ds["tf"], "symbols": ds["symbols"], "historique_jours": days[len(days) // 2] if days else 0,
             "bougies": int(sum(v[0] for v in ds["hist"].values())), "conditions": ncond, "combinaisons": tested,
             "candidates": len(cands), "validees": len(evals), "apres_fdr": len(keep), "strategies": final, "armee": army,
-            "plafond": plafond, "activables": activables, "sessions": sessions, "continuation": continuation}
+            "plafond": plafond, "activables": activables, "sessions": sessions, "continuation": continuation,
+            "achats": sens["achats"], "ventes": sens["ventes"]}
 
 
 def session_pistes(ds, allev, valid_ids, fdr_ids, per=5, scan=400):
@@ -840,7 +845,7 @@ def run_all(fetch=None, fetch_daily=None, kinds=None, tfs=None):
             all_specs.update({IDEAS.name(sp): sp for sp in specs})
             res = run_class(ds)
             memory = IDEAS.remember(res["strategies"] + res.get("plafond", []) + res.get("activables", []) + res.get("sessions", [])
-                                    + res.get("continuation", []),
+                                    + res.get("continuation", []) + res.get("achats", []) + res.get("ventes", []),
                                     all_specs, memory)
             out["classes"].append(res)
             log.info("%s %s : %d strategies retenues", kind, tf, len(res["strategies"]))
@@ -849,7 +854,7 @@ def run_all(fetch=None, fetch_daily=None, kinds=None, tfs=None):
     out["total"] = {k: sum(c[k] for c in out["classes"]) for k in ("conditions", "combinaisons", "candidates")}
     out["total"]["strategies"] = sum(len(c["strategies"]) for c in out["classes"])
     used = {nm for c in out["classes"] for s in c["strategies"] + c.get("plafond", []) + c.get("activables", []) + c.get("sessions", [])
-            + c.get("continuation", []) for ag, nm, *_r in s["conds"]
+            + c.get("continuation", []) + c.get("achats", []) + c.get("ventes", []) for ag, nm, *_r in s["conds"]
             if ag == "inventeur"}             # recettes de l'Inventeur aussi pour le plafond (strategies activables)
     out["idees"] = {nm: all_specs[nm] for nm in used if nm in all_specs}
     out["inventeur"] = {"idees_testees": len(all_specs), "idees_gagnantes": len(used)}
@@ -910,7 +915,8 @@ def merge(parts_dir="parts", old_path="strategies.json"):
                                 key=(lambda r: (-r.get("test_total", 0), -r["test_win"])) if gain_mode()
                                 else (lambda r: (-r["test_win"], -r["test_n"])))[:20]
             f["sessions"] = top_sessions(f.get("sessions", []) + c.get("sessions", []))
-            f["continuation"] = top_sessions(f.get("continuation", []) + c.get("continuation", []), per=10)
+            for key in ("continuation", "achats", "ventes"):
+                f[key] = top_sessions(f.get(key, []) + c.get(key, []), per=10)
             for side, a_ in c.get("armee", {}).items():
                 if side not in f["armee"] or a_.get("win", 0) > f["armee"][side].get("win", 0):
                     f["armee"][side] = a_
@@ -919,12 +925,12 @@ def merge(parts_dir="parts", old_path="strategies.json"):
     now_s = time.time()
     if CFG["LIQUIDITE_SEULE"]:                      # seulement la liquidite et le prix avance (anciennes pistes retirees)
         for c in list(classes.values()) + list(fresh.values()):
-            for key in ("strategies", "plafond", "activables", "sessions", "continuation"):
+            for key in ("strategies", "plafond", "activables", "sessions", "continuation", "achats", "ventes"):
                 if key in c:
                     c[key] = [r for r in c[key] if is_pa(r)]
     for k, f in fresh.items():                      # deux voies en parallele : on garde aussi les resultats recents
         oc = classes.get(k, {})                    # de l'autre voie (moins de 24 h), sans doublons
-        for key in ("strategies", "plafond", "activables", "sessions", "continuation"):
+        for key in ("strategies", "plafond", "activables", "sessions", "continuation", "achats", "ventes"):
             rows = [dict(r, vu=r.get("vu", now_s)) for r in f.get(key, [])]
             rows += [r for r in oc.get(key, []) if now_s - r.get("vu", 0) < 86400]
             uniq = {}
@@ -941,7 +947,8 @@ def merge(parts_dir="parts", old_path="strategies.json"):
             f[key] = sorted(f.get(key, []), key=(lambda r: (-r.get("test_total", 0), -r["test_win"])) if gain_mode()
                             else (lambda r: (-r["test_win"], -r["test_n"])))[:20]
         f["sessions"] = top_sessions(f.get("sessions", []))
-        f["continuation"] = top_sessions(f.get("continuation", []), per=10)
+        for key in ("continuation", "achats", "ventes"):
+            f[key] = top_sessions(f.get(key, []), per=10)
         classes[k] = f
     for p in parts:
         for g in p.get("memoire", {}).get("gagnantes", []):
@@ -951,7 +958,7 @@ def merge(parts_dir="parts", old_path="strategies.json"):
     out["classes"] = sorted(classes.values(), key=lambda c: ORDER.index("%s-%s" % (c["kind"], c["tf"]))
                             if "%s-%s" % (c["kind"], c["tf"]) in ORDER else 99)
     used = {nm for c in out["classes"] for s in c["strategies"] + c.get("plafond", []) + c.get("activables", []) + c.get("sessions", [])
-            + c.get("continuation", []) for ag, nm, *_r in s["conds"]
+            + c.get("continuation", []) + c.get("achats", []) + c.get("ventes", []) for ag, nm, *_r in s["conds"]
             if ag == "inventeur"}             # recettes de l'Inventeur aussi pour le plafond (strategies activables)
     out["idees"] = {nm: sp for nm, sp in {**old.get("idees", {}), **out["idees"]}.items() if nm in used}
     out["duree_min"] = max([p.get("duree_min", 0) for p in parts] or [0])
