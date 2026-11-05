@@ -289,7 +289,8 @@ def dukascopy_live(sym, step, days, recent=None, recent_retry=False):
             if r:
                 LIVE_CACHE[key] = r
         rows += LIVE_CACHE.get(key) or []
-    if len(rows) < 1000 and not recent_retry:
+    missing = [d for d in need if (sym, d) not in LIVE_CACHE and (sym, d, "h") not in LIVE_CACHE]
+    if (len(rows) < 1000 or len(missing) > 0.03 * len(need) + 1) and not recent_retry:
         # reseau capricieux au demarrage (21 paires x 8 telechargements en parallele) : on reprend un par un
         for d in need:
             if (sym, d) not in LIVE_CACHE:

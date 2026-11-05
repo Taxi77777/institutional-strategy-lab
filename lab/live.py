@@ -331,6 +331,27 @@ def fetch_live(sym, kind, tf, full):
             return data.coinbase(sym, STEP[tf], days)
         except Exception as ex:
             log.warning("Coinbase %s %s : %s (Yahoo en secours)", sym, tf, ex)
+    if kind == "fx" and STEP[tf] > 3600:            # 4 h : fichiers mensuels 1 h (8 fichiers au lieu de 200 jours)
+        step = STEP[tf]
+        rows, vol = {}, {}
+        if full:
+            base = data.dukascopy_hours(sym, int(KEEP[tf] * step / 86400 * 7 / 5) + 10)
+            vb = data.VOLUME.get(sym)
+            rows.update({int(r[0]): r for r in base})
+            if vb is not None:
+                vol.update(zip(vb[0].tolist(), vb[1].tolist()))
+        rec = data.dukascopy_live(sym, 3600, 5, recent=data.truefx_minutes(sym, 3600))
+        vr = data.VOLUME.get(sym)
+        rows.update({int(r[0]): r for r in rec})
+        if vr is not None:
+            vol.update(zip(vr[0].tolist(), vr[1].tolist()))
+        h = np.array([rows[k] for k in sorted(rows)], dtype=float)
+        ks = sorted(vol)
+        data.VOLUME[sym] = (np.array(ks, dtype=float), np.array([vol[k] for k in ks], dtype=float))   # 1 h, additionne
+        a = data._resample(h, step)
+        if len(a) and h[-1, 0] < a[-1, 0] + step - 3600 and time.time() < a[-1, 0] + step + 2 * 3600:
+            a = a[:-1]                              # derniere bougie 4 h pas encore complete : jamais de signal dessus
+        return a
     if kind == "fx":                                # forex : uniquement Dukascopy (Yahoo donnait de faux setups)
         days = int(KEEP[tf] * STEP[tf] / 86400 * 7 / 5) + 4 if full else 5      # suite : 5 derniers jours seulement
         return data.dukascopy_live(sym, STEP[tf], days, recent=data.truefx_minutes(sym, STEP[tf]))
@@ -359,9 +380,11 @@ def features(sym, kind, tf, now, specs=None):
     a = hist(sym, kind, tf)
     a = a[a[:, 0] + STEP[tf] <= now]                # bougies cloturees uniquement
     if len(a) < 300:
+        NOTE[(sym, kind, tf)] = "seulement %d bougies" % len(a)
         return None
+    NOTE.pop((sym, kind, tf), None)
     key = (sym, kind, tf, len(specs or {}))
-    if key in FEAT and FEAT[key]["ts"] == float(a[-1, 0]):
+    if key in FEAT and FEAT[key]["ts"] == float(a[-1, 0]) and FEAT[key]["close"] == float(a[-1, 4]):
         return FEAT[key]                            # pas de nouvelle bougie : rien a recalculer
     refs = None
     if sym != BENCH[kind]:
@@ -424,6 +447,7 @@ def features(sym, kind, tf, now, specs=None):
 
 
 KEEP_FULL = [False]
+NOTE = {}
 
 
 def active(strat, last):
@@ -611,9 +635,14 @@ def scan(st, lab, tf, now):
                 SAVED[0] = time.time()
                 save_state(st)
             sv.get("erreurs", {}).pop(sym, None)            # actif de nouveau lu : l'erreur est effacee
-            sv[kind] = {"dernier_controle": paris(time.time()).strftime("%d/%m %H:%M"), "dernier_actif": sym,
-                        "actifs": len(syms), "pistes_actives": sum(1 for a in lab.get("activees", []) if a["kind"] == kind),
+            sv.get("erreurs", {}).pop("%s %s" % (sym, tf), None)
+            sv["%s %s" % (kind, tf)] = {"dernier_controle": paris(time.time()).strftime("%d/%m %H:%M"), "dernier_actif": sym,
+                        "actifs": len(syms), "pistes_actives": sum(1 for a in lab.get("activees", [])
+                                                                   if a["kind"] == kind and a["tf"] == tf),
                         "derniere_bougie": paris(fx["ts"]).strftime("%d/%m %H:%M") if fx else None}
+            sv.pop(kind, None)
+            if fx is None:
+                sv.setdefault("erreurs", {})["%s %s" % (sym, tf)] = NOTE.get((sym, kind, tf), "donnees vides")
             late = 2400 if kind == "fx" else 600          # forex : Dukascopy publie chaque heure avec un leger retard
             if not fx or now - fx["ts"] - STEP[tf] > late:
                 continue                            # bougie trop ancienne : jamais de signal en retard
