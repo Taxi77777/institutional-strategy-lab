@@ -118,8 +118,44 @@ def signaux():
         print("  %s prix %s, bougie %s" % (sym, fx["close"], time.strftime("%H:%M", time.gmtime(fx["ts"]))), flush=True)
 
 
+def rejeu(heures=48):
+    """Rejoue les dernieres heures avec les memes calculs que l'armee : ou les pistes actives auraient-elles signale ?"""
+    from lab import live
+    live.KEEP_FULL[0] = True
+    lab = live.load_strategies()
+    acts = lab.get("activees", [])
+    print("pistes actives :", len(acts), flush=True)
+    now = time.time()
+    tot = 0
+    for kind in ("fx", "cr"):
+        for sym in live.UNIVERSE[kind]:
+            ok_acts = [a for a in acts if a["kind"] == kind and sym in a["paires_ok"]]
+            if not ok_acts:
+                continue
+            try:
+                fx = live.features(sym, kind, "1H", now, lab.get("idees"))
+            except Exception as ex:
+                print("  %s : erreur %s" % (sym, str(ex)[:80]), flush=True)
+                continue
+            if not fx or "F" not in fx:
+                continue
+            F, a = fx["F"], fx["a"]
+            n = len(a)
+            for i in range(max(0, n - heures), n):
+                last = {(ag, nm): float(x[i]) for ag, d in F.items() for nm, x in d.items()}
+                for act in ok_acts:
+                    if live.active(act, last):
+                        tot += 1
+                        print("  AURAIT SIGNALE %s %s cloture %s | %s" % (kind, sym, time.strftime("%d/%m %H:%M",
+                              time.gmtime(a[i, 0] + 3600)), act["activee"][-42:]), flush=True)
+                        break
+    print("total signaux rejoues sur %d h : %d" % (heures, tot), flush=True)
+
+
 if __name__ == "__main__":
-    if os.environ.get("SONDE_SIGNAUX", "1") == "1":
+    if os.environ.get("SONDE_REJEU", "1") == "1":
+        rejeu()
+    if os.environ.get("SONDE_SIGNAUX", "0") == "1":
         signaux()
     main()
     if os.environ.get("SONDE_REEL"):

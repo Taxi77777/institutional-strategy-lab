@@ -377,7 +377,12 @@ def features(sym, kind, tf, now, specs=None):
             F["inventeur"][nm] = x
     last = {(ag, nm): float(x[-1]) for ag, d in F.items() for nm, x in d.items()}
     FEAT[key] = {"a": a, "last": last, "atr": float(atr[-1]), "ts": float(a[-1, 0]), "close": float(a[-1, 4])}
+    if KEEP_FULL[0]:                                # controle (sonde) : toutes les valeurs, pas seulement la derniere
+        FEAT[key]["F"] = F
     return FEAT[key]
+
+
+KEEP_FULL = [False]
 
 
 def active(strat, last):
