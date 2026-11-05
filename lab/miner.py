@@ -61,7 +61,7 @@ def exact_align(src_ts, val, ts):
 # demande du trader (5 nov.) : uniquement la liquidite et le prix avance (SMC / ICT, order blocks, FVG, chasses de
 # stops, structure, order flow) ; plus aucune strategie a base d'indicateurs classiques
 PA_AGENTS = {"liquidite", "smc", "orderflow", "flux", "positionnement", "structure", "amd", "chiffres_ronds", "fibonacci",
-             "bougies", "chandeliers", "profil", "vwap", "carnet", "noyau_liquidite"}
+             "bougies", "chandeliers", "profil", "vwap", "carnet", "noyau_liquidite", "noyau_continuation"}
 PA_CORE = {"liquidite", "smc", "orderflow", "flux"}            # flux = flux des operateurs / banques (fixing, NFP...)
 
 
@@ -442,11 +442,13 @@ def search(ds, log_every=50):
             for sc, combo, _mm in allc:
                 if sc > 0:
                     cands.append({"agent": agent, "exit": eid, "dir": dr, "conds": combo})
-    nt, nc = ichimoku_core(ds, by_agent, cands, beam, depth, min_n, tr) if not only else (0, 0)
-    lt, lc = liquidity_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=350) if not only else (0, 0)  # priorite
-    tested += nt + lt
-    log.info("%s %s : %d conditions, %d combinaisons testees, %d candidates (dont %d noyau Ichimoku, %d noyau liquidite)",
-             ds["kind"], ds["tf"], len(conds), tested, len(cands), nc, lc)
+    nt, nc = ichimoku_core(ds, by_agent, cands, beam, depth, min_n, tr) if "ichimoku" in by_agent else (0, 0)
+    pa_only = not only or "liquidite" in only.split(",")     # numerologie a part : pas de noyau liquidite
+    lt, lc = liquidity_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=350) if pa_only else (0, 0)  # priorite
+    kt, kc = continuation_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=350) if pa_only else (0, 0)
+    tested += nt + lt + kt
+    log.info("%s %s : %d conditions, %d combinaisons testees, %d candidates (dont %d noyau Ichimoku, %d noyau liquidite, "
+             "%d continuation)", ds["kind"], ds["tf"], len(conds), tested, len(cands), nc, lc, kc)
     return cands, tested, len(conds)
 
 
@@ -462,6 +464,25 @@ def liquidity_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=200):
     core = [c_ for ag in LIQ_CORE for c_ in by_agent.get(ag, [])]
     core += [c_ for c_ in by_agent.get("amd", []) if c_[1] in LIQ_AMD]
     return core_search(ds, by_agent, cands, beam, depth, min_n, tr, core, set(LIQ_CORE), "noyau_liquidite", pool_n)
+
+
+# jours de tendance forte (ex. 5 nov. 2026, marches en hausse apres les elections americaines) : le prix ne revient pas
+# chercher la liquidite en dessous ; on entre dans le sens de l'impulsion (cassure de structure, deplacement, cassure des
+# niveaux de la veille / semaine / session, chiffres ronds casses) sur le retest d'un FVG / order block
+CONT_NAMES = {"smc": ("deplacement", "bougies_depuis_bos", "choch", "tendance", "chasse_puis_mss", "dans_fvg_haussier",
+                      "dans_fvg_baissier", "dans_ob_haussier", "dans_ob_baissier", "fvg_haussier_dist", "fvg_baissier_dist",
+                      "ob_haussier_dist", "ob_baissier_dist"),
+              "liquidite": ("haut_veille_pris", "bas_veille_pris", "haut_semaine_pris", "bas_semaine_pris", "haut_mois_pris",
+                            "bas_mois_pris", "cassure_londres_asie", "cassure_rond_00", "cassure_rond_50",
+                            "cassure_rond_recente", "vs_ouverture_jour", "vs_ouverture_semaine", "ipda_20j_position"),
+              "structure": ("jour_tendance", "vs_haut_veille", "vs_bas_veille", "vs_haut_5j", "vs_bas_5j", "plus_hauts_10",
+                            "plus_bas_10")}
+
+
+def continuation_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=200):
+    """Noyau Continuation : une condition d'impulsion / cassure obligatoire + confirmations liquidite / prix / flux."""
+    core = [c_ for ag, names in CONT_NAMES.items() for c_ in by_agent.get(ag, []) if c_[1] in names]
+    return core_search(ds, by_agent, cands, beam, depth, min_n, tr, core, set(), "noyau_continuation", pool_n)
 
 
 def ichimoku_core(ds, by_agent, cands, beam, depth, min_n, tr, pool_n=200):
@@ -671,11 +692,14 @@ def run_class(ds):
     activables = near_misses(ds, allev, {id(cd) for cd, _ in evals}, {id(evals[i][0]) for i in keep},
                              filt=lambda t, v: t["n"] >= 30 and t["win"] >= 0.70 and v.get("win", 0) >= 0.6)
     sessions = session_pistes(ds, allev, {id(cd) for cd, _ in evals}, {id(evals[i][0]) for i in keep})
+    continuation = near_misses(ds, allev, {id(cd) for cd, _ in evals}, {id(evals[i][0]) for i in keep}, top=10,
+                               filt=lambda t, v: t["n"] >= 30 and t["win"] >= 0.70 and v.get("win", 0) >= 0.6,
+                               post=lambda cd: cd["agent"] == "noyau_continuation")
     days = sorted(v[1] for v in ds["hist"].values())
     return {"kind": ds["kind"], "tf": ds["tf"], "symbols": ds["symbols"], "historique_jours": days[len(days) // 2] if days else 0,
             "bougies": int(sum(v[0] for v in ds["hist"].values())), "conditions": ncond, "combinaisons": tested,
             "candidates": len(cands), "validees": len(evals), "apres_fdr": len(keep), "strategies": final, "armee": army,
-            "plafond": plafond, "activables": activables, "sessions": sessions}
+            "plafond": plafond, "activables": activables, "sessions": sessions, "continuation": continuation}
 
 
 def session_pistes(ds, allev, valid_ids, fdr_ids, per=5, scan=400):
@@ -815,7 +839,8 @@ def run_all(fetch=None, fetch_daily=None, kinds=None, tfs=None):
                 continue
             all_specs.update({IDEAS.name(sp): sp for sp in specs})
             res = run_class(ds)
-            memory = IDEAS.remember(res["strategies"] + res.get("plafond", []) + res.get("activables", []) + res.get("sessions", []),
+            memory = IDEAS.remember(res["strategies"] + res.get("plafond", []) + res.get("activables", []) + res.get("sessions", [])
+                                    + res.get("continuation", []),
                                     all_specs, memory)
             out["classes"].append(res)
             log.info("%s %s : %d strategies retenues", kind, tf, len(res["strategies"]))
@@ -824,7 +849,7 @@ def run_all(fetch=None, fetch_daily=None, kinds=None, tfs=None):
     out["total"] = {k: sum(c[k] for c in out["classes"]) for k in ("conditions", "combinaisons", "candidates")}
     out["total"]["strategies"] = sum(len(c["strategies"]) for c in out["classes"])
     used = {nm for c in out["classes"] for s in c["strategies"] + c.get("plafond", []) + c.get("activables", []) + c.get("sessions", [])
-            for ag, nm, *_r in s["conds"]
+            + c.get("continuation", []) for ag, nm, *_r in s["conds"]
             if ag == "inventeur"}             # recettes de l'Inventeur aussi pour le plafond (strategies activables)
     out["idees"] = {nm: all_specs[nm] for nm in used if nm in all_specs}
     out["inventeur"] = {"idees_testees": len(all_specs), "idees_gagnantes": len(used)}
@@ -885,6 +910,7 @@ def merge(parts_dir="parts", old_path="strategies.json"):
                                 key=(lambda r: (-r.get("test_total", 0), -r["test_win"])) if gain_mode()
                                 else (lambda r: (-r["test_win"], -r["test_n"])))[:20]
             f["sessions"] = top_sessions(f.get("sessions", []) + c.get("sessions", []))
+            f["continuation"] = top_sessions(f.get("continuation", []) + c.get("continuation", []), per=10)
             for side, a_ in c.get("armee", {}).items():
                 if side not in f["armee"] or a_.get("win", 0) > f["armee"][side].get("win", 0):
                     f["armee"][side] = a_
@@ -893,12 +919,12 @@ def merge(parts_dir="parts", old_path="strategies.json"):
     now_s = time.time()
     if CFG["LIQUIDITE_SEULE"]:                      # seulement la liquidite et le prix avance (anciennes pistes retirees)
         for c in list(classes.values()) + list(fresh.values()):
-            for key in ("strategies", "plafond", "activables", "sessions"):
+            for key in ("strategies", "plafond", "activables", "sessions", "continuation"):
                 if key in c:
                     c[key] = [r for r in c[key] if is_pa(r)]
     for k, f in fresh.items():                      # deux voies en parallele : on garde aussi les resultats recents
         oc = classes.get(k, {})                    # de l'autre voie (moins de 24 h), sans doublons
-        for key in ("strategies", "plafond", "activables", "sessions"):
+        for key in ("strategies", "plafond", "activables", "sessions", "continuation"):
             rows = [dict(r, vu=r.get("vu", now_s)) for r in f.get(key, [])]
             rows += [r for r in oc.get(key, []) if now_s - r.get("vu", 0) < 86400]
             uniq = {}
@@ -915,6 +941,7 @@ def merge(parts_dir="parts", old_path="strategies.json"):
             f[key] = sorted(f.get(key, []), key=(lambda r: (-r.get("test_total", 0), -r["test_win"])) if gain_mode()
                             else (lambda r: (-r["test_win"], -r["test_n"])))[:20]
         f["sessions"] = top_sessions(f.get("sessions", []))
+        f["continuation"] = top_sessions(f.get("continuation", []), per=10)
         classes[k] = f
     for p in parts:
         for g in p.get("memoire", {}).get("gagnantes", []):
@@ -924,7 +951,7 @@ def merge(parts_dir="parts", old_path="strategies.json"):
     out["classes"] = sorted(classes.values(), key=lambda c: ORDER.index("%s-%s" % (c["kind"], c["tf"]))
                             if "%s-%s" % (c["kind"], c["tf"]) in ORDER else 99)
     used = {nm for c in out["classes"] for s in c["strategies"] + c.get("plafond", []) + c.get("activables", []) + c.get("sessions", [])
-            for ag, nm, *_r in s["conds"]
+            + c.get("continuation", []) for ag, nm, *_r in s["conds"]
             if ag == "inventeur"}             # recettes de l'Inventeur aussi pour le plafond (strategies activables)
     out["idees"] = {nm: sp for nm, sp in {**old.get("idees", {}), **out["idees"]}.items() if nm in used}
     out["duree_min"] = max([p.get("duree_min", 0) for p in parts] or [0])

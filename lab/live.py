@@ -137,8 +137,9 @@ def activated(v):
                 for nm in SESSION_NOM:
                     sess += sorted([r for r in cl.get("sessions", []) if r.get("session") == nm],
                                    key=lambda r: (-is_liquidity(r), -r["test_win"]))[:per_s]
-                pool = sess + sorted(cl.get("activables", []) + cl.get("plafond", []) + cl.get("sessions", []),
-                                     key=lambda r: (-is_liquidity(r), -r["test_win"]))
+                cont = sorted(cl.get("continuation", []), key=lambda r: -r["test_win"])[:rule.get("par_continuation", 0)]
+                pool = cont + sess + sorted(cl.get("activables", []) + cl.get("plafond", []) + cl.get("sessions", [])
+                                            + cl.get("continuation", []), key=lambda r: (-is_liquidity(r), -r["test_win"]))
                 for pass_, p in [(0, p) for p in pool] + [(1, p) for p in pool]:   # 2e passage : places libres
                     if taken >= rule.get("max", 3):
                         break
@@ -167,6 +168,7 @@ def activated(v):
                     seen.add(same)
                     taken += 1
                     nom = "%s%s%s · %.0f %% (%d trades jamais vus)" % (
+                        "🚀 Continuation · " if p.get("agent") == "noyau_continuation" else
                         "💧 Liquidité · " if is_liquidity(p) else "", rule["nom"],
                         " · " + SESSION_NOM[p["session"]] if p.get("session") in SESSION_NOM else "",
                         100 * p["test_win"], p["test_n"])
