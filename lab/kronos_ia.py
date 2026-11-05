@@ -137,8 +137,11 @@ def avis():
         for sym in UNIVERSE[kind]:
             try:
                 if kind == "fx":
-                    h = data.dukascopy_hours(sym, 420)
-                    a = data._resample(h, 86400)
+                    try:
+                        h = data.dukascopy_hours(sym, 420)
+                        a = data._resample(h, 86400)
+                    except Exception:                  # fichiers mensuels refuses : fichiers journaliers
+                        a = data.dukascopy(sym, 86400, 400)
                     a = a[((a[:, 0] // 86400 + 3) % 7) != 6]
                 else:
                     a = data.coinbase(sym, 86400, 320)

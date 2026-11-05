@@ -31,8 +31,14 @@ jobs:
           pip install -r requirements.txt
           pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install einops==0.8.1 huggingface_hub==0.33.1 safetensors==0.6.2 tqdm pandas
+      - uses: actions/cache@v4
+        with:
+          path: .duka_cache
+          key: kronos-avis-${{ github.run_id }}
+          restore-keys: kronos-avis-
       - name: Avis de Kronos
         env:
+          DUKA_CACHE: .duka_cache
           KRONOS_DIR: kronos_src
           PYTHONUNBUFFERED: '1'
         run: python -m lab.kronos_ia avis
