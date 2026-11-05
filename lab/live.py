@@ -306,9 +306,11 @@ def activated_signals(st, lab, kind, tf, sym, fx):
         if key in st["alerts"]:
             continue
         ok, heat = heat_check(sym, kind, s["dir"], fx)
-        if not ok:
-            log.info("%s : signal bloque par un mur de la heatmap", sym)
-            continue
+        if not ok:                                  # la heatmap n'a pas encore d'historique teste : elle previent, elle
+            heat = "⚠️ MUR PROCHE DANS LE SENS DU TRADE (prudence) · " + (heat or "")      # ne bloque plus une piste prouvee
+            st.setdefault("diag", {}).setdefault("murs_signales", []).append(
+                "%s %s %s" % (paris(time.time()).strftime("%d/%m %H:%M"), sym, tf))
+            st["diag"]["murs_signales"] = st["diag"]["murs_signales"][-20:]
         st["alerts"][key] = time.time()
         send_signal(st, kind, tf, sym, s["dir"], fx, dict(s, heat=heat), {s["agent"]: s}, {}, lab, activee=True)
         return 1
