@@ -302,12 +302,23 @@ def hist(sym, kind, tf):
     now = time.time()
     if not c or now - c["full"] > 6 * 3600:
         a = fetch_live(sym, kind, tf, full=True)
-        CACHE[key] = {"a": a[-KEEP[tf]:], "full": now}
+        CACHE[key] = {"a": a[-KEEP[tf]:], "full": now, "vol": data.VOLUME.get(sym) if kind == "fx" else None}
     else:
-        new = fetch_live(sym, kind, tf, full=False)
+        try:
+            new = fetch_live(sym, kind, tf, full=False)
+        except Exception as ex:                     # suite indisponible (week-end, reseau) : on garde l'existant
+            log.warning("%s %s suite : %s", sym, tf, ex)
+            new, data.VOLUME[sym] = np.zeros((0, 6)), None
         rows = {int(r[0]): r for r in c["a"]}
         rows.update({int(r[0]): r for r in new})
         c["a"] = np.array([rows[k] for k in sorted(rows)])[-KEEP[tf]:]
+        if kind == "fx" and data.VOLUME.get(sym) is not None:      # volume des ticks : propre a chaque unite
+            old_v = c.get("vol")
+            vd = dict(zip(old_v[0].tolist(), old_v[1].tolist())) if old_v is not None else {}
+            nv = data.VOLUME[sym]
+            vd.update(zip(nv[0].tolist(), nv[1].tolist()))
+            ks = sorted(vd)[-KEEP[tf] - 50:]
+            c["vol"] = (np.array(ks, dtype=float), np.array([vd[k] for k in ks], dtype=float))
     return CACHE[key]["a"]
 
 
@@ -321,8 +332,8 @@ def fetch_live(sym, kind, tf, full):
         except Exception as ex:
             log.warning("Coinbase %s %s : %s (Yahoo en secours)", sym, tf, ex)
     if kind == "fx":                                # forex : uniquement Dukascopy (Yahoo donnait de faux setups)
-        return data.dukascopy_live(sym, STEP[tf], int(KEEP[tf] * STEP[tf] / 86400 * 7 / 5) + 4,
-                                   recent=data.truefx_minutes(sym, STEP[tf]))
+        days = int(KEEP[tf] * STEP[tf] / 86400 * 7 / 5) + 4 if full else 5      # suite : 5 derniers jours seulement
+        return data.dukascopy_live(sym, STEP[tf], days, recent=data.truefx_minutes(sym, STEP[tf]))
     return data.bars(sym, kind, tf) if full else data.bars(sym, kind, tf, rng="1mo" if tf == "1H" else "5d")
 
 
@@ -385,6 +396,9 @@ def features(sym, kind, tf, now, specs=None):
             OFC[(sym, tf)] = of
         refs["orderflow"] = orderflow_refs(sym, kind, a[:, 0], flow=of[1]) if of[1] is not None else None
     else:
+        v_ = CACHE.get((sym, kind, tf), {}).get("vol")
+        if v_ is not None:
+            data.VOLUME[sym] = v_                    # volume de CETTE unite de temps (1 h, 4 h ou 15 min)
         refs["orderflow"] = orderflow_refs(sym, kind, a[:, 0], live=True)
     mac = {k: align(v[0], v[1], a[:, 0]) for k, v in macro().items()}
     if kind == "cr":
@@ -501,6 +515,52 @@ def wanted(lab, kind, tf):
     return ((any(cl["kind"] == kind and cl["tf"] == tf and cl["strategies"] for cl in lab["classes"])
              and not CFG["SEULEMENT_ACTIVEES"])
             or any(a["kind"] == kind and a["tf"] == tf for a in lab.get("activees", [])))
+
+
+def _mem_path():
+    root = os.environ.get("DUKA_CACHE", "")
+    return os.path.join(root, "armee_memoire.pkl") if root else None
+
+
+def mem_save():
+    """Garde les historiques et sources deja calcules pour la prochaine armee (demarrage presque immediat)."""
+    p = _mem_path()
+    if not p:
+        return
+    import pickle
+    try:
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(p + ".tmp", "wb") as f:
+            pickle.dump({"t": time.time(), "CACHE": dict(CACHE), "VOLUME": dict(data.VOLUME), "POSC": dict(POSC),
+                         "MACRO": dict(MACRO), "OFC": dict(OFC), "FUND": dict(FUND)}, f, protocol=4)
+        os.replace(p + ".tmp", p)
+    except Exception as ex:
+        log.warning("memoire armee : %s", ex)
+
+
+def mem_load():
+    p = _mem_path()
+    if not p or not os.path.exists(p):
+        return 0
+    import pickle
+    try:
+        with open(p, "rb") as f:
+            m = pickle.load(f)
+    except Exception as ex:
+        log.warning("memoire armee illisible : %s", ex)
+        return 0
+    age = time.time() - m.get("t", 0)
+    if age > 36 * 3600:
+        return 0
+    for k, c in m.get("CACHE", {}).items():         # complete ensuite par les seules dernieres bougies
+        CACHE[k] = dict(c, full=time.time() - 3600 if age < 5 * 3600 else 0)
+    data.VOLUME.update(m.get("VOLUME", {}))
+    POSC.update(m.get("POSC", {}))
+    OFC.update(m.get("OFC", {}))
+    FUND.update(m.get("FUND", {}))
+    if m.get("MACRO", {}).get("ts"):
+        MACRO.update(m["MACRO"])
+    return len(m.get("CACHE", {}))
 
 
 def prefetch(lab):
@@ -867,7 +927,9 @@ def main():
     save_state(st)
     try:
         lab = load_strategies()
-        st["diag"]["demarrage"] = prefetch(lab)
+        repris = mem_load()
+        st["diag"]["demarrage"] = dict(prefetch(lab), repris_de_la_veille=repris)
+        mem_save()
         save_state(st)
     except Exception as ex:
         log.warning("prechargement : %s", ex)
@@ -897,6 +959,8 @@ def main():
                 st.setdefault("diag", {})["truefx"] = {"mode": data.TRUEFX["mode"], "paires_temps_reel": data.TRUEFX["paires"]}
                 heat_record_all()                       # historique horaire de la heatmap crypto
                 save_state(st)
+                if q % 6 == 0:
+                    mem_save()                          # toutes les 30 min : memoire pour la prochaine armee
             if st["open"] and int(now // 300) != done_trk and now % 300 >= 50:
                 done_trk = int(now // 300)
                 track(st, now)
@@ -909,6 +973,7 @@ def main():
         with open(os.path.join(CFG["STATE_DIR"], "relance"), "w") as f:
             f.write("1")
     save_state(st)
+    mem_save()
 
 
 if __name__ == "__main__":

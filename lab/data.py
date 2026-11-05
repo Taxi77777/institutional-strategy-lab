@@ -394,25 +394,37 @@ def coinbase(sym, step, days):
     end = int(time.time()) // gran * gran
     start_all = end - days * 86400
     rows = {}
-    t = start_all
+    t = start_all // (300 * gran) * (300 * gran)            # fenetres fixes : reutilisables depuis le cache disque
     while t < end:
         t2 = min(end, t + 300 * gran)
+        root = os.environ.get("DUKA_CACHE", "")
+        cpath = (os.path.join(root, "_coinbase", sym, "%d_%d.json" % (gran, t))
+                 if root and t2 == t + 300 * gran and t2 < time.time() - 2 * 86400 else None)   # fenetre terminee
         try:
-            r = SESSION.get("https://api.exchange.coinbase.com/products/%s-USD/candles" % sym, timeout=20, params={
-                "granularity": gran, "start": datetime.datetime.utcfromtimestamp(t).isoformat(),
-                "end": datetime.datetime.utcfromtimestamp(t2).isoformat()})
-            if r.status_code == 429:
-                time.sleep(2)
-                continue
-            if r.status_code != 200:
-                raise RuntimeError("HTTP %d" % r.status_code)
-            for tt, lo, hi, op, cl, vol in r.json():
+            if cpath and os.path.exists(cpath):
+                with open(cpath) as f:
+                    js = json.load(f)
+            else:
+                r = SESSION.get("https://api.exchange.coinbase.com/products/%s-USD/candles" % sym, timeout=20, params={
+                    "granularity": gran, "start": datetime.datetime.utcfromtimestamp(t).isoformat(),
+                    "end": datetime.datetime.utcfromtimestamp(t2).isoformat()})
+                if r.status_code == 429:
+                    time.sleep(2)
+                    continue
+                if r.status_code != 200:
+                    raise RuntimeError("HTTP %d" % r.status_code)
+                js = r.json()
+                if cpath and js:
+                    os.makedirs(os.path.dirname(cpath), exist_ok=True)
+                    with open(cpath, "w") as f:
+                        json.dump(js, f)
+                time.sleep(0.12)
+            for tt, lo, hi, op, cl, vol in js:
                 rows[int(tt)] = (int(tt), float(op), float(hi), float(lo), float(cl), float(vol))
         except Exception as ex:
             if not rows:
                 raise RuntimeError("Coinbase %s : %s" % (sym, str(ex)[:80]))
         t = t2
-        time.sleep(0.12)
     a = np.array([rows[k] for k in sorted(rows)], dtype=float).reshape(-1, 6)
     if gran != step:
         a = _resample(a, step)
