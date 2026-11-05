@@ -708,16 +708,33 @@ def run_class(ds):
     continuation = near_misses(ds, allev, {id(cd) for cd, _ in evals}, {id(evals[i][0]) for i in keep}, top=10,
                                filt=lambda t, v: t["n"] >= 30 and t["win"] >= 0.70 and v.get("win", 0) >= 0.6,
                                post=lambda cd: cd["agent"] == "noyau_continuation")
-    # achat ET vente (demande du trader) : les 10 meilleures pistes de chaque sens, publiees a part
-    sens = {key: near_misses(ds, allev, {id(cd) for cd, _ in evals}, {id(evals[i][0]) for i in keep}, top=10,
+    # achat ET vente (demande du trader) : les 10 meilleures pistes de chaque sens, publiees a part, et seulement des
+    # pistes de JOURNEE (la majorite des trades entre 8 h et 18 h, heure de Paris : quand il y a du volume)
+    sens = {key: near_misses(ds, allev, {id(cd) for cd, _ in evals}, {id(evals[i][0]) for i in keep}, top=10, scan=600,
                              filt=lambda t, v: t["n"] >= 30 and t["win"] >= 0.70 and v.get("win", 0) >= 0.6,
-                             post=lambda cd, d_=d_: cd["dir"] == d_) for key, d_ in (("achats", 1), ("ventes", -1))}
+                             post=lambda cd, d_=d_: cd["dir"] == d_ and day_share(ds, cd) >= 0.5)
+            for key, d_ in (("achats", 1), ("ventes", -1))}
     days = sorted(v[1] for v in ds["hist"].values())
     return {"kind": ds["kind"], "tf": ds["tf"], "symbols": ds["symbols"], "historique_jours": days[len(days) // 2] if days else 0,
             "bougies": int(sum(v[0] for v in ds["hist"].values())), "conditions": ncond, "combinaisons": tested,
             "candidates": len(cands), "validees": len(evals), "apres_fdr": len(keep), "strategies": final, "armee": army,
             "plafond": plafond, "activables": activables, "sessions": sessions, "continuation": continuation,
             "achats": sens["achats"], "ventes": sens["ventes"]}
+
+
+DAY_CACHE = {}
+
+
+def day_share(ds, cd):
+    """Part des trades (validation + test, un a la fois) pris en journee : 7 h - 17 h UTC (8 h - 18 h a Paris)."""
+    k = (id(ds), id(cd))
+    if k not in DAY_CACHE:
+        ex = next(e for e in EXITS if e["id"] == cd["exit"])
+        valid = ds["R"][(cd["exit"], cd["dir"])][2]
+        m = thin(full_mask(ds, cd["conds"]) & valid & (ds["split"] >= 1), ds["aid"], ds["ts"], ex["h"] * ds["step"])
+        h = ((ds["ts"][m] // 3600) % 24).astype(int)
+        DAY_CACHE[k] = float(((h >= 7) & (h < 17)).mean()) if len(h) else 0.0
+    return DAY_CACHE[k]
 
 
 def session_pistes(ds, allev, valid_ids, fdr_ids, per=5, scan=400):
