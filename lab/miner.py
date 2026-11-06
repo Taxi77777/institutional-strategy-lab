@@ -902,6 +902,15 @@ def run_all(fetch=None, fetch_daily=None, kinds=None, tfs=None):
 ORDER = ["fx-1H", "cr-1H", "fx-30M", "cr-30M", "fx-15M", "cr-15M", "fx-4H", "cr-4H", "fx-1D", "cr-1D"]
 
 
+def day_ok(r):
+    """Piste de journee : la majorite de ses trades a Londres ou New York (8 h - 18 h a Paris), ou bougie jour."""
+    ps = (r.get("robustesse") or {}).get("par_session") or {}
+    if not ps:
+        return True
+    return ps.get("londres", {}).get("part", 0) + ps.get("new_york", {}).get("part", 0) >= 0.5 or \
+        sum(v.get("part", 0) for v in ps.values()) == 0
+
+
 def top_sessions(rows, per=5):
     """Les `per` meilleures pistes de chaque session, sans doublons."""
     out, seen = [], set()
@@ -955,7 +964,10 @@ def merge(parts_dir="parts", old_path="strategies.json"):
                                 else (lambda r: (-r["test_win"], -r["test_n"])))[:20]
             f["sessions"] = top_sessions(f.get("sessions", []) + c.get("sessions", []))
             for key in ("continuation", "achats", "ventes"):
-                f[key] = top_sessions(f.get(key, []) + c.get(key, []), per=10)
+                rows_ = f.get(key, []) + c.get(key, [])
+                if key != "continuation":
+                    rows_ = [r for r in rows_ if day_ok(r)]     # achats / ventes : pistes de journee seulement
+                f[key] = top_sessions(rows_, per=10)
             for side, a_ in c.get("armee", {}).items():
                 if side not in f["armee"] or a_.get("win", 0) > f["armee"][side].get("win", 0):
                     f["armee"][side] = a_
@@ -987,7 +999,10 @@ def merge(parts_dir="parts", old_path="strategies.json"):
                             else (lambda r: (-r["test_win"], -r["test_n"])))[:20]
         f["sessions"] = top_sessions(f.get("sessions", []))
         for key in ("continuation", "achats", "ventes"):
-            f[key] = top_sessions(f.get(key, []), per=10)
+            rows_ = f.get(key, [])
+            if key != "continuation":
+                rows_ = [r for r in rows_ if day_ok(r)]
+            f[key] = top_sessions(rows_, per=10)
         classes[k] = f
     for p in parts:
         for g in p.get("memoire", {}).get("gagnantes", []):
