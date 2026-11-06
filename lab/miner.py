@@ -1004,6 +1004,10 @@ def merge(parts_dir="parts", old_path="strategies.json"):
                 rows_ = [r for r in rows_ if day_ok(r)]
             f[key] = top_sessions(rows_, per=10)
         classes[k] = f
+    for c in classes.values():                      # toutes les classes, meme non recalculees dans ce lancement
+        for key in ("achats", "ventes"):
+            if key in c:
+                c[key] = [r for r in c[key] if day_ok(r)]
     for p in parts:
         for g in p.get("memoire", {}).get("gagnantes", []):
             if g["nom"] not in mem or g["score"] > mem[g["nom"]]["score"]:
