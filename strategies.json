@@ -1,5 +1,5 @@
 {
- "genere": "2026-11-06 15:30 UTC",
+ "genere": "2026-11-06 15:40 UTC",
  "regle": {
   "mode": "tendance90",
   "facteur_profit_min": 1.3,
@@ -658,18 +658,6 @@
     "fvg_haussier_age"
    ],
    "k": 13
-  },
-  "produit(structure.vs_bas_2j,flux.heures_fixing_tokyo_gotobi,1)": {
-   "op": "produit",
-   "a": [
-    "structure",
-    "vs_bas_2j"
-   ],
-   "b": [
-    "flux",
-    "heures_fixing_tokyo_gotobi"
-   ],
-   "k": 1
   },
   "ecart_rang(structure.vs_bas_2j,flux.heures_fixing_tokyo_gotobi,10)": {
    "op": "ecart_rang",
@@ -2002,6 +1990,18 @@
     "taille_vs_atr"
    ],
    "k": 22
+  },
+  "ratio(liquidite.bas_mois_pris,vwap.vwap_ancre_swing,8)": {
+   "op": "ratio",
+   "a": [
+    "liquidite",
+    "bas_mois_pris"
+   ],
+   "b": [
+    "vwap",
+    "vwap_ancre_swing"
+   ],
+   "k": 8
   }
  },
  "classes": [
@@ -98745,12 +98745,12 @@
     "XAGUSD"
    ],
    "historique_jours": 3647.0,
-   "bougies": 65681,
-   "conditions": 5096,
-   "combinaisons": 1554840,
-   "candidates": 2118,
-   "validees": 20,
-   "apres_fdr": 13,
+   "bougies": 65680,
+   "conditions": 5063,
+   "combinaisons": 1582711,
+   "candidates": 2150,
+   "validees": 22,
+   "apres_fdr": 11,
    "strategies": [],
    "armee": {},
    "plafond": [
@@ -99275,7 +99275,7 @@
       ],
       "annees_reussies": "2/3"
      },
-     "vu": 1793957688.7636175
+     "vu": 1793979618.5262048
     },
     {
      "agent": "noyau_continuation",
@@ -100314,7 +100314,7 @@
       ],
       "annees_reussies": "2/3"
      },
-     "vu": 1793979050.5697584
+     "vu": 1793979618.5262048
     },
     {
      "agent": "noyau_liquidite",
@@ -101101,7 +101101,7 @@
       ],
       "annees_reussies": "2/3"
      },
-     "vu": 1793957688.7636175
+     "vu": 1793979618.5262048
     },
     {
      "agent": "noyau_continuation",
@@ -102339,68 +102339,61 @@
      "vu": 1793900572.0315251
     },
     {
-     "agent": "noyau_continuation",
+     "agent": "noyau_liquidite",
      "dir": 1,
-     "exit": "e2",
+     "exit": "e6",
      "conds": [
       [
        "inventeur",
-       "produit(structure.vs_bas_2j,flux.heures_fixing_tokyo_gotobi,1)",
-       -2.409766435623169,
-       -1.6051894664764403
+       "ratio(liquidite.bas_mois_pris,vwap.vwap_ancre_swing,8)",
+       0.0,
+       1.0830318927764895
       ],
       [
-       "structure",
-       "vs_haut_5j",
-       -Infinity,
-       -3.954615354537964
+       "liquidite",
+       "ipda_40j_dist_haut",
+       6.485313415527344,
+       11.81364917755127
       ]
      ],
      "test_win": 0.9062,
      "test_n": 32,
-     "test_avg": 0.3128,
-     "test_pf": 4.279,
-     "test_total": 10.011,
-     "apprentissage_win": 0.8312,
-     "validation_win": 0.95,
-     "raison": "robustesse : paires sous le seuil -, annees 4/4, moities [0.923, 0.923]",
+     "test_avg": 0.222,
+     "test_pf": 3.341,
+     "test_total": 7.105,
+     "apprentissage_win": 0.8,
+     "validation_win": 0.7895,
+     "raison": "validation : 79 % sur 19 trades, facteur de profit 0.68",
      "robustesse": {
-      "actifs_gagnants": "2/2",
-      "par_actif": {
-       "USDJPY": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.2059
-       },
-       "USDCHF": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.1488
-       }
-      },
+      "actifs_gagnants": "0/0",
+      "par_actif": {},
       "par_annee": {
+       "2022": {
+        "reussite": 0.889,
+        "trades": 9
+       },
        "2023": {
-        "reussite": 0.938,
-        "trades": 16
-       },
-       "2024": {
-        "reussite": 1.0,
-        "trades": 6
-       },
-       "2025": {
-        "reussite": 0.9,
+        "reussite": 0.7,
         "trades": 10
        },
+       "2024": {
+        "reussite": 0.818,
+        "trades": 11
+       },
+       "2025": {
+        "reussite": 1.0,
+        "trades": 8
+       },
        "2026": {
-        "reussite": 0.889,
-        "trades": 18
+        "reussite": 0.923,
+        "trades": 13
        }
       },
       "par_session": {
        "asie": {
         "part": 1.0,
-        "trades": 52,
-        "reussite": 0.923
+        "trades": 51,
+        "reussite": 0.863
        },
        "londres": {
         "part": 0.0,
@@ -102419,12 +102412,12 @@
        }
       },
       "reussite_moities": [
-       0.923,
-       0.923
+       0.84,
+       0.885
       ],
-      "annees_reussies": "4/4"
+      "annees_reussies": "3/5"
      },
-     "vu": 1793931551.5415547
+     "vu": 1793979618.5262048
     }
    ],
    "sessions": [
@@ -103139,7 +103132,7 @@
       ],
       "annees_reussies": "2/3"
      },
-     "vu": 1793957688.7636175
+     "vu": 1793979618.5262048
     },
     {
      "agent": "noyau_continuation",
@@ -103877,11 +103870,11 @@
    ],
    "historique_jours": 1263.0,
    "bougies": 76416,
-   "conditions": 5758,
-   "combinaisons": 2024341,
-   "candidates": 5428,
-   "validees": 358,
-   "apres_fdr": 352,
+   "conditions": 5756,
+   "combinaisons": 2028415,
+   "candidates": 5498,
+   "validees": 370,
+   "apres_fdr": 365,
    "strategies": [
     {
      "id": "cr-1D-inventeur-e2-1-0",
@@ -104212,7 +104205,7 @@
       ],
       "annees_reussies": "1/1"
      },
-     "vu": 1793979050.5697584
+     "vu": 1793979618.5262048
     },
     {
      "agent": "inventeur",
@@ -104277,7 +104270,7 @@
       ],
       "annees_reussies": "1/1"
      },
-     "vu": 1793979050.5697584
+     "vu": 1793979618.5262048
     },
     {
      "agent": "inventeur",
@@ -105524,7 +105517,7 @@
       ],
       "annees_reussies": "2/2"
      },
-     "vu": 1793979050.5697584
+     "vu": 1793979618.5262048
     },
     {
      "agent": "inventeur",
@@ -106671,7 +106664,7 @@
       ],
       "annees_reussies": "2/2"
      },
-     "vu": 1793979050.5697584
+     "vu": 1793979618.5262048
     },
     {
      "agent": "inventeur",
@@ -106740,7 +106733,7 @@
       ],
       "annees_reussies": "2/2"
      },
-     "vu": 1793979050.5697584
+     "vu": 1793979618.5262048
     },
     {
      "agent": "inventeur",
@@ -106883,7 +106876,7 @@
       "annees_reussies": "2/2"
      },
      "session": "asie",
-     "vu": 1793979050.5697584
+     "vu": 1793979618.5262048
     },
     {
      "agent": "inventeur",
@@ -107850,15 +107843,15 @@
    "ventes": []
   }
  ],
- "duree_min": 6.7,
+ "duree_min": 8.7,
  "total": {
-  "conditions": 56829,
-  "combinaisons": 13138929,
-  "candidates": 13221,
+  "conditions": 56794,
+  "combinaisons": 13170874,
+  "candidates": 13323,
   "strategies": 6
  },
  "inventeur": {
-  "idees_testees": 290,
+  "idees_testees": 287,
   "idees_gagnantes": 166
  }
 }
