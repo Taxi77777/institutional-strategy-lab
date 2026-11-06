@@ -348,6 +348,7 @@ def activated_signals(st, lab, kind, tf, sym, fx):
 
 
 PENDING = []
+EVAL = {}
 
 
 def flush_pending():
@@ -761,8 +762,8 @@ def scan(st, lab, tf, now, kinds=None):
             if STOP[0]:
                 return sent
             f0 = FEAT.get((sym, kind, tf, len(lab.get("idees") or {})))
-            if f0 and f0["ts"] + 2 * STEP[tf] > now:
-                continue                            # pas de nouvelle bougie fermee : deja controle, rien a refaire
+            if f0 and EVAL.get((sym, kind, tf)) == f0["ts"] and f0["ts"] + 2 * STEP[tf] > now:
+                continue                            # bougie deja CONTROLEE et pas de nouvelle fermee : rien a refaire
             sv = st.setdefault("diag", {}).setdefault("surveillance", {})
             try:
                 fx = features(sym, kind, tf, now, lab.get("idees"))
@@ -772,6 +773,8 @@ def scan(st, lab, tf, now, kinds=None):
                 continue
             finally:
                 time.sleep(CFG["PAUSE"])
+            if fx:
+                EVAL[(sym, kind, tf)] = fx["ts"]            # cette bougie est controlee (signal ou non)
             if time.time() - SAVED[0] > 120:                # etat visible pendant le premier tour (long)
                 SAVED[0] = time.time()
                 save_state(st)
