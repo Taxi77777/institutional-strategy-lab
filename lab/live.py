@@ -408,6 +408,43 @@ def hist(sym, kind, tf):
     return CACHE[key]["a"]
 
 
+KMIN = {}
+
+
+def kraken_minutes(sym):
+    """Forex en temps reel sans inscription : minutes construites a partir des transactions publiques de Kraken
+       (EURUSD, GBPUSD, AUDUSD, USDJPY, USDCAD, USDCHF). Dukascopy ne publie chaque heure qu'une fois terminee :
+       sans ce relais, les bougies 15 / 30 min arrivaient trop tard et le signal etait ecarte."""
+    from lab import kraken_fx as KF
+    if sym not in KF.PAIRS:
+        return []
+    c = KMIN.get(sym)
+    if c and time.time() - c[0] < 60:
+        return c[1]
+    since = str(int((time.time() - 3 * 3600) * 10 ** 9))
+    trades = []
+    for _ in range(10):
+        try:
+            data_, last = KF._trades(sym, since)
+        except Exception:
+            break
+        trades += data_
+        if len(data_) < 1000:
+            break
+        since = last
+    mins = {}
+    for t in trades:
+        px, ts = float(t[0]), float(t[2])
+        m = int(ts // 60 * 60)
+        if m + 60 > time.time():
+            continue                                # minute en cours : pas encore complete
+        o = mins.get(m)
+        mins[m] = [px, px, px, px] if o is None else [o[0], max(o[1], px), min(o[2], px), px]
+    out = [(t, o, h, l, c_, 0.0) for t, (o, h, l, c_) in sorted(mins.items())]
+    KMIN[sym] = (time.time(), out)
+    return out
+
+
 def fetch_live(sym, kind, tf, full):
     """Memes sources que la recherche : Coinbase pour la crypto, Yahoo pour le forex (volume neutralise la ou la
        recherche utilise Dukascopy)."""
@@ -426,12 +463,12 @@ def fetch_live(sym, kind, tf, full):
             except Exception as ex:                 # fichiers mensuels refuses : fichiers journaliers (plus long)
                 log.warning("%s 4 h mensuel : %s (journalier)", sym, ex)
                 return data.dukascopy_live(sym, step, int(KEEP[tf] * step / 86400 * 7 / 5) + 4,
-                                           recent=data.truefx_minutes(sym, step))
+                                           recent=data.truefx_minutes(sym, step) or kraken_minutes(sym))
             vb = data.VOLUME.get(sym)
             rows.update({int(r[0]): r for r in base})
             if vb is not None:
                 vol.update(zip(vb[0].tolist(), vb[1].tolist()))
-        rec = data.dukascopy_live(sym, 3600, 5, recent=data.truefx_minutes(sym, 3600))
+        rec = data.dukascopy_live(sym, 3600, 5, recent=data.truefx_minutes(sym, 3600) or kraken_minutes(sym))
         vr = data.VOLUME.get(sym)
         rows.update({int(r[0]): r for r in rec})
         if vr is not None:
@@ -447,7 +484,7 @@ def fetch_live(sym, kind, tf, full):
         return a
     if kind == "fx":                                # forex : uniquement Dukascopy (Yahoo donnait de faux setups)
         days = int(KEEP[tf] * STEP[tf] / 86400 * 7 / 5) + 4 if full else 5      # suite : 5 derniers jours seulement
-        return data.dukascopy_live(sym, STEP[tf], days, recent=data.truefx_minutes(sym, STEP[tf]))
+        return data.dukascopy_live(sym, STEP[tf], days, recent=data.truefx_minutes(sym, STEP[tf]) or kraken_minutes(sym))
     return data.bars(sym, kind, tf) if full else data.bars(sym, kind, tf, rng="1mo" if tf == "1H" else "5d")
 
 
