@@ -147,8 +147,7 @@ def activated(v):
                         break
                     ps = (p.get("robustesse") or {}).get("par_session") or {}
                     if (p["agent"] in rule.get("exclure", []) or any(len(c) != 4 for c in p["conds"])
-                            or (rule.get("heures_de_volume") and ps and ps.get("asie", {}).get("part", 0)
-                                + ps.get("soir", {}).get("part", 0) > 0.5)
+                            or (rule.get("heures_de_volume") and ps and ps.get("asie", {}).get("part", 0) > 0.5)
                             or (rule.get("liquidite_seule") and not is_pa(p))
                             or p["test_win"] < rule["taux_min"] or p["test_n"] < rule["trades_min"]
                             or p.get("test_avg", 0) <= 0
