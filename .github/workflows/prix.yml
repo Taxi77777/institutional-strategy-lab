@@ -1,0 +1,31 @@
+name: Prix en direct (lecture)
+
+# Lit le prix actuel des trades ouverts de l'armee (Coinbase, lecture seule) et dit s'ils sont encore prenables.
+on:
+  workflow_dispatch:
+
+jobs:
+  prix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Prix
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request
+          st = json.load(urllib.request.urlopen("https://raw.githubusercontent.com/Taxi77777/crypto-signals-timesfm/main/armee_state.json"))
+          for o in st["open"]:
+              if o["kind"] != "cr":
+                  continue
+              try:
+                  t = json.load(urllib.request.urlopen(urllib.request.Request(
+                      "https://api.exchange.coinbase.com/products/%s-USD/ticker" % o["sym"], headers={"User-Agent": "lab"})))
+                  px = float(t["price"])
+              except Exception as ex:
+                  print("PRIX", o["sym"], "erreur", ex); continue
+              e, sl, tp1 = o["entry"], o["sl"], o.get("tp1") or o["tp"]
+              d = o["dir"]
+              ecart = d * (px - e) / max(1e-12, abs(e - (o.get("sl0") or sl)))
+              print("PRIX %s %s %s prix=%.6g entree=%.6g stop=%.6g obj1=%.6g moitie=%s ecart_en_risque=%+.2f" % (
+                  o["sym"], o["tf"], "ACHAT" if d > 0 else "VENTE", px, e, sl, tp1, o.get("half"), ecart))
+          PY
