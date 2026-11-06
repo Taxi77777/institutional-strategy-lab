@@ -1,0 +1,63 @@
+name: Labo - modele liquidite vers liquidite (test)
+
+# Teste le modele ICT « liquidite -> liquidite » sur 2 ans (forex) / 1 an (crypto) en 15 min : 60 % anciens pour
+# choisir la variante, 40 % recents (jamais vus) pour le verdict. Publie resultats/liq2liq_<marche>_<unite>.json.
+on:
+  workflow_dispatch:
+
+jobs:
+  tester:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        kind: [fx, cr]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - run: pip install -r requirements.txt
+      - uses: actions/cache/restore@v4            # memes fichiers que la recherche 15 min : pas de re-telechargement
+        with:
+          path: .duka_cache
+          key: ${{ matrix.kind == 'fx' && 'duka' || 'cr' }}-15M-liq2liq-${{ github.run_id }}
+          restore-keys: ${{ matrix.kind == 'fx' && 'duka' || 'cr' }}-15M-
+      - name: Test ${{ matrix.kind }}
+        env:
+          DUKA_CACHE: .duka_cache
+          PYTHONUNBUFFERED: '1'
+        run: python -m lab.liq2liq ${{ matrix.kind }} 15M
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: liq2liq-${{ matrix.kind }}
+          path: resultats/
+  publier:
+    needs: tester
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: liq2liq-*
+          path: /tmp/res
+          merge-multiple: true
+      - run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          for i in 1 2 3 4 5; do
+            git fetch -q origin main && git reset -q --hard origin/main
+            mkdir -p resultats && cp /tmp/res/*.json resultats/ 2>/dev/null || true
+            git add resultats
+            git diff --cached --quiet && exit 0
+            git commit -qm "Modele liquidite -> liquidite : resultats [skip ci]"
+            git push -q origin HEAD:main && exit 0
+            sleep 5
+          done
