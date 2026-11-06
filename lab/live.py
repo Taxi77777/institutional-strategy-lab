@@ -216,11 +216,12 @@ def activated(v):
 def heat_check(sym, kind, dr, fx):
     """Heatmap du carnet (crypto, en direct) : un achat est bloque si un gros mur vendeur est a moins d'un demi-ATR
        au-dessus (une vente : mur acheteur en dessous). Chaque releve est aussi enregistre (historique a tester)."""
-    if kind != "cr":
-        return True, None
+    from lab import kraken_fx as KF
+    if kind != "cr" and sym not in KF.PAIRS:
+        return True, None                           # forex hors Kraken : pas de carnet public
     hm = HEAT.get(sym)
     if not hm or time.time() - hm[0] > 240:
-        hm = (time.time(), data.heatmap(sym))
+        hm = (time.time(), data.heatmap(sym, kind=kind))
         HEAT[sym] = hm
         record_heat(sym, hm[1])
     h = hm[1]
@@ -228,23 +229,27 @@ def heat_check(sym, kind, dr, fx):
         return True, None
     half = 0.5 * fx["atr"] / fx["close"]
     block = h.get("mur_vente_dist" if dr > 0 else "mur_achat_dist")
-    txt = "🧱 Heatmap : mur acheteur %s · mur vendeur %s · déséquilibre ±1 %% : %+.0f %%" % (
+    zone = "±1 %%" if kind == "cr" else "±0,25 %%"
+    txt = ("🧱 Heatmap%s : mur acheteur %s · mur vendeur %s · déséquilibre " + zone + " : %+.0f %%") % (
+        "" if kind == "cr" else " (carnet Kraken)",
         "à -%.2f %%" % (100 * h["mur_achat_dist"]) if "mur_achat_dist" in h else "aucun",
         "à +%.2f %%" % (100 * h["mur_vente_dist"]) if "mur_vente_dist" in h else "aucun",
-        100 * h.get("desequilibre_1", 0))
+        100 * h.get("desequilibre_1" if kind == "cr" else "desequilibre_0.25", 0))
     return not (block is not None and block < half), txt
 
 
 def heat_record_all():
     """Releve horaire de la heatmap des cryptos suivies (meme sans signal) : constitue l'historique."""
+    from lab import kraken_fx as KF
     hour = int(time.time() // 3600)
-    for sym in UNIVERSE.get("cr", []):
+    fxs = [s_ for s_ in UNIVERSE.get("fx", []) if s_ in KF.PAIRS]
+    for kind_, sym in [("cr", s_) for s_ in UNIVERSE.get("cr", [])] + [("fx", s_) for s_ in fxs]:
         if STOP[0]:
             return
         if HEAT.get(("rec", sym)) == hour:
             continue
         try:
-            h = data.heatmap(sym)
+            h = data.heatmap(sym, kind=kind_)
         except Exception:
             h = None
         HEAT[sym] = (time.time(), h)

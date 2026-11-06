@@ -485,15 +485,23 @@ def order_book(sym):
     return (bids - asks) / (bids + asks), bids + asks
 
 
-def heatmap(sym, span=0.02, bucket=0.001):
-    """Heatmap du carnet d'ordres crypto (Coinbase + Bitstamp, publics) a +/- span autour du prix : liquidite par
-       tranches de 0,1 %, plus gros murs d'achat / de vente (tranche >= 3 x la mediane et >= 8 % de la profondeur),
-       desequilibres a 0,5 / 1 / 2 %. Retourne un dict ou None."""
+def heatmap(sym, span=0.02, bucket=0.001, kind="cr"):
+    """Heatmap du carnet d'ordres (publics) a +/- span autour du prix : crypto = Coinbase + Bitstamp ; forex = Kraken
+       (EURUSD, GBPUSD, AUDUSD, USDJPY, USDCAD, USDCHF ; carnet de Kraken seulement, pas celui des banques).
+       Liquidite par tranches, plus gros murs d'achat / de vente (tranche >= 3 x la mediane et >= 8 % de la
+       profondeur), desequilibres. Retourne un dict ou None."""
     lv, mid = {}, None
-    for url, params in (("https://api.exchange.coinbase.com/products/%s-USD/book" % sym, {"level": 2}),
-                        ("https://www.bitstamp.net/api/v2/order_book/%susd/" % sym.lower(), {})):
+    if kind == "fx":
+        span, bucket = 0.005, 0.0002                # forex : +/- 0,5 %, tranches de 0,02 % (~2 pips)
+        srcs = [("https://api.kraken.com/0/public/Depth", {"pair": sym, "count": 500})]
+    else:
+        srcs = [("https://api.exchange.coinbase.com/products/%s-USD/book" % sym, {"level": 2}),
+                ("https://www.bitstamp.net/api/v2/order_book/%susd/" % sym.lower(), {})]
+    for url, params in srcs:
         try:
             j = SESSION.get(url, params=params, timeout=10).json()
+            if kind == "fx":
+                j = next(iter((j.get("result") or {}).values()), {})
             b = [(float(x[0]), float(x[1])) for x in (j.get("bids") or [])[:2000]]
             a = [(float(x[0]), float(x[1])) for x in (j.get("asks") or [])[:2000]]
             if not b or not a:
@@ -518,7 +526,7 @@ def heatmap(sym, span=0.02, bucket=0.001):
             kb, v = max(walls, key=lambda x: x[1])
             out["mur_%s_dist" % nm] = round(abs((kb + 0.5) * bucket), 4)     # distance au prix, en fraction
             out["mur_%s_part" % nm] = round(v / tot, 3)
-    for w in (0.005, 0.01, 0.02):
+    for w in ((0.001, 0.0025, 0.005) if kind == "fx" else (0.005, 0.01, 0.02)):
         bb = sum(v for k, v in lv.items() if k[0] == 1 and abs(k[1] * bucket) <= w)
         aa = sum(v for k, v in lv.items() if k[0] == -1 and abs(k[1] * bucket) <= w)
         out["desequilibre_%g" % (100 * w)] = round((bb - aa) / (bb + aa), 3) if bb + aa > 0 else 0.0
