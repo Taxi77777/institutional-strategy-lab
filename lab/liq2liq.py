@@ -83,7 +83,29 @@ NOMS = {"ash": "haut asiatique", "asl": "bas asiatique", "loh": "haut de Londres
 HAUTS, BAS = ("ash", "loh", "pdh", "pwh"), ("asl", "lol", "pdl", "pwl")
 
 
-def setups(a, P, atr, entry_mode="ce", min_rr=1.0, killzone=True):
+def bias(a):
+    """Tendance de fond connue a chaque bougie : sens de la veille (cloture vs ouverture) et position de la cloture
+       de la veille par rapport a la moyenne des 20 jours precedents (+1 haussier, -1 baissier, 0 inconnu)."""
+    ts, o, c = a[:, 0], a[:, 1], a[:, 4]
+    day = (ts // 86400).astype(int)
+    first, last = {}, {}
+    for i in range(len(a)):
+        first.setdefault(day[i], o[i])
+        last[day[i]] = c[i]
+    days = sorted(last)
+    dj, ds = {}, {}
+    for k, d in enumerate(days):
+        if k == 0:
+            continue
+        p = days[k - 1]
+        dj[d] = np.sign(last[p] - first[p])
+        if k >= 21:
+            m = np.mean([last[x] for x in days[k - 21:k - 1]])
+            ds[d] = np.sign(last[p] - m)
+    return (np.array([dj.get(d, 0) for d in day]), np.array([ds.get(d, 0) for d in day]))
+
+
+def setups(a, P, atr, entry_mode="ce", min_rr=1.0, killzone=True, tendance="aucune", zones="toutes", B=None):
     """Detecte les setups (sans les jouer) : liste de dict {i_signal, dir, entry, stop, target, cible, prise}."""
     ts, o, h, l, c = a[:, 0], a[:, 1], a[:, 2], a[:, 3], a[:, 4]
     hr = ((ts % 86400) // 3600).astype(int)
@@ -97,7 +119,13 @@ def setups(a, P, atr, entry_mode="ce", min_rr=1.0, killzone=True):
         if killzone and not (7 <= hr[i] < 11 or 12 <= hr[i] < 16):
             continue
         for side, names in ((1, BAS), (-1, HAUTS)):          # 1 : liquidite sous le prix prise -> achat
+            if tendance != "aucune" and B is not None:
+                b_ = B[0][i] if tendance == "veille" else B[1][i]
+                if b_ != side:
+                    continue                                    # seulement dans le sens de la tendance de fond
             for nm in names:
+                if zones == "grosses" and nm not in ("pdh", "pdl", "pwh", "pwl"):
+                    continue
                 lv = P[nm][i]
                 if not np.isfinite(lv) or (day[i], nm) in taken:
                     continue
@@ -172,8 +200,9 @@ def play(a, s, kind, wait=8, max_bars=64):
     return fill, r - cost, half, k
 
 
-VARIANTES = [{"entry_mode": m, "min_rr": rr, "killzone": kz} for m in ("ce", "bord") for rr in (1.0, 2.0)
-             for kz in (True, False)]
+VARIANTES = [{"entry_mode": m, "min_rr": rr, "killzone": True, "tendance": t, "zones": z}
+             for m in ("ce", "bord") for rr in (1.0, 2.0) for t in ("aucune", "veille", "moyenne20j")
+             for z in ("toutes", "grosses")]
 
 
 def run(kind, tf="15M", syms=None):
@@ -199,8 +228,9 @@ def run(kind, tf="15M", syms=None):
         for s, a in bars.items():
             atr = _atr(a)
             P = pools(a)
+            B = bias(a)
             busy = -1
-            for st in setups(a, P, atr, **v):
+            for st in setups(a, P, atr, B=B, **v):
                 if st["i"] <= busy:
                     continue                        # un trade a la fois par actif
                 p = play(a, st, kind)
