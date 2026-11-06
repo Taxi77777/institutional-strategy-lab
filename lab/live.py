@@ -739,6 +739,9 @@ def scan(st, lab, tf, now, kinds=None):
         for sym in syms:
             if STOP[0]:
                 return sent
+            f0 = FEAT.get((sym, kind, tf, len(lab.get("idees") or {})))
+            if f0 and f0["ts"] + 2 * STEP[tf] > now:
+                continue                            # pas de nouvelle bougie fermee : deja controle, rien a refaire
             sv = st.setdefault("diag", {}).setdefault("surveillance", {})
             try:
                 fx = features(sym, kind, tf, now, lab.get("idees"))
@@ -1108,7 +1111,7 @@ def main():
                 lab = load_strategies()
                 for kd in ("cr", "fx"):                  # toute la crypto d'abord (rapide), puis le forex
                     for tf_ in CFG["TIMEFRAMES"]:
-                        scan(st, lab, tf_, now, kinds=(kd,))
+                        scan(st, lab, tf_, time.time(), kinds=(kd,))   # heure reelle : derniere bougie fermee
                         save_state(st)
                 st.setdefault("diag", {})["truefx"] = {"mode": data.TRUEFX["mode"], "paires_temps_reel": data.TRUEFX["paires"]}
                 heat_record_all()                       # historique horaire de la heatmap crypto
