@@ -319,6 +319,13 @@ def activated_signals(st, lab, kind, tf, sym, fx):
             continue
         if any(o["sym"] == sym for o in st["open"]) or any(r["args"][3] == sym for r in PENDING):
             return 0
+        if kind == "cr":                            # demande du trader : seulement des cryptos avec un vrai volume
+            a_ = fx.get("a")
+            n_ = max(1, int(86400 // STEP[tf]))
+            v24 = float((a_[-n_:, 5] * a_[-n_:, 4]).sum()) if a_ is not None and len(a_) else 0.0
+            if v24 < CFG["VOLUME_MIN_CRYPTO"]:
+                st.setdefault("diag", {}).setdefault("volume_trop_faible", {})[sym] = "%.1f M$ sur 24 h" % (v24 / 1e6)
+                return 0
         kv = kronos_avis(sym)
         if CFG["KRONOS_ACCORD"] and (kv is None or kv["atr"] * s["dir"] <= 0):
             dz = st.setdefault("diag", {}).setdefault("kronos_pas_d_accord", {})
@@ -340,7 +347,8 @@ def activated_signals(st, lab, kind, tf, sym, fx):
             "hausse" if kv["atr"] > 0 else "baisse", kv["atr"], kv["pct"]) if kv else None)
         heat = " · ".join(x for x in (kt, heat) if x) or None
         a_ = fx.get("a")
-        vol = float((a_[-24:, 5] * a_[-24:, 4]).sum()) if a_ is not None and len(a_) else 0.0   # volume recent en $
+        n_ = max(1, int(86400 // STEP[tf]))
+        vol = float((a_[-n_:, 5] * a_[-n_:, 4]).sum()) if a_ is not None and len(a_) else 0.0   # volume 24 h en $
         PENDING.append({"win": s.get("test_win", 0), "vol": vol, "args": (st, kind, tf, sym, s["dir"], fx, dict(s, heat=heat),
                                                                    {s["agent"]: s}, {}, lab)})
         return 1
@@ -358,8 +366,8 @@ def flush_pending():
     PENDING.clear()
     for i, r in enumerate(rows):
         st, kind, tf, sym, d_, fx, s, ag, ex, lab = r["args"]
-        rang = "🏆 Rang %d/%d du controle (%.0f %% de reussite, volume %s $ sur 24 bougies)" % (
-            i + 1, len(rows), 100 * r["win"], "{:,.0f}".format(r["vol"]).replace(",", " "))
+        rang = "🏆 Rang %d/%d du controle (%.0f %% de reussite, volume %.1f M$ sur 24 h)" % (
+            i + 1, len(rows), 100 * r["win"], r["vol"] / 1e6)
         s = dict(s, heat=" · ".join(x for x in (rang, s.get("heat")) if x))
         if any(o["sym"] == sym for o in st["open"]):
             continue

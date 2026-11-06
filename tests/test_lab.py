@@ -34,6 +34,7 @@ def fast(monkeypatch, tmp_path):
     monkeypatch.setitem(config.CFG, "LIQUIDITE_SEULE", 0)          # anciens tests : toutes les familles
     monkeypatch.setitem(config.CFG, "HEURES_SIGNAUX", [0, 24])     # tests : a toute heure
     monkeypatch.setitem(config.CFG, "KRONOS_ACCORD", 0)            # tests : sans reseau
+    monkeypatch.setitem(config.CFG, "VOLUME_MIN_CRYPTO", 0)        # tests : volume factice
     monkeypatch.setitem(config.CFG, "MODE", "win")
     monkeypatch.setitem(config.CFG, "PAUSE", 0)
     monkeypatch.setitem(config.CFG, "SIMS", 500)
