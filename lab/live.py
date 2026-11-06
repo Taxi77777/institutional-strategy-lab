@@ -317,7 +317,7 @@ def activated_signals(st, lab, kind, tf, sym, fx):
         if (s["kind"] != kind or s["tf"] != tf or sym not in s["paires_ok"] or s["id"] in set(st["retired"])
                 or not active(s, fx["last"])):
             continue
-        if any(o["sym"] == sym for o in st["open"]):
+        if any(o["sym"] == sym for o in st["open"]) or any(r["args"][3] == sym for r in PENDING):
             return 0
         kv = kronos_avis(sym)
         if CFG["KRONOS_ACCORD"] and (kv is None or kv["atr"] * s["dir"] <= 0):
@@ -339,9 +339,30 @@ def activated_signals(st, lab, kind, tf, sym, fx):
         kt = ("🤖 Kronos (IA) d'accord : %s %+.1f ATR (%+.1f %%) sur 5 jours" % (
             "hausse" if kv["atr"] > 0 else "baisse", kv["atr"], kv["pct"]) if kv else None)
         heat = " · ".join(x for x in (kt, heat) if x) or None
-        send_signal(st, kind, tf, sym, s["dir"], fx, dict(s, heat=heat), {s["agent"]: s}, {}, lab, activee=True)
+        a_ = fx.get("a")
+        vol = float((a_[-24:, 5] * a_[-24:, 4]).sum()) if a_ is not None and len(a_) else 0.0   # volume recent en $
+        PENDING.append({"win": s.get("test_win", 0), "vol": vol, "args": (st, kind, tf, sym, s["dir"], fx, dict(s, heat=heat),
+                                                                   {s["agent"]: s}, {}, lab)})
         return 1
     return 0
+
+
+PENDING = []
+
+
+def flush_pending():
+    """Demande du trader : les signaux d'un meme controle sont envoyes classes, le meilleur pourcentage d'abord,
+       puis le plus gros volume ; chaque message porte son rang (n° 1 = le plus solide)."""
+    rows = sorted(PENDING, key=lambda r: (-round(r["win"], 3), -r["vol"]))
+    PENDING.clear()
+    for i, r in enumerate(rows):
+        st, kind, tf, sym, d_, fx, s, ag, ex, lab = r["args"]
+        rang = "🏆 Rang %d/%d du controle (%.0f %% de reussite, volume %s $ sur 24 bougies)" % (
+            i + 1, len(rows), 100 * r["win"], "{:,.0f}".format(r["vol"]).replace(",", " "))
+        s = dict(s, heat=" · ".join(x for x in (rang, s.get("heat")) if x))
+        if any(o["sym"] == sym for o in st["open"]):
+            continue
+        send_signal(st, kind, tf, sym, d_, fx, s, ag, ex, lab, activee=True)
 
 
 # ------------------------------------------------------------------ donnees en direct
@@ -1112,6 +1133,7 @@ def main():
                 for kd in ("cr", "fx"):                  # toute la crypto d'abord (rapide), puis le forex
                     for tf_ in CFG["TIMEFRAMES"]:
                         scan(st, lab, tf_, time.time(), kinds=(kd,))   # heure reelle : derniere bougie fermee
+                        flush_pending()                 # signaux du controle envoyes classes (pourcentage, volume)
                         save_state(st)
                 st.setdefault("diag", {})["truefx"] = {"mode": data.TRUEFX["mode"], "paires_temps_reel": data.TRUEFX["paires"]}
                 heat_record_all()                       # historique horaire de la heatmap crypto

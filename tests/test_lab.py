@@ -416,7 +416,8 @@ def test_strategie_activee_par_le_trader(monkeypatch, tmp_path):
           "close": 1.1, "atr": 0.001, "ts": 1790000000.0}
     assert live.activated_signals(st, lab, "fx", "1H", "USDJPY", fx) == 0      # paire perdante : jamais de signal
     assert live.activated_signals(st, lab, "fx", "1H", "EURUSD", fx) == 1
-    assert "ACTIVÉE PAR TOI" in sent[0] and "VENDRE" in sent[0]
+    live.flush_pending()                                                     # envoi classe en fin de controle
+    assert "ACTIVÉE PAR TOI" in sent[0] and "VENDRE" in sent[0] and "Rang 1/1" in sent[0]
     assert live.activated_signals(st, lab, "fx", "1H", "EURUSD", fx) == 0      # un seul trade par paire
 
 
