@@ -11,6 +11,9 @@ on:
       unite:
         description: "Unite de temps (15M, 1H...)"
         default: 15M
+      tp1:
+        description: "1 = variantes avec premier objectif proche (reussite elevee)"
+        default: ""
 
 jobs:
   tester:
@@ -37,11 +40,12 @@ jobs:
         env:
           DUKA_CACHE: .duka_cache
           PYTHONUNBUFFERED: '1'
+          OB_TP1: ${{ inputs.tp1 }}
         run: python -m lab.${{ inputs.modele || 'liq2liq' }} ${{ matrix.kind }} ${{ inputs.unite || '15M' }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ${{ inputs.modele || 'liq2liq' }}-${{ inputs.unite || '15M' }}-${{ matrix.kind }}
+          name: ${{ inputs.modele || 'liq2liq' }}-${{ inputs.unite || '15M' }}${{ inputs.tp1 }}-${{ matrix.kind }}
           path: resultats/
   publier:
     needs: tester
@@ -53,7 +57,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v4
         with:
-          pattern: ${{ inputs.modele || 'liq2liq' }}-${{ inputs.unite || '15M' }}-*
+          pattern: ${{ inputs.modele || 'liq2liq' }}-${{ inputs.unite || '15M' }}${{ inputs.tp1 }}-*
           path: /tmp/res
           merge-multiple: true
       - run: |

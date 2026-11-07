@@ -57,7 +57,7 @@ def setups(a, atr, k=1.5, entry="bord", cible="impulsion", kz=True):
     return out
 
 
-def play(a, s, kind, max_bars=64):
+def play(a, s, kind, max_bars=64, tp1_r=1.0):
     o, h, l, c = a[:, 1], a[:, 2], a[:, 3], a[:, 4]
     m, d, e, sl, tg = s["i"], s["dir"], s["entry"], s["stop"], s["target"]
     if (o[m] - e) * d < 0:
@@ -65,25 +65,27 @@ def play(a, s, kind, max_bars=64):
     risk = (e - sl) * d
     if risk <= 0:
         return None
-    tp1, half, stop = e + d * risk, False, sl
+    tp1, half, stop = e + d * tp1_r * risk, False, sl
     cost = COST[kind] * e / risk
     for k in range(m, min(m + max_bars, len(a))):
         if (l[k] <= stop) if d == 1 else (h[k] >= stop):
-            return (0.5 + 0.5 * (stop - e) * d / risk if half else (stop - e) * d / risk) - cost, half, k
+            return (0.5 * tp1_r + 0.5 * (stop - e) * d / risk if half else (stop - e) * d / risk) - cost, half, k
         if k == m:
             continue                                # bougie du remplissage : on ne sait pas si l'objectif est venu
                                                     # avant ou apres l'entree -> on ne le compte pas (prudence)
         if not half and ((h[k] >= tp1) if d == 1 else (l[k] <= tp1)):
             half, stop = True, e
         if (h[k] >= tg) if d == 1 else (l[k] <= tg):
-            return (0.5 + 0.5 * (tg - e) * d / risk) - cost, True, k
+            return (0.5 * tp1_r + 0.5 * (tg - e) * d / risk) - cost, True, k
     k = min(m + max_bars, len(a)) - 1
-    r = (0.5 + 0.5 * (c[k] - e) * d / risk) if half else (c[k] - e) * d / risk
+    r = (0.5 * tp1_r + 0.5 * (c[k] - e) * d / risk) if half else (c[k] - e) * d / risk
     return r - cost, half, k
 
 
 VARIANTES = [{"k": k, "entry": e, "cible": t} for k in (1.0, 1.5, 2.0) for e in ("bord", "milieu")
              for t in ("impulsion", "2R")]
+if os.environ.get("OB_TP1"):                        # demande du trader : 90 % de reussite -> premier objectif plus proche
+    VARIANTES = [{"k": k, "entry": "bord", "cible": "2R", "tp1": t} for k in (1.0, 1.5, 2.0) for t in (0.2, 0.3, 0.5)]
 
 
 def run(kind, tf="1H"):
@@ -106,10 +108,10 @@ def run(kind, tf="1H"):
         for s, a in bars.items():
             atr = _atr(a)
             busy = -1
-            for st in setups(a, atr, kz=(kind == "fx"), **v):
+            for st in setups(a, atr, kz=(kind == "fx"), **{x: y for x, y in v.items() if x != "tp1"}):
                 if st["i"] <= busy:
                     continue
-                p = play(a, st, kind)
+                p = play(a, st, kind, tp1_r=v.get("tp1", 1.0))
                 if p is None:
                     continue
                 r, win, end = p
