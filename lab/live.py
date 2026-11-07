@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 
 import numpy as np
 
-from . import data, ideas as IDEAS, indicators as IND, positionnement as POS, telegram as TG
+from . import banque as BQ, data, ideas as IDEAS, indicators as IND, positionnement as POS, telegram as TG
 from .config import CFG, EXITS, UNIVERSE
 from .miner import BENCH, align, family, is_pa, kronos_feats, macro_series, funding_refs, orderflow_refs
 
@@ -571,6 +571,7 @@ def features(sym, kind, tf, now, specs=None):
         refs["funding"] = funding_refs(sym, a[:, 0], fetch=lambda s_: fc[1] if fc[1] is not None else (_ for _ in ()).throw(RuntimeError("indisponible")))
     F, atr = IND.compute(a, kind, refs, mac)
     F["kronos"] = kronos_feats(kind, tf, sym, a[:, 0])
+    F["banque"] = BQ.feats(a, kind)
     for nm, sp in (specs or {}).items():
         x = IDEAS.apply_spec(F, sp)
         if x is not None:

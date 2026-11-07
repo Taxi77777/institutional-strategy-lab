@@ -69,12 +69,36 @@ def setups(a, P, atr, entry="bord", pd=False, zones="toutes", kz=True):
                     for m in range(j + 1, min(j + 33, n)):
                         if (l[m] <= e) if d == 1 else (h[m] >= e):
                             if not kz or 7 <= hr[m] < 17:
-                                out.append({"i": m, "dir": d, "entry": float(e), "stop": float(sl), "target": float(tg)})
+                                pdh, pdl = P["pdh"][j], P["pdl"][j]
+                                zp = 0 if not np.isfinite(pdh) else (1 if e < (pdh + pdl) / 2 else -1)
+                                out.append({"i": m, "dir": d, "entry": float(e), "stop": float(sl), "target": float(tg),
+                                            "prise": nm, "pd": zp, "rr": float((tg - e) * d / risk)})
                             break
                         if (h[m] >= tg) if d == 1 else (l[m] <= tg):
                             break                                 # objectif atteint sans retour : rate
                     break
     return out
+
+
+ZONE = {"asl": 1, "ash": 1, "lol": 2, "loh": 2, "pdl": 3, "pdh": 3, "pwl": 4, "pwh": 4}
+
+
+def feats(a, kind):
+    """Specialiste « banque » pour le chercheur et l'armee : a la cloture de la bougie ou le prix revient sur l'order
+       block (apres prise de liquidite + cassure de structure), sens du setup, zone prise (1 Asie, 2 Londres,
+       3 veille, 4 semaine), achat en zone basse / vente en zone haute (+1 / -1) et distance de l'objectif (en R).
+       NaN ailleurs. Jamais de donnee future : tout est connu a la cloture de la bougie."""
+    n = len(a)
+    F = {k: np.full(n, np.nan) for k in ("setup", "zone", "premium_discount", "objectif_r")}
+    if n < 50:
+        return F
+    for st in setups(a, pools(a), _atr(a), "bord", False, "toutes", kz=(kind == "fx")):
+        m = st["i"]
+        F["setup"][m] = st["dir"]
+        F["zone"][m] = ZONE[st["prise"]]
+        F["premium_discount"][m] = st["pd"] * st["dir"]
+        F["objectif_r"][m] = min(st["rr"], 6.0)
+    return F
 
 
 VARIANTES = [{"entry": e, "pd": p, "zones": z, "tp1": t} for e in ("bord", "milieu") for p in (False, True)

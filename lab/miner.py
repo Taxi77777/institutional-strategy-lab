@@ -19,7 +19,7 @@ import warnings
 
 import numpy as np
 
-from . import data, extra as EX, ideas as IDEAS, indicators as IND, positionnement as POS, sim
+from . import banque as BQ, data, extra as EX, ideas as IDEAS, indicators as IND, positionnement as POS, sim
 from .config import CFG, EXITS, UNIVERSE
 
 log = logging.getLogger("lab")
@@ -61,8 +61,9 @@ def exact_align(src_ts, val, ts):
 # demande du trader (5 nov.) : uniquement la liquidite et le prix avance (SMC / ICT, order blocks, FVG, chasses de
 # stops, structure, order flow) ; plus aucune strategie a base d'indicateurs classiques
 PA_AGENTS = {"liquidite", "smc", "orderflow", "flux", "positionnement", "structure", "amd", "chiffres_ronds", "fibonacci",
-             "bougies", "chandeliers", "profil", "vwap", "carnet", "noyau_liquidite", "noyau_continuation", "kronos"}
-PA_CORE = {"liquidite", "smc", "orderflow", "flux"}            # flux = flux des operateurs / banques (fixing, NFP...)
+             "bougies", "chandeliers", "profil", "vwap", "carnet", "noyau_liquidite", "noyau_continuation", "kronos",
+             "banque"}
+PA_CORE = {"liquidite", "smc", "orderflow", "flux", "banque"}            # flux = flux des operateurs / banques (fixing, NFP...)
 
 
 def cond_agents(c_):
@@ -236,6 +237,7 @@ def build(kind, tf, fetch=None, fetch_daily=None, symbols=None, macro=None, idea
         mac = {k: align(v[0], v[1], a[:, 0]) for k, v in macro.items()}
         F, atr = IND.compute(a, kind, refs, mac)
         F["kronos"] = kronos_feats(kind, tf, s, a[:, 0])   # IA chinoise Kronos (bougies jour) : un specialiste de plus
+        F["banque"] = BQ.feats(a, kind)                   # liquidite prise + cassure + retour sur l'order block
         if idea_specs is not None:                  # l'Inventeur : ses idees deviennent des indicateurs testes
             if not idea_specs:
                 only_ = [x for x in os.environ.get("AGENTS_ONLY", "").split(",") if x and x != "inventeur"]
