@@ -4,6 +4,10 @@ name: Labo - modele liquidite vers liquidite (test)
 # choisir la variante, 40 % recents (jamais vus) pour le verdict. Publie resultats/liq2liq_<marche>_<unite>.json.
 on:
   workflow_dispatch:
+    inputs:
+      modele:
+        description: "Modele a tester (liq2liq = liquidite vers liquidite, ronds = chiffres ronds d'Osler)"
+        default: liq2liq
 
 jobs:
   tester:
@@ -30,11 +34,11 @@ jobs:
         env:
           DUKA_CACHE: .duka_cache
           PYTHONUNBUFFERED: '1'
-        run: python -m lab.liq2liq ${{ matrix.kind }} 15M
+        run: python -m lab.${{ inputs.modele || 'liq2liq' }} ${{ matrix.kind }} 15M
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: liq2liq-${{ matrix.kind }}
+          name: ${{ inputs.modele || 'liq2liq' }}-${{ matrix.kind }}
           path: resultats/
   publier:
     needs: tester
@@ -46,7 +50,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v4
         with:
-          pattern: liq2liq-*
+          pattern: ${{ inputs.modele || 'liq2liq' }}-*
           path: /tmp/res
           merge-multiple: true
       - run: |
