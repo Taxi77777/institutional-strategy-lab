@@ -631,7 +631,8 @@ COT_NAMES = {"EURO FX": "EUR", "JAPANESE YEN": "JPY", "BRITISH POUND": "GBP", "B
 
 def cot(years=11):
     """Rapport COT de la CFTC (traders in financial futures) : positions des fonds a levier et des gerants.
-       Retourne {devise: (n, 4) : disponibilite (s), net fonds / OI, net gerants / OI, net dealers / OI}.
+       Retourne {devise: (n, 5) : disponibilite (s), net fonds / OI, net gerants / OI, net dealers / OI,
+       net des petits traders (non declarables) / OI}.
        Disponibilite prudente : rapport du mardi utilise a partir du lundi suivant 00 h UTC."""
     import csv
     import zipfile
@@ -656,7 +657,8 @@ def cot(years=11):
                 f = lambda a, b: (float(row[a]) - float(row[b])) / oi if oi > 0 else np.nan  # noqa: E731
                 vals = (f("Lev_Money_Positions_Long_All", "Lev_Money_Positions_Short_All"),
                         f("Asset_Mgr_Positions_Long_All", "Asset_Mgr_Positions_Short_All"),
-                        f("Dealer_Positions_Long_All", "Dealer_Positions_Short_All"))
+                        f("Dealer_Positions_Long_All", "Dealer_Positions_Short_All"),
+                        f("NonRept_Positions_Long_All", "NonRept_Positions_Short_All"))   # petits traders
             except (KeyError, ValueError):
                 continue
             avail = datetime.datetime(d.year, d.month, d.day, tzinfo=datetime.timezone.utc).timestamp() + 6 * 86400

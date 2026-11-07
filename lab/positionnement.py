@@ -45,6 +45,9 @@ def cot_features(sym, kind, ts, cot):
             out["cot_fonds_%s" % nm] = _align(a[:, 0], a[:, 1], ts)
             out["cot_gerants_%s" % nm] = _align(a[:, 0], a[:, 2], ts)
             out["cot_percentile_fonds_%s" % nm] = _align(a[:, 0], _pct(a[:, 1]), ts)
+            if a.shape[1] > 4:                      # petits traders (la foule, qui perd le plus souvent)
+                out["cot_petits_%s" % nm] = _align(a[:, 0], a[:, 4], ts)
+                out["cot_percentile_petits_%s" % nm] = _align(a[:, 0], _pct(a[:, 4]), ts)
         if "cot_fonds_base" in out and "cot_fonds_cotee" in out:
             out["cot_ecart_fonds"] = out["cot_fonds_base"] - out["cot_fonds_cotee"]
             out["cot_ecart_gerants"] = out["cot_gerants_base"] - out["cot_gerants_cotee"]
