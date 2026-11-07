@@ -70,6 +70,9 @@ def play(a, s, kind, max_bars=64):
     for k in range(m, min(m + max_bars, len(a))):
         if (l[k] <= stop) if d == 1 else (h[k] >= stop):
             return (0.5 + 0.5 * (stop - e) * d / risk if half else (stop - e) * d / risk) - cost, half, k
+        if k == m:
+            continue                                # bougie du remplissage : on ne sait pas si l'objectif est venu
+                                                    # avant ou apres l'entree -> on ne le compte pas (prudence)
         if not half and ((h[k] >= tp1) if d == 1 else (l[k] <= tp1)):
             half, stop = True, e
         if (h[k] >= tg) if d == 1 else (l[k] <= tg):
