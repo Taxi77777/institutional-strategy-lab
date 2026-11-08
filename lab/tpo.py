@@ -7,7 +7,7 @@ lettre (A, B, C...) ; le profil compte, pour chaque prix, combien de lettres l'o
     reste a prendre ; quand le prix repasse au-dessus (dessous) du POC, on joue vers ce plus haut (bas) ;
   - « ib_faux » : l'Initial Balance (2 ou 4 premieres lettres de la seance : Londres en forex, 0 h UTC en crypto)
     est cassee puis le prix revient dedans -> faux depart, objectif l'autre bord ;
-  - « ib_ext » : cloture au-dela de l'Initial Balance -> continuation, objectif 1 fois (ou 0,5 fois) sa hauteur.
+  - « ib_ext » : cloture au-dela de l'Initial Balance -> continuation, objectif 1 ou 2 fois sa hauteur.
 Moitie au premier objectif puis stop a l'entree ; regle stricte (objectif jamais compte sur la bougie d'entree).
 Test honnete : 60 % anciens pour choisir, 40 % recents (jamais vus) pour le verdict.   python -m lab.tpo fx"""
 import json
@@ -145,7 +145,7 @@ def setups(a, atr, model, param, kz=True):
 VARIANTES = ([{"model": "exces", "param": p, "tp1": t} for p in (2, 4) for t in (0.5, 1.0)] +
              [{"model": "poor", "param": p, "tp1": t} for p in (2, 3) for t in (0.5, 1.0)] +
              [{"model": "ib_faux", "param": p, "tp1": t} for p in (2, 4) for t in (0.5, 1.0)] +
-             [{"model": "ib_ext", "param": p, "tp1": t} for p in (0.5, 1.0) for t in (0.5, 1.0)])
+             [{"model": "ib_ext", "param": p, "tp1": t} for p in (1.0, 2.0) for t in (0.5, 1.0)])
 
 
 def run(kind, tf="30M"):
