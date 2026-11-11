@@ -46,6 +46,9 @@ def run(kind="cr", tf=""):
     }
     res["volume_coinbase_M"] = {s: round((cb.get(s) or 0) / 1e6, 1) for s in sorted(uni, key=lambda s: -(cb.get(s) or 0))}
     print("COINBASE 24H M$ :", json.dumps(res["volume_coinbase_M"]))
+    allp = sorted(perps.items(), key=lambda x: -x[1])
+    res["tous_perps_M"] = {b: round(v / 1e6, 2) for b, v in allp}
+    print("TOUS PERPS", len(allp), json.dumps([[b, round(v / 1e6, 1), int(b in uni)] for b, v in allp[:120]]))
     print("PERPS >= 10 M$ :", res["perps_10M"], "| deja scannees :", len(res["scannees"]))
     print("MANQUANTES (perp, volume M$) :", json.dumps(res["manquantes"]))
     print("BLOQUEES (perp M$, coinbase M$) :", json.dumps(res["bloquees_par_volume_coinbase"]))
