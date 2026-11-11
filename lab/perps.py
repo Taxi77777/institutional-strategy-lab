@@ -44,6 +44,8 @@ def run(kind="cr", tf=""):
                                                key=lambda x: -x[1]),
         "scannees_sans_perp_10M": sorted(s for s in uni if s not in big),
     }
+    res["volume_coinbase_M"] = {s: round((cb.get(s) or 0) / 1e6, 1) for s in sorted(uni, key=lambda s: -(cb.get(s) or 0))}
+    print("COINBASE 24H M$ :", json.dumps(res["volume_coinbase_M"]))
     print("PERPS >= 10 M$ :", res["perps_10M"], "| deja scannees :", len(res["scannees"]))
     print("MANQUANTES (perp, volume M$) :", json.dumps(res["manquantes"]))
     print("BLOQUEES (perp M$, coinbase M$) :", json.dumps(res["bloquees_par_volume_coinbase"]))
