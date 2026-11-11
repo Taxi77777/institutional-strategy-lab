@@ -47,7 +47,7 @@ CFG = {
     "PF_FLOOR_2": envf("PF_FLOOR_2", 1.15),  # mode gain : tri des combinaisons et de l'apprentissage
     "ELITE_PF": envf("ELITE_PF", 1.5),       # mode gain : setup elite (peut signaler seul, >= 100 trades jamais vus)
     "HEURES_SIGNAUX": [envf("HEURE_DEBUT", 9.0), envf("HEURE_FIN", 21.0)],   # ouverture du matin -> fin du volume le soir (Paris), demande du 6 nov.
-    "VOLUME_MIN_CRYPTO": envf("VOLUME_MIN_CRYPTO", 10e6),  # 6 nov. : cryptos avec un vrai volume (>= 10 M$ / 24 h)
+    "VOLUME_MIN_CRYPTO": envf("VOLUME_MIN_CRYPTO", 5e6),   # 11 nov. : >= 5 M$ / 24 h sur Coinbase (10 M$ = 6 cryptos seulement)
     "KRONOS_ACCORD": int(envf("KRONOS_ACCORD", 0)),   # 11 nov. : Kronos ne bloque plus (bon sens 50 % sur 60 000
                                                        # previsions) ; son avis reste affiche dans le message
     "LIQUIDITE_SEULE": int(envf("LIQUIDITE_SEULE", 1)),   # demande du 5 nov. : liquidite + prix avance uniquement
