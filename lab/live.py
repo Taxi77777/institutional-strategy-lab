@@ -348,8 +348,9 @@ def activated_signals(st, lab, kind, tf, sym, fx):
                 "%s %s %s" % (paris(time.time()).strftime("%d/%m %H:%M"), sym, tf))
             st["diag"]["murs_signales"] = st["diag"]["murs_signales"][-20:]
         st["alerts"][key] = time.time()
-        kt = ("🤖 Kronos (IA) d'accord : %s %+.1f ATR (%+.1f %%) sur 5 jours" % (
-            "hausse" if kv["atr"] > 0 else "baisse", kv["atr"], kv["pct"]) if kv else None)
+        kt = ("🤖 Kronos (IA) %s : %s %+.1f ATR (%+.1f %%) sur 5 jours" % (
+            "d'accord" if kv["atr"] * s["dir"] > 0 else "PAS d'accord", "hausse" if kv["atr"] > 0 else "baisse",
+            kv["atr"], kv["pct"]) if kv else None)
         heat = " · ".join(x for x in (kt, heat) if x) or None
         a_ = fx.get("a")
         n_ = max(1, int(86400 // STEP[tf]))

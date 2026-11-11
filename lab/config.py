@@ -48,7 +48,8 @@ CFG = {
     "ELITE_PF": envf("ELITE_PF", 1.5),       # mode gain : setup elite (peut signaler seul, >= 100 trades jamais vus)
     "HEURES_SIGNAUX": [envf("HEURE_DEBUT", 9.0), envf("HEURE_FIN", 21.0)],   # ouverture du matin -> fin du volume le soir (Paris), demande du 6 nov.
     "VOLUME_MIN_CRYPTO": envf("VOLUME_MIN_CRYPTO", 10e6),  # 6 nov. : cryptos avec un vrai volume (>= 10 M$ / 24 h)
-    "KRONOS_ACCORD": int(envf("KRONOS_ACCORD", 1)),   # demande du 5 nov. : signal seulement dans le sens de Kronos
+    "KRONOS_ACCORD": int(envf("KRONOS_ACCORD", 0)),   # 11 nov. : Kronos ne bloque plus (bon sens 50 % sur 60 000
+                                                       # previsions) ; son avis reste affiche dans le message
     "LIQUIDITE_SEULE": int(envf("LIQUIDITE_SEULE", 1)),   # demande du 5 nov. : liquidite + prix avance uniquement
     "TIMEFRAMES": envl("TIMEFRAMES", "1H,30M,15M,4H,1D"),    # demande du trader (5 nov.) : 1 h + 4 h + 15 min
     "MIN_WIN": envf("MIN_WIN", 0.90 if MODE == "tendance90" else 0.92),        # exigence du trader : le labo ne garde que les strategies >= 92 % (jamais vues)
