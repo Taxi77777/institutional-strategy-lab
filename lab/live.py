@@ -355,10 +355,21 @@ def activated_signals(st, lab, kind, tf, sym, fx):
         a_ = fx.get("a")
         n_ = max(1, int(86400 // STEP[tf]))
         vol = float((a_[-n_:, 5] * a_[-n_:, 4]).sum()) if a_ is not None and len(a_) else 0.0   # volume 24 h en $
-        PENDING.append({"win": s.get("test_win", 0), "vol": vol, "args": (st, kind, tf, sym, s["dir"], fx, dict(s, heat=heat),
+        t_ = (s.get("stats") or {}).get("test") or {}
+        w_, n_t = float(t_.get("win", s.get("test_win", 0)) or 0), int(t_.get("n", s.get("test_n", 0)) or 0)
+        PENDING.append({"win": w_, "n": n_t, "sol": wilson_low(w_ * n_t, n_t), "vol": vol, "args": (st, kind, tf, sym, s["dir"], fx, dict(s, heat=heat),
                                                                    {s["agent"]: s}, {}, lab)})
         return 1
     return 0
+
+
+def wilson_low(k, n, z=1.64):
+    """Borne basse du taux de reussite (Wilson) : elle penalise les petits echantillons, dont le beau taux doit
+       beaucoup a la chance (96 % sur 56 trades -> 89 % ; 90 % sur 30 trades -> 78 % ; 85 % sur 400 -> 82 %)."""
+    if n <= 0:
+        return 0.0
+    p = k / n
+    return (p + z * z / (2 * n) - z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n))) / (1 + z * z / n)
 
 
 PENDING = []
@@ -368,12 +379,13 @@ EVAL = {}
 def flush_pending():
     """Demande du trader : les signaux d'un meme controle sont envoyes classes, le meilleur pourcentage d'abord,
        puis le plus gros volume ; chaque message porte son rang (n° 1 = le plus solide)."""
-    rows = sorted(PENDING, key=lambda r: (-round(r["win"], 3), -r["vol"]))
+    rows = sorted(PENDING, key=lambda r: (-round(r.get("sol", 0), 3), -r["vol"]))   # 11 nov. : solidite (taux corrige
+                                                                                    # du nombre de trades), puis volume
     PENDING.clear()
     for i, r in enumerate(rows):
         st, kind, tf, sym, d_, fx, s, ag, ex, lab = r["args"]
-        rang = "🏆 Rang %d/%d du controle (%.0f %% de reussite, volume %.1f M$ sur 24 h)" % (
-            i + 1, len(rows), 100 * r["win"], r["vol"] / 1e6)
+        rang = "🏆 Rang %d/%d du controle (%.0f %% sur %d trades jamais vus, solidite %.0f %%, volume %.1f M$ sur 24 h)" % (
+            i + 1, len(rows), 100 * r["win"], r.get("n", 0), 100 * r.get("sol", 0), r["vol"] / 1e6)
         s = dict(s, heat=" · ".join(x for x in (rang, s.get("heat")) if x))
         if any(o["sym"] == sym for o in st["open"]):
             continue
