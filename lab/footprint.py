@@ -8,7 +8,10 @@ objectif puis stop a l'entree, objectif 2 fois le risque, regle stricte) :
     mais cloture dans la moitie haute -> vendeurs absorbes : achat (inverse pour la vente) ;
   - desequilibres : >= 3 niveaux consecutifs ou les acheteurs (vendeurs) dominent 3 fois -> continuation ;
   - divergence : nouveau plus haut (bas) des 8 bougies mais delta contraire -> retournement ;
-  - epuisement : nouveau plus haut (bas) avec presque aucun volume aux 2 niveaux extremes et cloture opposee.
+  - epuisement : nouveau plus haut (bas) avec presque aucun volume aux 2 niveaux extremes et cloture opposee ;
+  - cvd : nouveau plus haut (bas) des 20 ou 50 bougies sans nouveau plus haut du delta cumule -> retournement ;
+  - poc : apres une prise du plus bas (haut), le POC de la bougie est dans son tiers haut (bas) et la cloture
+    au-dessus (dessous) -> les acheteurs (vendeurs) ont repris le controle.
 Test honnete : 60 % anciens pour choisir, 40 % recents (jamais vus).   python -m lab.footprint cr 15M"""
 import datetime
 import io
@@ -30,7 +33,8 @@ COINS = os.environ.get("FP_COINS", "BTC,ETH,SOL,XRP,DOGE,ADA,LINK,AVAX,LTC,SUI")
 DAYS = int(os.environ.get("FP_DAYS", "365"))
 URL = "https://data.binance.vision/data/spot/daily/aggTrades/{p}/{p}-aggTrades-{d}.zip"
 BIN = 0.0005
-COLS = ["t", "o", "h", "l", "c", "vol", "delta", "abs_bas", "abs_haut", "stack_buy", "stack_sell", "ext_haut", "ext_bas"]
+COLS = ["t", "o", "h", "l", "c", "vol", "delta", "abs_bas", "abs_haut", "stack_buy", "stack_sell", "ext_haut", "ext_bas",
+        "dvol", "poc_pos"]
 
 
 def bar_features(t, px, q, buy, step):
@@ -68,7 +72,8 @@ def bar_features(t, px, q, buy, step):
             return m
         k2 = min(2, n)
         out.append([bar[s] * step, o, h, l, c, vol, (2 * bv - vol) / vol, abs_bas, abs_haut, run(ib), run(isell),
-                    (B[-k2:].sum() + S[-k2:].sum()) / vol, (B[:k2].sum() + S[:k2].sum()) / vol])
+                    (B[-k2:].sum() + S[-k2:].sum()) / vol, (B[:k2].sum() + S[:k2].sum()) / vol,
+                    2 * bv - vol, (np.argmax(B + S) + 0.5) / n])
     return out
 
 
@@ -97,8 +102,9 @@ def day_bars(sym, d, steps):
 def setups(F, atr, model, seuil):
     t, o, h, l, c = F[:, 0], F[:, 1], F[:, 2], F[:, 3], F[:, 4]
     col = {k: F[:, i] for i, k in enumerate(COLS)}
+    cvd = np.cumsum(col["dvol"])                                  # delta cumule (CVD)
     n, out = len(F), []
-    for i in range(9, n - 1):
+    for i in range(51, n - 1):
         A = atr[i]
         if not np.isfinite(A) or A <= 0 or t[i + 1] - t[i] > 2 * (t[1] - t[0]):
             continue
@@ -128,6 +134,23 @@ def setups(F, atr, model, seuil):
                 d = -1
             elif new_lo and col["ext_bas"][i] <= seuil and pos > 0.5:
                 d = 1
+        elif model == "cvd":                                       # divergence prix / delta cumule
+            w = int(seuil)
+            if h[i] > h[i - w:i].max():
+                j = i - w + int(np.argmax(h[i - w:i]))
+                if cvd[i] < cvd[j] and pos < 0.7:
+                    d = -1
+            elif l[i] < l[i - w:i].min():
+                j = i - w + int(np.argmin(l[i - w:i]))
+                if cvd[i] > cvd[j] and pos > 0.3:
+                    d = 1
+        elif model == "poc":                                       # POC de bougie apres prise de liquidite
+            pp = col["poc_pos"][i]
+            poc_px = l[i] + pp * rngb
+            if new_lo and pp >= seuil and c[i] > poc_px:
+                d = 1
+            elif new_hi and pp <= 1 - seuil and c[i] < poc_px:
+                d = -1
         if not d:
             continue
         e = o[i + 1]
@@ -139,7 +162,8 @@ def setups(F, atr, model, seuil):
     return out
 
 
-SEUILS = {"absorption": (0.25, 0.35), "desequilibres": (3, 4), "divergence": (0.05, 0.15), "epuisement": (0.03, 0.01)}
+SEUILS = {"absorption": (0.25, 0.35), "desequilibres": (3, 4), "divergence": (0.05, 0.15), "epuisement": (0.03, 0.01),
+          "cvd": (20, 50), "poc": (0.66, 0.8)}
 VARIANTES = [{"model": m, "seuil": s, "tp1": p} for m, ss in SEUILS.items() for s in ss for p in (0.5, 1.0)]
 
 
