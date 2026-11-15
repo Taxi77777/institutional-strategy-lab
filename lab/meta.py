@@ -16,11 +16,11 @@ import time
 
 import numpy as np
 
-from lab import banque, fibo, ob_retour, tpo, vprofil
+from lab import amd_test, banque, fibo, ob_retour, tpo, vprofil
 from lab.liq2liq import _atr, pools
 
 log = logging.getLogger("lab")
-MODELES = ["banque", "ob", "fibo", "vp_balayage", "vp_80", "tpo_poor", "tpo_ib_faux"]
+MODELES = ["banque", "ob", "fibo", "vp_balayage", "vp_80", "tpo_poor", "tpo_ib_faux", "amd_retour", "amd_ouverture"]
 TP1 = 0.5
 
 
@@ -34,7 +34,9 @@ def primary(a, vol, atr, P, kind):
                    ("vp_balayage", vprofil.setups(a, vol, atr, "balayage", 1, "bord", kz=kz)),
                    ("vp_80", vprofil.setups(a, vol, atr, "80", 2, "bord", kz=kz)),
                    ("tpo_poor", tpo.setups(a, atr, "poor", 2, kz=kz)),
-                   ("tpo_ib_faux", tpo.setups(a, atr, "ib_faux", 4, kz=kz))):
+                   ("tpo_ib_faux", tpo.setups(a, atr, "ib_faux", 4, kz=kz)),
+                   ("amd_retour", amd_test.setups(a, atr, "retour", 0.0, "extension", 10)),
+                   ("amd_ouverture", amd_test.setups(a, atr, "ouverture", 0.0, "extension", 10))):
         for s in st:
             s["modele"] = MODELES.index(nm)
             out.append(s)
