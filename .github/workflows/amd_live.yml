@@ -1,0 +1,44 @@
+name: Labo - AMD en direct crypto (test sans argent)
+
+# Test en direct du modele AMD : setups notes des qu'ils apparaissent, suivis jusqu'a la sortie. Aucun ordre, aucun
+# envoi Telegram. Journal : donnees/amd_live/journal.json
+on:
+  schedule:
+    - cron: '4,19,34,49 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: amd-live
+  cancel-in-progress: false
+
+jobs:
+  direct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - run: pip install -r requirements.txt
+      - name: Setups AMD
+        env:
+          PYTHONUNBUFFERED: '1'
+        run: python -m lab.amd_live
+      - name: Publication du journal
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          cp donnees/amd_live/journal.json /tmp/journal.json
+          for i in 1 2 3 4 5; do
+            git fetch -q origin main && git reset -q --hard origin/main
+            mkdir -p donnees/amd_live && cp /tmp/journal.json donnees/amd_live/journal.json
+            git add donnees/amd_live/journal.json
+            git diff --cached --quiet && exit 0
+            git commit -qm "AMD direct : journal [skip ci]"
+            git push -q origin HEAD:main && exit 0
+            sleep 5
+          done
