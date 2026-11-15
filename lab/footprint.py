@@ -27,7 +27,7 @@ from lab.ob_retour import play
 
 log = logging.getLogger("lab")
 COINS = os.environ.get("FP_COINS", "BTC,ETH,SOL,XRP,DOGE,ADA,LINK,AVAX,LTC,SUI").split(",")
-DAYS = int(os.environ.get("FP_DAYS", "120"))
+DAYS = int(os.environ.get("FP_DAYS", "365"))
 URL = "https://data.binance.vision/data/spot/daily/aggTrades/{p}/{p}-aggTrades-{d}.zip"
 BIN = 0.0005
 COLS = ["t", "o", "h", "l", "c", "vol", "delta", "abs_bas", "abs_haut", "stack_buy", "stack_sell", "ext_haut", "ext_bas"]
