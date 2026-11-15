@@ -11,7 +11,11 @@ objectif puis stop a l'entree, objectif 2 fois le risque, regle stricte) :
   - epuisement : nouveau plus haut (bas) avec presque aucun volume aux 2 niveaux extremes et cloture opposee ;
   - cvd : nouveau plus haut (bas) des 20 ou 50 bougies sans nouveau plus haut du delta cumule -> retournement ;
   - poc : apres une prise du plus bas (haut), le POC de la bougie est dans son tiers haut (bas) et la cloture
-    au-dessus (dessous) -> les acheteurs (vendeurs) ont repris le controle.
+    au-dessus (dessous) -> les acheteurs (vendeurs) ont repris le controle ;
+  - zone : la pile de desequilibres devient support (resistance) ; entree au RETOUR du prix sur la zone, stop
+    juste derriere, objectif la liquidite (plus haut / bas des 20 bougies) ; zone_liq : seulement si la pile
+    nait juste apres une prise de liquidite (plus bas / haut des 20 bougies precedentes casse).
+Frais : Coinbase au comptant (0,12 %) et perpetuels Kraken avec entree a cours limite (0,07 %).
 Test honnete : 60 % anciens pour choisir, 40 % recents (jamais vus).   python -m lab.footprint cr 15M"""
 import datetime
 import io
@@ -25,16 +29,17 @@ from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
-from lab.liq2liq import _atr
+from lab.liq2liq import COST, _atr
 from lab.ob_retour import play
 
 log = logging.getLogger("lab")
+COST.setdefault("crp", 0.0007)
 COINS = os.environ.get("FP_COINS", "BTC,ETH,SOL,XRP,DOGE,ADA,LINK,AVAX,LTC,SUI").split(",")
 DAYS = int(os.environ.get("FP_DAYS", "365"))
 URL = "https://data.binance.vision/data/spot/daily/aggTrades/{p}/{p}-aggTrades-{d}.zip"
 BIN = 0.0005
 COLS = ["t", "o", "h", "l", "c", "vol", "delta", "abs_bas", "abs_haut", "stack_buy", "stack_sell", "ext_haut", "ext_bas",
-        "dvol", "poc_pos"]
+        "dvol", "poc_pos", "sb_lo", "sb_hi", "ss_lo", "ss_hi"]
 
 
 def bar_features(t, px, q, buy, step):
@@ -70,10 +75,22 @@ def bar_features(t, px, q, buy, step):
                 r = r + 1 if v else 0
                 m = max(m, r)
             return m
+
+        def zone(x):
+            """Prix bas / haut de la plus longue pile de desequilibres (niveaux k = 1..n-1 du tableau x)."""
+            best, r, end = 0, 0, -1
+            for k, v in enumerate(x):
+                r = r + 1 if v else 0
+                if r > best:
+                    best, end = r, k
+            if best == 0:
+                return np.nan, np.nan
+            k0 = end - best + 1
+            return (lo + k0) * w, (lo + end + 2) * w
         k2 = min(2, n)
         out.append([bar[s] * step, o, h, l, c, vol, (2 * bv - vol) / vol, abs_bas, abs_haut, run(ib), run(isell),
                     (B[-k2:].sum() + S[-k2:].sum()) / vol, (B[:k2].sum() + S[:k2].sum()) / vol,
-                    2 * bv - vol, (np.argmax(B + S) + 0.5) / n])
+                    2 * bv - vol, (np.argmax(B + S) + 0.5) / n] + list(zone(ib)) + list(zone(isell)))
     return out
 
 
@@ -151,6 +168,35 @@ def setups(F, atr, model, seuil):
                 d = 1
             elif new_hi and pp <= 1 - seuil and c[i] < poc_px:
                 d = -1
+        elif model in ("zone", "zone_liq"):                        # retour sur la zone de desequilibres
+            if col["stack_buy"][i] >= seuil and c[i] > o[i] and np.isfinite(col["sb_lo"][i]):
+                d = 1
+            elif col["stack_sell"][i] >= seuil and c[i] < o[i] and np.isfinite(col["ss_lo"][i]):
+                d = -1
+            if d and model == "zone_liq":                            # seulement apres une prise de liquidite
+                if not ((l[i - 3:i + 1].min() < l[i - 23:i - 3].min()) if d == 1 else
+                        (h[i - 3:i + 1].max() > h[i - 23:i - 3].max())):
+                    d = 0
+            if d:
+                zlo, zhi = (col["sb_lo"][i], col["sb_hi"][i]) if d == 1 else (col["ss_lo"][i], col["ss_hi"][i])
+                e = zhi if d == 1 else zlo
+                sl = (zlo - 0.1 * A) if d == 1 else (zhi + 0.1 * A)
+                risk = (e - sl) * d
+                liq = h[i - 20:i + 1].max() if d == 1 else l[i - 20:i + 1].min()
+                ext = h[i] if d == 1 else l[i]
+                if risk < 0.1 * A:
+                    continue
+                for m in range(i + 1, min(i + 25, n)):
+                    tg = liq if (liq - e) * d >= risk else e + d * 2 * risk
+                    if (l[m] <= e) if d == 1 else (h[m] >= e):
+                        out.append({"i": m, "dir": d, "entry": float(e), "stop": float(sl), "target": float(tg)})
+                        break
+                    if (h[m] >= tg) if d == 1 else (l[m] <= tg):
+                        break
+                    if (c[m] < sl) if d == 1 else (c[m] > sl):
+                        break
+                    ext = max(ext, h[m]) if d == 1 else min(ext, l[m])
+            continue
         if not d:
             continue
         e = o[i + 1]
@@ -163,8 +209,10 @@ def setups(F, atr, model, seuil):
 
 
 SEUILS = {"absorption": (0.25, 0.35), "desequilibres": (3, 4), "divergence": (0.05, 0.15), "epuisement": (0.03, 0.01),
-          "cvd": (20, 50), "poc": (0.66, 0.8)}
-VARIANTES = [{"model": m, "seuil": s, "tp1": p} for m, ss in SEUILS.items() for s in ss for p in (0.5, 1.0)]
+          "cvd": (20, 50), "poc": (0.66, 0.8), "zone": (3, 4), "zone_liq": (3, 4)}
+FRAIS = {"cr": 0.0012, "crp": 0.0007}                 # Coinbase au comptant / perpetuels Kraken (entree a cours limite)
+VARIANTES = [{"model": m, "seuil": s, "tp1": p, "frais": f} for m, ss in SEUILS.items() for s in ss for p in (0.5, 1.0)
+             for f in (("cr", "crp") if m in ("zone", "zone_liq", "absorption", "epuisement") else ("cr",))]
 
 
 def run(kind, tf="15M"):
@@ -208,7 +256,7 @@ def run(kind, tf="15M"):
                 for stp in setups(F, atr, v["model"], v["seuil"]):
                     if stp["i"] <= busy:
                         continue
-                    p = play(a, stp, "cr", max_bars=48, tp1_r=v["tp1"])
+                    p = play(a, stp, v["frais"], max_bars=48, tp1_r=v["tp1"])
                     if p is None:
                         continue
                     r, win, end = p
