@@ -108,15 +108,16 @@ VARIANTES = [{"fond": f, "k": k, "t1": t, "entree": e} for f in (0, 90) for k in
 
 
 def run(kind, tf="1H"):
+    tf = (tf or "1H").upper()
     from lab import data
     from lab.config import UNIVERSE
     bars = {}
     for s in UNIVERSE[kind]:
         try:
-            a = data.long_bars(s, kind, "1H")
+            a = data.long_bars(s, kind, tf)
             if kind == "fx":
                 a = a[((a[:, 0] // 86400 + 3) % 7) < 5]
-            if len(a) > 24 * 150:
+            if len(a) > (86400 // data.TF[tf][2]) * 150:
                 bars[s] = a
         except Exception as ex:
             log.warning("%s : %s", s, ex)
@@ -151,10 +152,10 @@ def run(kind, tf="1H"):
     print("CHOISIE >= 90 % (sur l'apprentissage seulement)" if ok else "AUCUNE >= 90 % : meilleure", json.dumps(best["variante"]),
           "-> TEST (jamais vu)", json.dumps(best["test"]), flush=True)
     os.makedirs("resultats", exist_ok=True)
-    with open("resultats/tendance_amd_%s.json" % kind, "w") as f:
+    with open("resultats/tendance_amd_%s%s.json" % (kind, "" if tf == "1H" else "_" + tf), "w") as f:
         json.dump({"marche": kind, "genere": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime()), "variantes": res}, f, indent=1)
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.WARNING)
-    run(sys.argv[1])
+    run(sys.argv[1], sys.argv[2].upper() if len(sys.argv) > 2 else "1H")
