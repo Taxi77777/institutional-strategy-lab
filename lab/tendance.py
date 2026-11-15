@@ -15,6 +15,8 @@ from lab.liq2liq import COST
 
 log = logging.getLogger("lab")
 VARIANTES = [{"n": n, "fond": f, "k": k} for n in (20, 55) for f in (0, 90) for k in (2.0, 3.0)]
+if os.environ.get("TENDANCE_LARGE"):                 # 15 nov. : recherche elargie (crypto)
+    VARIANTES = [{"n": n, "fond": f, "k": k} for n in (10, 20, 30, 55) for f in (0, 90) for k in (2.0, 3.0, 4.0)]
 
 
 def _atr(a, n=20):
@@ -27,9 +29,10 @@ def _atr(a, n=20):
     return out
 
 
-def trades(a, kind, n=20, fond=90, k=2.0):
+def trades(a, kind, n=20, fond=90, k=2.0, per_day=1):
     ts, o, h, l, c = a[:, 0], a[:, 1], a[:, 2], a[:, 3], a[:, 4]
     atr = _atr(a)
+    n, fond = int(n * per_day), int(fond * per_day)        # n et fond exprimes en jours
     out, i, N = [], max(n, fond, 21) + 1, len(a)
     while i < N - 2:
         d = 0
@@ -60,13 +63,18 @@ def trades(a, kind, n=20, fond=90, k=2.0):
 
 
 def run(kind, tf="1D"):
+    tf = (tf or "1D").upper()
+    if kind != "cr" and os.environ.get("TENDANCE_LARGE"):
+        print("Recherche elargie : crypto seulement (le forex perd en tendance)", flush=True)
+        return
+    per_day = {"1D": 1, "4H": 6, "1H": 24}[tf]
     from lab import data
     from lab.config import UNIVERSE
     bars = {}
     for s in UNIVERSE[kind]:
         try:
-            a = data.long_bars(s, kind, "1D")
-            if kind == "fx":
+            a = data.long_bars(s, kind, tf)
+            if kind == "fx" and tf == "1D":
                 a = a[((a[:, 0] // 86400 + 3) % 7) != 6]
             if len(a) > 400:
                 bars[s] = a
@@ -91,12 +99,14 @@ def run(kind, tf="1D"):
                 "perte_moyenne": round(float(l_.mean()), 2) if len(l_) else 0, "total_R": round(float(r.sum()), 1),
                 "R_par_an": round(float(r.sum()) / yrs, 1), "pire_baisse_R": round(dd, 1),
                 "achats_R": round(float(sum(t[3] for t in x if t[2] == 1)), 1),
-                "ventes_R": round(float(sum(t[3] for t in x if t[2] == -1)), 1)}
+                "ventes_R": round(float(sum(t[3] for t in x if t[2] == -1)), 1),
+                "par_annee": {str(y): round(float(sum(t[3] for t in x if time.gmtime(t[0]).tm_year == y)), 1)
+                              for y in sorted({time.gmtime(t[0]).tm_year for t in x})}}
     res = []
     for v in VARIANTES:
         tr, te = [], []
         for s, a in bars.items():
-            for t in trades(a, kind, **v):
+            for t in trades(a, kind, per_day=per_day, **v):
                 (te if t[0] >= cut else tr).append(t)
         res.append({"variante": v, "apprentissage": stats(tr), "test": stats(te)})
         print("VARIANTE", json.dumps(v), "| APPRENTISSAGE", json.dumps(res[-1]["apprentissage"]), "| TEST",
@@ -105,7 +115,8 @@ def run(kind, tf="1D"):
     print("CHOISIE (sur l'apprentissage seulement)", json.dumps(best["variante"]), "-> TEST (jamais vu)", json.dumps(best["test"]),
           flush=True)
     os.makedirs("resultats", exist_ok=True)
-    with open("resultats/tendance_%s.json" % kind, "w") as f:
+    with open("resultats/tendance_%s%s.json" % (kind, "" if tf == "1D" and not os.environ.get("TENDANCE_LARGE")
+                                                 else "_" + tf + ("_large" if os.environ.get("TENDANCE_LARGE") else "")), "w") as f:
         json.dump({"marche": kind, "genere": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime()), "actifs": len(bars),
                    "choisie": best["variante"], "variantes": res}, f, indent=1)
 
