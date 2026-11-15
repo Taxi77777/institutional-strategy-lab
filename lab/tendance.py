@@ -17,6 +17,9 @@ log = logging.getLogger("lab")
 VARIANTES = [{"n": n, "fond": f, "k": k} for n in (20, 55) for f in (0, 90) for k in (2.0, 3.0)]
 if os.environ.get("TENDANCE_LARGE"):                 # 15 nov. : recherche elargie (crypto)
     VARIANTES = [{"n": n, "fond": f, "k": k} for n in (10, 20, 30, 55) for f in (0, 90) for k in (2.0, 3.0, 4.0)]
+if os.environ.get("TENDANCE_LARGE") == "2":          # demande du trader : >= 80 % -> moitie encaissee tot
+    VARIANTES = [{"n": n, "fond": f, "k": k, "t1": t} for n in (20, 30, 55) for f in (0, 90) for k in (3.0, 4.0)
+                 for t in (0.5, 0.75, 1.0)]
 
 
 def _atr(a, n=20):
@@ -29,7 +32,8 @@ def _atr(a, n=20):
     return out
 
 
-def trades(a, kind, n=20, fond=90, k=2.0, per_day=1):
+def trades(a, kind, n=20, fond=90, k=2.0, per_day=1, t1=0.0):
+    """t1 > 0 : la moitie est encaissee a t1 x ATR, puis le stop passe a l'entree (le reste suit la tendance)."""
     ts, o, h, l, c = a[:, 0], a[:, 1], a[:, 2], a[:, 3], a[:, 4]
     atr = _atr(a)
     n, fond = int(n * per_day), int(fond * per_day)        # n et fond exprimes en jours
@@ -46,18 +50,23 @@ def trades(a, kind, n=20, fond=90, k=2.0, per_day=1):
             continue
         e, risk = o[i + 1], k * atr[i]
         stop, best, j, x = e - d * risk, e, i + 1, None
+        tp1, half = e + d * t1 * atr[i], False
         while j < N:
             if (l[j] <= stop) if d == 1 else (h[j] >= stop):
                 x = min(o[j], stop) if d == 1 else max(o[j], stop)
                 if j == i + 1:
                     x = stop
                 break
+            if t1 and not half and ((h[j] >= tp1) if d == 1 else (l[j] <= tp1)):
+                half = True                                    # stop teste avant : meme bougie = perte (prudent)
+                stop = max(stop, e) if d == 1 else min(stop, e)
             best = max(best, c[j]) if d == 1 else min(best, c[j])
             stop = max(stop, best - risk) if d == 1 else min(stop, best + risk)
             j += 1
         if x is None:
             break                                            # trade encore ouvert a la fin : non compte
-        out.append((ts[i + 1], ts[j], d, float((x - e) * d / risk - COST[kind] * e / risk)))
+        r = (0.5 * t1 * atr[i] / risk + 0.5 * (x - e) * d / risk) if half else (x - e) * d / risk
+        out.append((ts[i + 1], ts[j], d, float(r - COST[kind] * e / risk)))
         i = j + 1
     return out
 
@@ -116,7 +125,8 @@ def run(kind, tf="1D"):
           flush=True)
     os.makedirs("resultats", exist_ok=True)
     with open("resultats/tendance_%s%s.json" % (kind, "" if tf == "1D" and not os.environ.get("TENDANCE_LARGE")
-                                                 else "_" + tf + ("_large" if os.environ.get("TENDANCE_LARGE") else "")), "w") as f:
+                                                 else "_" + tf + ("_large" if os.environ.get("TENDANCE_LARGE") else "")
+                                                 + ("80" if os.environ.get("TENDANCE_LARGE") == "2" else "")), "w") as f:
         json.dump({"marche": kind, "genere": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime()), "actifs": len(bars),
                    "choisie": best["variante"], "variantes": res}, f, indent=1)
 
