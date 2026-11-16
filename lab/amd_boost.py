@@ -188,6 +188,8 @@ def meta(tr, te, cible):
     if len(tr) < 100:
         return None
     X = np.array([t[4] for t in tr], float)
+    cols = np.flatnonzero(np.isfinite(X).any(axis=0))      # ex. rendement BTC absent en forex
+    X = X[:, cols]
     y = np.array([t[3] > cible for t in tr])
     s = int(len(tr) * 0.7)
     if y[:s].all() or not y[:s].any():
@@ -207,7 +209,7 @@ def meta(tr, te, cible):
             bests, bestq = sc, (qq, th)
     qq, th = bestq
     val = [t for t, p in zip(tr[s:], pv) if p >= th]
-    pt = mdl.predict_proba(np.array([t[4] for t in te], float))[:, 1] if te else np.array([])
+    pt = mdl.predict_proba(np.array([t[4] for t in te], float)[:, cols])[:, 1] if te else np.array([])
     kept = [t for t, p in zip(te, pt) if p >= th]
     return {"quantile": qq, "seuil": round(th, 4), "val": val, "test": kept}
 
@@ -267,7 +269,7 @@ def run(kind, tf="1H"):
             try:
                 mm = meta(tr, te, cible)
             except Exception as ex:
-                log.warning("meta %s : %s", nm, ex)
+                print("ERREUR meta", nm, repr(ex), flush=True)
                 mm = None
             if mm is None:
                 continue
