@@ -1,5 +1,5 @@
 {
- "genere": "2026-11-20 22:25 UTC",
+ "genere": "2026-11-20 23:59 UTC",
  "regle": {
   "mode": "tendance90",
   "facteur_profit_min": 1.3,
@@ -1595,18 +1595,6 @@
    ],
    "k": 11
   },
-  "acceleration(positionnement.cot_bitcoin_percentile_fonds,smc.ict_haussier_bougies,8)": {
-   "op": "acceleration",
-   "a": [
-    "positionnement",
-    "cot_bitcoin_percentile_fonds"
-   ],
-   "b": [
-    "smc",
-    "ict_haussier_bougies"
-   ],
-   "k": 8
-  },
   "ecart_rang(structure.vs_bas_2j,liquidite.dist_bas_mois,1)": {
    "op": "ecart_rang",
    "a": [
@@ -1703,18 +1691,6 @@
    ],
    "k": 9
   },
-  "croise_moyenne(liquidite.dist_bas_veille,liquidite.judas_swing,8)": {
-   "op": "croise_moyenne",
-   "a": [
-    "liquidite",
-    "dist_bas_veille"
-   ],
-   "b": [
-    "liquidite",
-    "judas_swing"
-   ],
-   "k": 8
-  },
   "croise_moyenne(structure.vs_bas_2j,orderflow.absorption,10)": {
    "op": "croise_moyenne",
    "a": [
@@ -1738,18 +1714,6 @@
     "zscore"
    ],
    "k": 11
-  },
-  "ecart_rang(flux.fin_trimestre,flux.heures_depuis_17h_new_york,5)": {
-   "op": "ecart_rang",
-   "a": [
-    "flux",
-    "fin_trimestre"
-   ],
-   "b": [
-    "flux",
-    "heures_depuis_17h_new_york"
-   ],
-   "k": 5
   },
   "divergence_k(structure.vs_bas_2j,vwap.bande_2_sigma,11)": {
    "op": "divergence_k",
@@ -2015,18 +1979,6 @@
    ],
    "k": 8
   },
-  "acceleration(positionnement.cot_bitcoin_percentile_fonds,smc.fvg_baissier_age,7)": {
-   "op": "acceleration",
-   "a": [
-    "positionnement",
-    "cot_bitcoin_percentile_fonds"
-   ],
-   "b": [
-    "smc",
-    "fvg_baissier_age"
-   ],
-   "k": 7
-  },
   "ecart_rang(smc.fvg_baissier_age,fibonacci.dist_618_veille,6)": {
    "op": "ecart_rang",
    "a": [
@@ -2063,17 +2015,65 @@
    ],
    "k": 11
   },
-  "croise_moyenne(liquidite.dist_bas_veille,chandeliers.hikkakemod,8)": {
+  "croise_moyenne(structure.vs_bas_2j,banque.objectif_r,11)": {
+   "op": "croise_moyenne",
+   "a": [
+    "structure",
+    "vs_bas_2j"
+   ],
+   "b": [
+    "banque",
+    "objectif_r"
+   ],
+   "k": 11
+  },
+  "croise_moyenne(liquidite.dist_bas_veille,flux.gap_cme_ouvert,8)": {
    "op": "croise_moyenne",
    "a": [
     "liquidite",
     "dist_bas_veille"
    ],
    "b": [
-    "chandeliers",
-    "hikkakemod"
+    "flux",
+    "gap_cme_ouvert"
    ],
    "k": 8
+  },
+  "ecart_rang(structure.vs_bas_2j,smc.dist_ob_haussier,22)": {
+   "op": "ecart_rang",
+   "a": [
+    "structure",
+    "vs_bas_2j"
+   ],
+   "b": [
+    "smc",
+    "dist_ob_haussier"
+   ],
+   "k": 22
+  },
+  "produit(structure.vs_bas_2j,structure.plus_bas_10,11)": {
+   "op": "produit",
+   "a": [
+    "structure",
+    "vs_bas_2j"
+   ],
+   "b": [
+    "structure",
+    "plus_bas_10"
+   ],
+   "k": 11
+  },
+  "accord(structure.vs_bas_2j,flux.heures_fixing_londres,21)": {
+   "op": "accord",
+   "a": [
+    "structure",
+    "vs_bas_2j"
+   ],
+   "b": [
+    "flux",
+    "heures_fixing_londres"
+   ],
+   "k": 21
   }
  },
  "classes": [
@@ -38055,10 +38055,10 @@
     "XAGUSD"
    ],
    "historique_jours": 728.0,
-   "bougies": 629760,
-   "conditions": 5441,
-   "combinaisons": 1082288,
-   "candidates": 208,
+   "bougies": 629520,
+   "conditions": 5433,
+   "combinaisons": 1081825,
+   "candidates": 179,
    "validees": 0,
    "apres_fdr": 0,
    "strategies": [],
@@ -40534,6 +40534,178 @@
      "exit": "e6",
      "conds": [
       [
+       "amd",
+       "largeur_asie",
+       1.1684901475906373,
+       2.3405017852783203
+      ],
+      [
+       "inventeur",
+       "accord(structure.vs_bas_2j,flux.heures_fixing_londres,21)",
+       0.999999,
+       1.000001
+      ],
+      [
+       "liquidite",
+       "stops_au_dessus_1atr",
+       0.0,
+       Infinity
+      ]
+     ],
+     "test_win": 0.8645,
+     "test_n": 214,
+     "test_avg": 0.1244,
+     "test_pf": 2.012,
+     "test_total": 26.625,
+     "apprentissage_win": 0.8193,
+     "validation_win": 0.8294,
+     "raison": "validation : 83 % sur 211 trades, facteur de profit 1.37",
+     "robustesse": {
+      "actifs_gagnants": "15/20",
+      "par_actif": {
+       "EURUSD": {
+        "reussite": 0.818,
+        "trades": 22,
+        "gain_moyen": -0.0703
+       },
+       "GBPUSD": {
+        "reussite": 0.885,
+        "trades": 26,
+        "gain_moyen": 0.242
+       },
+       "USDJPY": {
+        "reussite": 0.812,
+        "trades": 16,
+        "gain_moyen": 0.0199
+       },
+       "USDCHF": {
+        "reussite": 0.862,
+        "trades": 29,
+        "gain_moyen": 0.1419
+       },
+       "USDCAD": {
+        "reussite": 0.759,
+        "trades": 29,
+        "gain_moyen": -0.193
+       },
+       "AUDUSD": {
+        "reussite": 0.75,
+        "trades": 12,
+        "gain_moyen": 0.0044
+       },
+       "NZDUSD": {
+        "reussite": 0.667,
+        "trades": 12,
+        "gain_moyen": -0.07
+       },
+       "EURJPY": {
+        "reussite": 1.0,
+        "trades": 21,
+        "gain_moyen": 0.2277
+       },
+       "GBPJPY": {
+        "reussite": 0.88,
+        "trades": 25,
+        "gain_moyen": 0.0572
+       },
+       "EURGBP": {
+        "reussite": 0.697,
+        "trades": 33,
+        "gain_moyen": 0.1095
+       },
+       "AUDJPY": {
+        "reussite": 0.667,
+        "trades": 9,
+        "gain_moyen": 0.0485
+       },
+       "EURCHF": {
+        "reussite": 0.919,
+        "trades": 37,
+        "gain_moyen": 0.112
+       },
+       "GBPCHF": {
+        "reussite": 0.943,
+        "trades": 35,
+        "gain_moyen": 0.0821
+       },
+       "CADJPY": {
+        "reussite": 0.955,
+        "trades": 22,
+        "gain_moyen": 0.2343
+       },
+       "CHFJPY": {
+        "reussite": 0.81,
+        "trades": 21,
+        "gain_moyen": -0.0069
+       },
+       "EURAUD": {
+        "reussite": 0.909,
+        "trades": 11,
+        "gain_moyen": 0.4691
+       },
+       "EURCAD": {
+        "reussite": 0.875,
+        "trades": 32,
+        "gain_moyen": 0.0711
+       },
+       "GBPAUD": {
+        "reussite": 0.833,
+        "trades": 12,
+        "gain_moyen": -0.0299
+       },
+       "XAUUSD": {
+        "reussite": 0.818,
+        "trades": 11,
+        "gain_moyen": 0.1992
+       },
+       "XAGUSD": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": 0.3951
+       }
+      },
+      "par_annee": {
+       "2026": {
+        "reussite": 0.847,
+        "trades": 425
+       }
+      },
+      "par_session": {
+       "asie": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       },
+       "londres": {
+        "part": 0.005,
+        "trades": 2,
+        "reussite": 1.0
+       },
+       "new_york": {
+        "part": 0.424,
+        "trades": 180,
+        "reussite": 0.828
+       },
+       "soir": {
+        "part": 0.572,
+        "trades": 243,
+        "reussite": 0.86
+       }
+      },
+      "reussite_moities": [
+       0.821,
+       0.873
+      ],
+      "annees_reussies": "0/1"
+     },
+     "vu": 1795219163.0587583
+    },
+    {
+     "agent": "noyau_liquidite",
+     "dir": -1,
+     "exit": "e6",
+     "conds": [
+      [
        "inventeur",
        "divergence_k(structure.vs_bas_2j,flux.mouvement_avant_fixing,10)",
        -1e-06,
@@ -40877,183 +41049,6 @@
       "reussite_moities": [
        0.801,
        0.832
-      ],
-      "annees_reussies": "0/1"
-     },
-     "vu": 1795168464.6657457
-    },
-    {
-     "agent": "noyau_continuation",
-     "dir": -1,
-     "exit": "e6",
-     "conds": [
-      [
-       "fibonacci",
-       "position_swing20",
-       0.8306878209114075,
-       Infinity
-      ],
-      [
-       "inventeur",
-       "divergence_k(structure.vs_bas_2j,flux.mouvement_avant_fixing,10)",
-       -1e-06,
-       1e-06
-      ],
-      [
-       "smc",
-       "dans_ob_baissier",
-       0.999999,
-       1.000001
-      ]
-     ],
-     "test_win": 0.86,
-     "test_n": 150,
-     "test_avg": 0.0791,
-     "test_pf": 1.559,
-     "test_total": 11.866,
-     "apprentissage_win": 0.7838,
-     "validation_win": 0.7976,
-     "raison": "validation : 80 % sur 168 trades, facteur de profit 1.01",
-     "robustesse": {
-      "actifs_gagnants": "13/21",
-      "par_actif": {
-       "EURUSD": {
-        "reussite": 0.688,
-        "trades": 16,
-        "gain_moyen": -0.0735
-       },
-       "GBPUSD": {
-        "reussite": 0.786,
-        "trades": 14,
-        "gain_moyen": 0.0459
-       },
-       "USDJPY": {
-        "reussite": 0.75,
-        "trades": 20,
-        "gain_moyen": -0.0217
-       },
-       "USDCHF": {
-        "reussite": 0.889,
-        "trades": 18,
-        "gain_moyen": 0.0313
-       },
-       "USDCAD": {
-        "reussite": 0.733,
-        "trades": 15,
-        "gain_moyen": -0.1466
-       },
-       "AUDUSD": {
-        "reussite": 0.846,
-        "trades": 13,
-        "gain_moyen": 0.154
-       },
-       "NZDUSD": {
-        "reussite": 0.9,
-        "trades": 20,
-        "gain_moyen": 0.0844
-       },
-       "EURJPY": {
-        "reussite": 1.0,
-        "trades": 19,
-        "gain_moyen": 0.2533
-       },
-       "GBPJPY": {
-        "reussite": 0.769,
-        "trades": 13,
-        "gain_moyen": -0.008
-       },
-       "EURGBP": {
-        "reussite": 0.875,
-        "trades": 16,
-        "gain_moyen": -0.0417
-       },
-       "AUDJPY": {
-        "reussite": 0.938,
-        "trades": 16,
-        "gain_moyen": 0.1464
-       },
-       "EURCHF": {
-        "reussite": 0.846,
-        "trades": 13,
-        "gain_moyen": 0.021
-       },
-       "GBPCHF": {
-        "reussite": 0.917,
-        "trades": 12,
-        "gain_moyen": 0.1257
-       },
-       "CADJPY": {
-        "reussite": 0.733,
-        "trades": 15,
-        "gain_moyen": 0.0558
-       },
-       "CHFJPY": {
-        "reussite": 0.917,
-        "trades": 12,
-        "gain_moyen": 0.0238
-       },
-       "EURAUD": {
-        "reussite": 1.0,
-        "trades": 16,
-        "gain_moyen": 0.2802
-       },
-       "EURCAD": {
-        "reussite": 0.824,
-        "trades": 17,
-        "gain_moyen": 0.2542
-       },
-       "GBPAUD": {
-        "reussite": 0.833,
-        "trades": 12,
-        "gain_moyen": -0.0013
-       },
-       "AUDNZD": {
-        "reussite": 0.895,
-        "trades": 19,
-        "gain_moyen": 0.0548
-       },
-       "XAUUSD": {
-        "reussite": 0.556,
-        "trades": 9,
-        "gain_moyen": -0.2205
-       },
-       "XAGUSD": {
-        "reussite": 0.462,
-        "trades": 13,
-        "gain_moyen": -0.463
-       }
-      },
-      "par_annee": {
-       "2026": {
-        "reussite": 0.827,
-        "trades": 318
-       }
-      },
-      "par_session": {
-       "asie": {
-        "part": 0.0,
-        "trades": 0,
-        "reussite": 0.0
-       },
-       "londres": {
-        "part": 0.0,
-        "trades": 0,
-        "reussite": 0.0
-       },
-       "new_york": {
-        "part": 0.557,
-        "trades": 177,
-        "reussite": 0.819
-       },
-       "soir": {
-        "part": 0.443,
-        "trades": 141,
-        "reussite": 0.837
-       }
-      },
-      "reussite_moities": [
-       0.824,
-       0.83
       ],
       "annees_reussies": "0/1"
      },
@@ -43367,6 +43362,178 @@
      "exit": "e6",
      "conds": [
       [
+       "amd",
+       "largeur_asie",
+       1.1684901475906373,
+       2.3405017852783203
+      ],
+      [
+       "inventeur",
+       "accord(structure.vs_bas_2j,flux.heures_fixing_londres,21)",
+       0.999999,
+       1.000001
+      ],
+      [
+       "liquidite",
+       "stops_au_dessus_1atr",
+       0.0,
+       Infinity
+      ]
+     ],
+     "test_win": 0.8645,
+     "test_n": 214,
+     "test_avg": 0.1244,
+     "test_pf": 2.012,
+     "test_total": 26.625,
+     "apprentissage_win": 0.8193,
+     "validation_win": 0.8294,
+     "raison": "validation : 83 % sur 211 trades, facteur de profit 1.37",
+     "robustesse": {
+      "actifs_gagnants": "15/20",
+      "par_actif": {
+       "EURUSD": {
+        "reussite": 0.818,
+        "trades": 22,
+        "gain_moyen": -0.0703
+       },
+       "GBPUSD": {
+        "reussite": 0.885,
+        "trades": 26,
+        "gain_moyen": 0.242
+       },
+       "USDJPY": {
+        "reussite": 0.812,
+        "trades": 16,
+        "gain_moyen": 0.0199
+       },
+       "USDCHF": {
+        "reussite": 0.862,
+        "trades": 29,
+        "gain_moyen": 0.1419
+       },
+       "USDCAD": {
+        "reussite": 0.759,
+        "trades": 29,
+        "gain_moyen": -0.193
+       },
+       "AUDUSD": {
+        "reussite": 0.75,
+        "trades": 12,
+        "gain_moyen": 0.0044
+       },
+       "NZDUSD": {
+        "reussite": 0.667,
+        "trades": 12,
+        "gain_moyen": -0.07
+       },
+       "EURJPY": {
+        "reussite": 1.0,
+        "trades": 21,
+        "gain_moyen": 0.2277
+       },
+       "GBPJPY": {
+        "reussite": 0.88,
+        "trades": 25,
+        "gain_moyen": 0.0572
+       },
+       "EURGBP": {
+        "reussite": 0.697,
+        "trades": 33,
+        "gain_moyen": 0.1095
+       },
+       "AUDJPY": {
+        "reussite": 0.667,
+        "trades": 9,
+        "gain_moyen": 0.0485
+       },
+       "EURCHF": {
+        "reussite": 0.919,
+        "trades": 37,
+        "gain_moyen": 0.112
+       },
+       "GBPCHF": {
+        "reussite": 0.943,
+        "trades": 35,
+        "gain_moyen": 0.0821
+       },
+       "CADJPY": {
+        "reussite": 0.955,
+        "trades": 22,
+        "gain_moyen": 0.2343
+       },
+       "CHFJPY": {
+        "reussite": 0.81,
+        "trades": 21,
+        "gain_moyen": -0.0069
+       },
+       "EURAUD": {
+        "reussite": 0.909,
+        "trades": 11,
+        "gain_moyen": 0.4691
+       },
+       "EURCAD": {
+        "reussite": 0.875,
+        "trades": 32,
+        "gain_moyen": 0.0711
+       },
+       "GBPAUD": {
+        "reussite": 0.833,
+        "trades": 12,
+        "gain_moyen": -0.0299
+       },
+       "XAUUSD": {
+        "reussite": 0.818,
+        "trades": 11,
+        "gain_moyen": 0.1992
+       },
+       "XAGUSD": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": 0.3951
+       }
+      },
+      "par_annee": {
+       "2026": {
+        "reussite": 0.847,
+        "trades": 425
+       }
+      },
+      "par_session": {
+       "asie": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       },
+       "londres": {
+        "part": 0.005,
+        "trades": 2,
+        "reussite": 1.0
+       },
+       "new_york": {
+        "part": 0.424,
+        "trades": 180,
+        "reussite": 0.828
+       },
+       "soir": {
+        "part": 0.572,
+        "trades": 243,
+        "reussite": 0.86
+       }
+      },
+      "reussite_moities": [
+       0.821,
+       0.873
+      ],
+      "annees_reussies": "0/1"
+     },
+     "vu": 1795219163.0587583
+    },
+    {
+     "agent": "noyau_liquidite",
+     "dir": -1,
+     "exit": "e6",
+     "conds": [
+      [
        "inventeur",
        "divergence_k(structure.vs_bas_2j,flux.mouvement_avant_fixing,10)",
        -1e-06,
@@ -44064,183 +44231,6 @@
       "reussite_moities": [
        0.781,
        0.819
-      ],
-      "annees_reussies": "0/1"
-     },
-     "vu": 1795168464.6657457
-    },
-    {
-     "agent": "noyau_continuation",
-     "dir": -1,
-     "exit": "e6",
-     "conds": [
-      [
-       "fibonacci",
-       "dist_618_swing20",
-       0.8855622768402109,
-       Infinity
-      ],
-      [
-       "inventeur",
-       "divergence_k(structure.vs_bas_2j,flux.mouvement_avant_fixing,10)",
-       -1e-06,
-       1e-06
-      ],
-      [
-       "smc",
-       "dans_ob_baissier",
-       0.999999,
-       1.000001
-      ]
-     ],
-     "test_win": 0.8582,
-     "test_n": 141,
-     "test_avg": 0.0736,
-     "test_pf": 1.515,
-     "test_total": 10.375,
-     "apprentissage_win": 0.7763,
-     "validation_win": 0.784,
-     "raison": "validation : 78 % sur 162 trades, facteur de profit 0.88",
-     "robustesse": {
-      "actifs_gagnants": "12/21",
-      "par_actif": {
-       "EURUSD": {
-        "reussite": 0.706,
-        "trades": 17,
-        "gain_moyen": -0.0646
-       },
-       "GBPUSD": {
-        "reussite": 0.786,
-        "trades": 14,
-        "gain_moyen": 0.0463
-       },
-       "USDJPY": {
-        "reussite": 0.8,
-        "trades": 15,
-        "gain_moyen": -0.0085
-       },
-       "USDCHF": {
-        "reussite": 0.842,
-        "trades": 19,
-        "gain_moyen": 0.0281
-       },
-       "USDCAD": {
-        "reussite": 0.786,
-        "trades": 14,
-        "gain_moyen": -0.0738
-       },
-       "AUDUSD": {
-        "reussite": 0.833,
-        "trades": 12,
-        "gain_moyen": 0.1498
-       },
-       "NZDUSD": {
-        "reussite": 0.85,
-        "trades": 20,
-        "gain_moyen": 0.0088
-       },
-       "EURJPY": {
-        "reussite": 1.0,
-        "trades": 17,
-        "gain_moyen": 0.2135
-       },
-       "GBPJPY": {
-        "reussite": 0.692,
-        "trades": 13,
-        "gain_moyen": -0.0978
-       },
-       "EURGBP": {
-        "reussite": 0.833,
-        "trades": 12,
-        "gain_moyen": -0.1601
-       },
-       "AUDJPY": {
-        "reussite": 0.933,
-        "trades": 15,
-        "gain_moyen": 0.1507
-       },
-       "EURCHF": {
-        "reussite": 0.929,
-        "trades": 14,
-        "gain_moyen": 0.1533
-       },
-       "GBPCHF": {
-        "reussite": 0.923,
-        "trades": 13,
-        "gain_moyen": 0.1848
-       },
-       "CADJPY": {
-        "reussite": 0.733,
-        "trades": 15,
-        "gain_moyen": -0.0146
-       },
-       "CHFJPY": {
-        "reussite": 0.917,
-        "trades": 12,
-        "gain_moyen": 0.0238
-       },
-       "EURAUD": {
-        "reussite": 0.909,
-        "trades": 11,
-        "gain_moyen": 0.2779
-       },
-       "EURCAD": {
-        "reussite": 0.812,
-        "trades": 16,
-        "gain_moyen": 0.0944
-       },
-       "GBPAUD": {
-        "reussite": 0.769,
-        "trades": 13,
-        "gain_moyen": -0.0849
-       },
-       "AUDNZD": {
-        "reussite": 0.889,
-        "trades": 18,
-        "gain_moyen": 0.0801
-       },
-       "XAUUSD": {
-        "reussite": 0.556,
-        "trades": 9,
-        "gain_moyen": -0.2205
-       },
-       "XAGUSD": {
-        "reussite": 0.571,
-        "trades": 14,
-        "gain_moyen": -0.3325
-       }
-      },
-      "par_annee": {
-       "2026": {
-        "reussite": 0.818,
-        "trades": 303
-       }
-      },
-      "par_session": {
-       "asie": {
-        "part": 0.0,
-        "trades": 0,
-        "reussite": 0.0
-       },
-       "londres": {
-        "part": 0.0,
-        "trades": 0,
-        "reussite": 0.0
-       },
-       "new_york": {
-        "part": 0.571,
-        "trades": 173,
-        "reussite": 0.809
-       },
-       "soir": {
-        "part": 0.429,
-        "trades": 130,
-        "reussite": 0.831
-       }
-      },
-      "reussite_moities": [
-       0.815,
-       0.822
       ],
       "annees_reussies": "0/1"
      },
@@ -45257,6 +45247,179 @@
      "exit": "e6",
      "conds": [
       [
+       "amd",
+       "largeur_asie",
+       1.1684901475906373,
+       2.3405017852783203
+      ],
+      [
+       "inventeur",
+       "accord(structure.vs_bas_2j,flux.heures_fixing_londres,21)",
+       0.999999,
+       1.000001
+      ],
+      [
+       "liquidite",
+       "stops_au_dessus_1atr",
+       0.0,
+       Infinity
+      ]
+     ],
+     "test_win": 0.8645,
+     "test_n": 214,
+     "test_avg": 0.1244,
+     "test_pf": 2.012,
+     "test_total": 26.625,
+     "apprentissage_win": 0.8193,
+     "validation_win": 0.8294,
+     "raison": "validation : 83 % sur 211 trades, facteur de profit 1.37",
+     "robustesse": {
+      "actifs_gagnants": "15/20",
+      "par_actif": {
+       "EURUSD": {
+        "reussite": 0.818,
+        "trades": 22,
+        "gain_moyen": -0.0703
+       },
+       "GBPUSD": {
+        "reussite": 0.885,
+        "trades": 26,
+        "gain_moyen": 0.242
+       },
+       "USDJPY": {
+        "reussite": 0.812,
+        "trades": 16,
+        "gain_moyen": 0.0199
+       },
+       "USDCHF": {
+        "reussite": 0.862,
+        "trades": 29,
+        "gain_moyen": 0.1419
+       },
+       "USDCAD": {
+        "reussite": 0.759,
+        "trades": 29,
+        "gain_moyen": -0.193
+       },
+       "AUDUSD": {
+        "reussite": 0.75,
+        "trades": 12,
+        "gain_moyen": 0.0044
+       },
+       "NZDUSD": {
+        "reussite": 0.667,
+        "trades": 12,
+        "gain_moyen": -0.07
+       },
+       "EURJPY": {
+        "reussite": 1.0,
+        "trades": 21,
+        "gain_moyen": 0.2277
+       },
+       "GBPJPY": {
+        "reussite": 0.88,
+        "trades": 25,
+        "gain_moyen": 0.0572
+       },
+       "EURGBP": {
+        "reussite": 0.697,
+        "trades": 33,
+        "gain_moyen": 0.1095
+       },
+       "AUDJPY": {
+        "reussite": 0.667,
+        "trades": 9,
+        "gain_moyen": 0.0485
+       },
+       "EURCHF": {
+        "reussite": 0.919,
+        "trades": 37,
+        "gain_moyen": 0.112
+       },
+       "GBPCHF": {
+        "reussite": 0.943,
+        "trades": 35,
+        "gain_moyen": 0.0821
+       },
+       "CADJPY": {
+        "reussite": 0.955,
+        "trades": 22,
+        "gain_moyen": 0.2343
+       },
+       "CHFJPY": {
+        "reussite": 0.81,
+        "trades": 21,
+        "gain_moyen": -0.0069
+       },
+       "EURAUD": {
+        "reussite": 0.909,
+        "trades": 11,
+        "gain_moyen": 0.4691
+       },
+       "EURCAD": {
+        "reussite": 0.875,
+        "trades": 32,
+        "gain_moyen": 0.0711
+       },
+       "GBPAUD": {
+        "reussite": 0.833,
+        "trades": 12,
+        "gain_moyen": -0.0299
+       },
+       "XAUUSD": {
+        "reussite": 0.818,
+        "trades": 11,
+        "gain_moyen": 0.1992
+       },
+       "XAGUSD": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": 0.3951
+       }
+      },
+      "par_annee": {
+       "2026": {
+        "reussite": 0.847,
+        "trades": 425
+       }
+      },
+      "par_session": {
+       "asie": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       },
+       "londres": {
+        "part": 0.005,
+        "trades": 2,
+        "reussite": 1.0
+       },
+       "new_york": {
+        "part": 0.424,
+        "trades": 180,
+        "reussite": 0.828
+       },
+       "soir": {
+        "part": 0.572,
+        "trades": 243,
+        "reussite": 0.86
+       }
+      },
+      "reussite_moities": [
+       0.821,
+       0.873
+      ],
+      "annees_reussies": "0/1"
+     },
+     "session": "soir",
+     "vu": 1795219163.0587583
+    },
+    {
+     "agent": "noyau_liquidite",
+     "dir": -1,
+     "exit": "e6",
+     "conds": [
+      [
        "inventeur",
        "divergence_k(structure.vs_bas_2j,flux.mouvement_avant_fixing,10)",
        -1e-06,
@@ -45430,360 +45593,182 @@
      "vu": 1795168464.6657457
     },
     {
-     "agent": "noyau_continuation",
+     "agent": "noyau_liquidite",
      "dir": -1,
      "exit": "e6",
      "conds": [
       [
        "inventeur",
-       "divergence_k(structure.vs_bas_2j,flux.mouvement_avant_fixing,10)",
-       -1e-06,
-       1e-06
-      ],
-      [
-       "inventeur",
-       "ratio(structure.vs_bas_2j,liquidite.reserve_haute_proche,21)",
-       5.7020001411438,
-       Infinity
-      ],
-      [
-       "smc",
-       "dans_ob_baissier",
+       "accord(structure.vs_bas_2j,flux.heures_fixing_londres,21)",
        0.999999,
        1.000001
-      ]
-     ],
-     "test_win": 0.8507,
-     "test_n": 134,
-     "test_avg": 0.0893,
-     "test_pf": 1.674,
-     "test_total": 11.966,
-     "apprentissage_win": 0.8147,
-     "validation_win": 0.837,
-     "raison": "validation : 84 % sur 135 trades, facteur de profit 0.89",
-     "robustesse": {
-      "actifs_gagnants": "12/21",
-      "par_actif": {
-       "EURUSD": {
-        "reussite": 0.667,
-        "trades": 12,
-        "gain_moyen": -0.1314
-       },
-       "GBPUSD": {
-        "reussite": 0.8,
-        "trades": 10,
-        "gain_moyen": 0.0287
-       },
-       "USDJPY": {
-        "reussite": 0.824,
-        "trades": 17,
-        "gain_moyen": 0.1679
-       },
-       "USDCHF": {
-        "reussite": 0.692,
-        "trades": 13,
-        "gain_moyen": -0.1807
-       },
-       "USDCAD": {
-        "reussite": 0.867,
-        "trades": 15,
-        "gain_moyen": -0.0588
-       },
-       "AUDUSD": {
-        "reussite": 0.875,
-        "trades": 8,
-        "gain_moyen": 0.0984
-       },
-       "NZDUSD": {
-        "reussite": 1.0,
-        "trades": 12,
-        "gain_moyen": 0.1269
-       },
-       "EURJPY": {
-        "reussite": 0.944,
-        "trades": 18,
-        "gain_moyen": 0.1244
-       },
-       "GBPJPY": {
-        "reussite": 0.8,
-        "trades": 10,
-        "gain_moyen": -0.0423
-       },
-       "EURGBP": {
-        "reussite": 0.643,
-        "trades": 14,
-        "gain_moyen": -0.0707
-       },
-       "AUDJPY": {
-        "reussite": 0.917,
-        "trades": 12,
-        "gain_moyen": 0.1393
-       },
-       "EURCHF": {
-        "reussite": 0.938,
-        "trades": 16,
-        "gain_moyen": 0.0607
-       },
-       "GBPCHF": {
-        "reussite": 0.882,
-        "trades": 17,
-        "gain_moyen": 0.4015
-       },
-       "CADJPY": {
-        "reussite": 0.769,
-        "trades": 13,
-        "gain_moyen": -0.031
-       },
-       "CHFJPY": {
-        "reussite": 0.909,
-        "trades": 11,
-        "gain_moyen": 0.0834
-       },
-       "EURAUD": {
-        "reussite": 0.909,
-        "trades": 11,
-        "gain_moyen": -0.0559
-       },
-       "EURCAD": {
-        "reussite": 1.0,
-        "trades": 13,
-        "gain_moyen": 0.1333
-       },
-       "GBPAUD": {
-        "reussite": 0.917,
-        "trades": 12,
-        "gain_moyen": 0.0841
-       },
-       "AUDNZD": {
-        "reussite": 0.938,
-        "trades": 16,
-        "gain_moyen": 0.0383
-       },
-       "XAUUSD": {
-        "reussite": 0.6,
-        "trades": 10,
-        "gain_moyen": -0.2419
-       },
-       "XAGUSD": {
-        "reussite": 0.667,
-        "trades": 9,
-        "gain_moyen": -0.2215
-       }
-      },
-      "par_annee": {
-       "2026": {
-        "reussite": 0.844,
-        "trades": 269
-       }
-      },
-      "par_session": {
-       "asie": {
-        "part": 0.0,
-        "trades": 0,
-        "reussite": 0.0
-       },
-       "londres": {
-        "part": 0.0,
-        "trades": 0,
-        "reussite": 0.0
-       },
-       "new_york": {
-        "part": 0.494,
-        "trades": 133,
-        "reussite": 0.835
-       },
-       "soir": {
-        "part": 0.506,
-        "trades": 136,
-        "reussite": 0.853
-       }
-      },
-      "reussite_moities": [
-       0.813,
-       0.874
       ],
-      "annees_reussies": "0/1"
-     },
-     "session": "soir",
-     "vu": 1795168464.6657457
-    },
-    {
-     "agent": "noyau_continuation",
-     "dir": -1,
-     "exit": "e6",
-     "conds": [
       [
        "inventeur",
-       "ecart_rang(flux.fin_trimestre,flux.heures_depuis_17h_new_york,5)",
-       -Infinity,
-       0.1599999964237213
+       "produit(structure.vs_bas_2j,structure.plus_bas_10,11)",
+       0.0,
+       7.424649429321289
       ],
       [
-       "smc",
-       "fvg_haussier_dist",
-       0.365238231420517,
-       1.0452907085418701
-      ],
-      [
-       "vwap",
-       "vwap_glissant50",
-       0.00044103755499236286,
-       0.0018497653072699904
+       "liquidite",
+       "stops_au_dessus_1atr",
+       0.0,
+       Infinity
       ]
      ],
-     "test_win": 0.8486,
-     "test_n": 284,
-     "test_avg": 0.079,
-     "test_pf": 1.646,
-     "test_total": 22.434,
-     "apprentissage_win": 0.7941,
-     "validation_win": 0.7922,
-     "raison": "validation : 79 % sur 255 trades, facteur de profit 1.10",
+     "test_win": 0.8533,
+     "test_n": 184,
+     "test_avg": 0.0726,
+     "test_pf": 1.677,
+     "test_total": 13.36,
+     "apprentissage_win": 0.8206,
+     "validation_win": 0.7789,
+     "raison": "validation : 78 % sur 190 trades, facteur de profit 0.77",
      "robustesse": {
-      "actifs_gagnants": "13/21",
+      "actifs_gagnants": "10/21",
       "par_actif": {
        "EURUSD": {
-        "reussite": 0.8,
-        "trades": 25,
-        "gain_moyen": 0.0917
+        "reussite": 0.833,
+        "trades": 18,
+        "gain_moyen": 0.0691
        },
        "GBPUSD": {
-        "reussite": 0.857,
-        "trades": 28,
-        "gain_moyen": 0.2106
+        "reussite": 0.824,
+        "trades": 17,
+        "gain_moyen": -0.0885
        },
        "USDJPY": {
-        "reussite": 0.781,
-        "trades": 32,
-        "gain_moyen": 0.0149
+        "reussite": 0.789,
+        "trades": 19,
+        "gain_moyen": -0.1216
        },
        "USDCHF": {
-        "reussite": 0.833,
-        "trades": 30,
-        "gain_moyen": 0.0066
+        "reussite": 0.762,
+        "trades": 21,
+        "gain_moyen": -0.0902
        },
        "USDCAD": {
-        "reussite": 0.786,
-        "trades": 28,
-        "gain_moyen": -0.022
+        "reussite": 0.778,
+        "trades": 18,
+        "gain_moyen": -0.0389
        },
        "AUDUSD": {
-        "reussite": 0.714,
-        "trades": 21,
-        "gain_moyen": -0.0525
+        "reussite": 0.85,
+        "trades": 20,
+        "gain_moyen": 0.0007
        },
        "NZDUSD": {
-        "reussite": 0.842,
-        "trades": 19,
-        "gain_moyen": 0.1871
+        "reussite": 0.938,
+        "trades": 16,
+        "gain_moyen": 0.0554
        },
        "EURJPY": {
-        "reussite": 0.833,
-        "trades": 30,
-        "gain_moyen": 0.0395
+        "reussite": 0.81,
+        "trades": 21,
+        "gain_moyen": -0.099
        },
        "GBPJPY": {
-        "reussite": 0.875,
-        "trades": 32,
-        "gain_moyen": 0.1416
+        "reussite": 0.857,
+        "trades": 21,
+        "gain_moyen": 0.0032
        },
        "EURGBP": {
-        "reussite": 0.759,
-        "trades": 29,
-        "gain_moyen": 0.28
+        "reussite": 0.667,
+        "trades": 21,
+        "gain_moyen": 0.2367
        },
        "AUDJPY": {
-        "reussite": 0.792,
-        "trades": 24,
-        "gain_moyen": -0.1006
+        "reussite": 0.895,
+        "trades": 19,
+        "gain_moyen": 0.1048
        },
        "EURCHF": {
-        "reussite": 0.818,
-        "trades": 33,
-        "gain_moyen": -0.0151
+        "reussite": 0.947,
+        "trades": 19,
+        "gain_moyen": 0.2153
        },
        "GBPCHF": {
-        "reussite": 0.92,
-        "trades": 25,
-        "gain_moyen": -0.007
+        "reussite": 0.8,
+        "trades": 15,
+        "gain_moyen": -0.0882
        },
        "CADJPY": {
-        "reussite": 0.857,
-        "trades": 35,
-        "gain_moyen": -0.0263
+        "reussite": 0.8,
+        "trades": 15,
+        "gain_moyen": -0.0496
        },
        "CHFJPY": {
-        "reussite": 0.828,
-        "trades": 29,
-        "gain_moyen": 0.0182
+        "reussite": 0.941,
+        "trades": 17,
+        "gain_moyen": 0.222
        },
        "EURAUD": {
-        "reussite": 0.739,
-        "trades": 23,
-        "gain_moyen": -0.08
+        "reussite": 0.818,
+        "trades": 22,
+        "gain_moyen": -0.0382
        },
        "EURCAD": {
-        "reussite": 0.875,
-        "trades": 24,
-        "gain_moyen": 0.0783
+        "reussite": 0.786,
+        "trades": 14,
+        "gain_moyen": -0.174
        },
        "GBPAUD": {
-        "reussite": 0.875,
-        "trades": 24,
-        "gain_moyen": 0.1158
-       },
-       "AUDNZD": {
-        "reussite": 0.778,
-        "trades": 27,
-        "gain_moyen": -0.0061
-       },
-       "XAUUSD": {
         "reussite": 0.833,
         "trades": 12,
-        "gain_moyen": 0.058
+        "gain_moyen": 0.3809
+       },
+       "AUDNZD": {
+        "reussite": 0.938,
+        "trades": 16,
+        "gain_moyen": 0.1764
+       },
+       "XAUUSD": {
+        "reussite": 0.625,
+        "trades": 16,
+        "gain_moyen": -0.2177
        },
        "XAGUSD": {
-        "reussite": 0.889,
-        "trades": 9,
-        "gain_moyen": 0.2697
+        "reussite": 0.647,
+        "trades": 17,
+        "gain_moyen": -0.1253
        }
       },
       "par_annee": {
        "2026": {
-        "reussite": 0.822,
-        "trades": 539
+        "reussite": 0.816,
+        "trades": 374
        }
       },
       "par_session": {
        "asie": {
-        "part": 0.011,
-        "trades": 6,
-        "reussite": 0.833
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
        },
        "londres": {
-        "part": 0.009,
-        "trades": 5,
-        "reussite": 0.6
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
        },
        "new_york": {
-        "part": 0.206,
-        "trades": 111,
-        "reussite": 0.811
+        "part": 0.31,
+        "trades": 116,
+        "reussite": 0.828
        },
        "soir": {
-        "part": 0.774,
-        "trades": 417,
-        "reussite": 0.827
+        "part": 0.69,
+        "trades": 258,
+        "reussite": 0.81
        }
       },
       "reussite_moities": [
-       0.81,
-       0.833
+       0.818,
+       0.813
       ],
       "annees_reussies": "0/1"
      },
      "session": "soir",
-     "vu": 1795188556.7972229
+     "vu": 1795219163.0587583
     },
     {
      "agent": "noyau_liquidite",
@@ -45791,145 +45776,145 @@
      "exit": "e6",
      "conds": [
       [
-       "fibonacci",
-       "position_swing20",
-       0.8306878209114075,
-       Infinity
+       "inventeur",
+       "accord(structure.vs_bas_2j,flux.heures_fixing_londres,21)",
+       0.999999,
+       1.000001
       ],
       [
        "inventeur",
-       "divergence_k(structure.vs_bas_2j,flux.mouvement_avant_fixing,10)",
-       -1e-06,
-       1e-06
+       "ecart_rang(structure.vs_bas_2j,smc.dist_ob_haussier,22)",
+       -Infinity,
+       -0.1428571492433548
       ],
       [
        "liquidite",
-       "stops_au_dessus_2atr",
-       1.0,
+       "stops_au_dessus_1atr",
+       0.0,
        Infinity
       ]
      ],
-     "test_win": 0.844,
-     "test_n": 282,
-     "test_avg": 0.1103,
-     "test_pf": 1.87,
-     "test_total": 31.107,
-     "apprentissage_win": 0.8149,
-     "validation_win": 0.8125,
-     "raison": "validation : 81 % sur 288 trades, facteur de profit 1.24",
+     "test_win": 0.8529,
+     "test_n": 204,
+     "test_avg": 0.0692,
+     "test_pf": 1.682,
+     "test_total": 14.124,
+     "apprentissage_win": 0.789,
+     "validation_win": 0.8112,
+     "raison": "validation : 81 % sur 196 trades, facteur de profit 1.27",
      "robustesse": {
-      "actifs_gagnants": "18/21",
+      "actifs_gagnants": "12/21",
       "par_actif": {
        "EURUSD": {
-        "reussite": 0.696,
-        "trades": 23,
-        "gain_moyen": 0.0612
+        "reussite": 0.947,
+        "trades": 19,
+        "gain_moyen": 0.3707
        },
        "GBPUSD": {
-        "reussite": 0.875,
-        "trades": 24,
-        "gain_moyen": 0.2076
+        "reussite": 0.615,
+        "trades": 13,
+        "gain_moyen": -0.0052
        },
        "USDJPY": {
-        "reussite": 0.794,
-        "trades": 34,
-        "gain_moyen": -0.0523
+        "reussite": 0.864,
+        "trades": 22,
+        "gain_moyen": -0.0057
        },
        "USDCHF": {
-        "reussite": 0.821,
-        "trades": 28,
-        "gain_moyen": 0.04
+        "reussite": 0.889,
+        "trades": 18,
+        "gain_moyen": 0.1231
        },
        "USDCAD": {
-        "reussite": 0.759,
-        "trades": 29,
-        "gain_moyen": -0.1978
+        "reussite": 0.72,
+        "trades": 25,
+        "gain_moyen": -0.0239
        },
        "AUDUSD": {
-        "reussite": 0.759,
-        "trades": 29,
-        "gain_moyen": 0.0235
+        "reussite": 0.9,
+        "trades": 20,
+        "gain_moyen": 0.0655
        },
        "NZDUSD": {
-        "reussite": 0.815,
-        "trades": 27,
-        "gain_moyen": 0.1272
+        "reussite": 0.833,
+        "trades": 12,
+        "gain_moyen": 0.2077
        },
        "EURJPY": {
-        "reussite": 0.903,
-        "trades": 31,
-        "gain_moyen": 0.1714
+        "reussite": 0.769,
+        "trades": 26,
+        "gain_moyen": -0.0222
        },
        "GBPJPY": {
-        "reussite": 0.828,
-        "trades": 29,
-        "gain_moyen": 0.0335
+        "reussite": 0.783,
+        "trades": 23,
+        "gain_moyen": -0.0671
        },
        "EURGBP": {
-        "reussite": 0.759,
-        "trades": 29,
-        "gain_moyen": 0.0201
+        "reussite": 0.8,
+        "trades": 15,
+        "gain_moyen": 0.1983
        },
        "AUDJPY": {
-        "reussite": 0.879,
-        "trades": 33,
-        "gain_moyen": 0.1151
+        "reussite": 0.846,
+        "trades": 26,
+        "gain_moyen": -0.0052
        },
        "EURCHF": {
-        "reussite": 0.828,
-        "trades": 29,
-        "gain_moyen": 0.0429
+        "reussite": 0.909,
+        "trades": 22,
+        "gain_moyen": 0.0339
        },
        "GBPCHF": {
-        "reussite": 1.0,
-        "trades": 21,
-        "gain_moyen": 0.3541
-       },
-       "CADJPY": {
-        "reussite": 0.844,
-        "trades": 32,
-        "gain_moyen": 0.1185
-       },
-       "CHFJPY": {
-        "reussite": 1.0,
-        "trades": 27,
-        "gain_moyen": 0.2138
-       },
-       "EURAUD": {
-        "reussite": 0.87,
-        "trades": 23,
-        "gain_moyen": 0.0486
-       },
-       "EURCAD": {
-        "reussite": 0.852,
-        "trades": 27,
-        "gain_moyen": 0.0783
-       },
-       "GBPAUD": {
-        "reussite": 0.885,
-        "trades": 26,
-        "gain_moyen": 0.1511
-       },
-       "AUDNZD": {
-        "reussite": 0.739,
-        "trades": 23,
-        "gain_moyen": 0.0513
-       },
-       "XAUUSD": {
         "reussite": 0.842,
         "trades": 19,
-        "gain_moyen": 0.1762
+        "gain_moyen": 0.1355
+       },
+       "CADJPY": {
+        "reussite": 0.783,
+        "trades": 23,
+        "gain_moyen": -0.0076
+       },
+       "CHFJPY": {
+        "reussite": 0.938,
+        "trades": 16,
+        "gain_moyen": 0.1265
+       },
+       "EURAUD": {
+        "reussite": 1.0,
+        "trades": 12,
+        "gain_moyen": 0.1809
+       },
+       "EURCAD": {
+        "reussite": 0.765,
+        "trades": 17,
+        "gain_moyen": -0.0972
+       },
+       "GBPAUD": {
+        "reussite": 0.923,
+        "trades": 13,
+        "gain_moyen": 0.2923
+       },
+       "AUDNZD": {
+        "reussite": 0.8,
+        "trades": 25,
+        "gain_moyen": 0.0441
+       },
+       "XAUUSD": {
+        "reussite": 0.882,
+        "trades": 17,
+        "gain_moyen": 0.0675
        },
        "XAGUSD": {
-        "reussite": 0.667,
-        "trades": 27,
-        "gain_moyen": -0.0935
+        "reussite": 0.765,
+        "trades": 17,
+        "gain_moyen": -0.0903
        }
       },
       "par_annee": {
        "2026": {
-        "reussite": 0.828,
-        "trades": 570
+        "reussite": 0.833,
+        "trades": 400
        }
       },
       "par_session": {
@@ -45939,29 +45924,29 @@
         "reussite": 0.0
        },
        "londres": {
-        "part": 0.0,
-        "trades": 0,
-        "reussite": 0.0
+        "part": 0.015,
+        "trades": 6,
+        "reussite": 1.0
        },
        "new_york": {
-        "part": 0.444,
-        "trades": 253,
-        "reussite": 0.798
+        "part": 0.438,
+        "trades": 175,
+        "reussite": 0.806
        },
        "soir": {
-        "part": 0.556,
-        "trades": 317,
-        "reussite": 0.852
+        "part": 0.547,
+        "trades": 219,
+        "reussite": 0.849
        }
       },
       "reussite_moities": [
-       0.804,
-       0.853
+       0.81,
+       0.855
       ],
       "annees_reussies": "0/1"
      },
      "session": "soir",
-     "vu": 1795168464.6657457
+     "vu": 1795219163.0587583
     },
     {
      "agent": "noyau_liquidite",
@@ -49344,12 +49329,12 @@
     "ROSE"
    ],
    "historique_jours": 540.4,
-   "bougies": 1460678,
-   "conditions": 6192,
-   "combinaisons": 1204318,
-   "candidates": 875,
-   "validees": 4,
-   "apres_fdr": 4,
+   "bougies": 1460851,
+   "conditions": 6193,
+   "combinaisons": 1217584,
+   "candidates": 879,
+   "validees": 9,
+   "apres_fdr": 9,
    "strategies": [],
    "armee": {},
    "plafond": [
@@ -49416,7 +49401,279 @@
       ],
       "annees_reussies": "1/1"
      },
-     "vu": 1795213507.648557
+     "vu": 1795219163.0587583
+    },
+    {
+     "agent": "noyau_liquidite",
+     "dir": 1,
+     "exit": "e6",
+     "conds": [
+      [
+       "inventeur",
+       "acceleration(positionnement.cot_bitcoin_fonds,chiffres_ronds.dist_rond,5)",
+       0.0,
+       Infinity
+      ],
+      [
+       "inventeur",
+       "acceleration(positionnement.cot_bitcoin_percentile_fonds,smc.fvg_baissier_age,11)",
+       0.0,
+       Infinity
+      ],
+      [
+       "liquidite",
+       "dist_bas_semaine",
+       0.212158203125,
+       6.4453125
+      ]
+     ],
+     "test_win": 0.9481,
+     "test_n": 135,
+     "test_avg": 0.3997,
+     "test_pf": 10.411,
+     "test_total": 53.961,
+     "apprentissage_win": 0.7956,
+     "validation_win": 0.8909,
+     "raison": "validation : 89 % sur 165 trades, facteur de profit 1.76",
+     "robustesse": {
+      "actifs_gagnants": "33/40",
+      "par_actif": {
+       "XRP": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.1915
+       },
+       "DOGE": {
+        "reussite": 0.8,
+        "trades": 5,
+        "gain_moyen": 0.1119
+       },
+       "ADA": {
+        "reussite": 0.714,
+        "trades": 7,
+        "gain_moyen": 0.0304
+       },
+       "LINK": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.1117
+       },
+       "LTC": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": -0.1056
+       },
+       "DOT": {
+        "reussite": 0.857,
+        "trades": 7,
+        "gain_moyen": 0.048
+       },
+       "BCH": {
+        "reussite": 0.6,
+        "trades": 5,
+        "gain_moyen": -0.3541
+       },
+       "NEAR": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.657
+       },
+       "XLM": {
+        "reussite": 1.0,
+        "trades": 8,
+        "gain_moyen": 0.6278
+       },
+       "HBAR": {
+        "reussite": 0.6,
+        "trades": 5,
+        "gain_moyen": 0.149
+       },
+       "ATOM": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.3858
+       },
+       "UNI": {
+        "reussite": 0.8,
+        "trades": 5,
+        "gain_moyen": 0.1086
+       },
+       "AAVE": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.1219
+       },
+       "SUI": {
+        "reussite": 1.0,
+        "trades": 7,
+        "gain_moyen": 0.3515
+       },
+       "ICP": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.21
+       },
+       "SHIB": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": 0.194
+       },
+       "ARB": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.5621
+       },
+       "OP": {
+        "reussite": 1.0,
+        "trades": 7,
+        "gain_moyen": 0.5085
+       },
+       "APT": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.1516
+       },
+       "GRT": {
+        "reussite": 0.75,
+        "trades": 8,
+        "gain_moyen": -0.0996
+       },
+       "CRV": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.1228
+       },
+       "SAND": {
+        "reussite": 0.8,
+        "trades": 5,
+        "gain_moyen": -0.0681
+       },
+       "MANA": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.0943
+       },
+       "FET": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.1593
+       },
+       "IMX": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.118
+       },
+       "AXS": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.3095
+       },
+       "COMP": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.2916
+       },
+       "YFI": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.1823
+       },
+       "1INCH": {
+        "reussite": 1.0,
+        "trades": 8,
+        "gain_moyen": 0.217
+       },
+       "ZEC": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.5294
+       },
+       "DASH": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.4837
+       },
+       "QNT": {
+        "reussite": 0.8,
+        "trades": 5,
+        "gain_moyen": 0.0171
+       },
+       "CHZ": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": -0.0686
+       },
+       "APE": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": -0.0111
+       },
+       "BLUR": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.1149
+       },
+       "LRC": {
+        "reussite": 0.8,
+        "trades": 5,
+        "gain_moyen": -0.106
+       },
+       "ANKR": {
+        "reussite": 0.8,
+        "trades": 5,
+        "gain_moyen": 0.0791
+       },
+       "MINA": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.1165
+       },
+       "FLOW": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": 0.5522
+       },
+       "ROSE": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.3767
+       }
+      },
+      "par_annee": {
+       "2026": {
+        "reussite": 0.917,
+        "trades": 300
+       }
+      },
+      "par_session": {
+       "asie": {
+        "part": 1.0,
+        "trades": 300,
+        "reussite": 0.917
+       },
+       "londres": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       },
+       "new_york": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       },
+       "soir": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       }
+      },
+      "reussite_moities": [
+       0.907,
+       0.927
+      ],
+      "annees_reussies": "1/1"
+     },
+     "vu": 1795219163.0587583
     },
     {
      "agent": "noyau_liquidite",
@@ -49689,278 +49946,6 @@
       "annees_reussies": "1/1"
      },
      "vu": 1795213507.648557
-    },
-    {
-     "agent": "noyau_liquidite",
-     "dir": 1,
-     "exit": "e6",
-     "conds": [
-      [
-       "inventeur",
-       "acceleration(positionnement.cot_bitcoin_fonds,chiffres_ronds.dist_rond,5)",
-       0.0,
-       Infinity
-      ],
-      [
-       "inventeur",
-       "acceleration(positionnement.cot_bitcoin_percentile_fonds,smc.fvg_baissier_age,10)",
-       0.0,
-       Infinity
-      ],
-      [
-       "liquidite",
-       "dist_bas_semaine",
-       0.2098388671875,
-       6.44140625
-      ]
-     ],
-     "test_win": 0.9481,
-     "test_n": 135,
-     "test_avg": 0.3997,
-     "test_pf": 10.411,
-     "test_total": 53.961,
-     "apprentissage_win": 0.7937,
-     "validation_win": 0.8902,
-     "raison": "validation : 89 % sur 164 trades, facteur de profit 1.76",
-     "robustesse": {
-      "actifs_gagnants": "33/40",
-      "par_actif": {
-       "XRP": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.1915
-       },
-       "DOGE": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": 0.1119
-       },
-       "ADA": {
-        "reussite": 0.714,
-        "trades": 7,
-        "gain_moyen": 0.0304
-       },
-       "LINK": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.1117
-       },
-       "LTC": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": -0.1056
-       },
-       "DOT": {
-        "reussite": 0.857,
-        "trades": 7,
-        "gain_moyen": 0.048
-       },
-       "BCH": {
-        "reussite": 0.6,
-        "trades": 5,
-        "gain_moyen": -0.3541
-       },
-       "NEAR": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.657
-       },
-       "XLM": {
-        "reussite": 1.0,
-        "trades": 8,
-        "gain_moyen": 0.6278
-       },
-       "HBAR": {
-        "reussite": 0.6,
-        "trades": 5,
-        "gain_moyen": 0.149
-       },
-       "ATOM": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.3858
-       },
-       "UNI": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": 0.1086
-       },
-       "AAVE": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.1219
-       },
-       "SUI": {
-        "reussite": 1.0,
-        "trades": 7,
-        "gain_moyen": 0.3515
-       },
-       "ICP": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.21
-       },
-       "SHIB": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": 0.194
-       },
-       "ARB": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.5621
-       },
-       "OP": {
-        "reussite": 1.0,
-        "trades": 7,
-        "gain_moyen": 0.5085
-       },
-       "APT": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.1516
-       },
-       "GRT": {
-        "reussite": 0.75,
-        "trades": 8,
-        "gain_moyen": -0.0996
-       },
-       "CRV": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.1228
-       },
-       "SAND": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": -0.0681
-       },
-       "MANA": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.0943
-       },
-       "FET": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.1593
-       },
-       "IMX": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.118
-       },
-       "AXS": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.3095
-       },
-       "COMP": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.2916
-       },
-       "YFI": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.1823
-       },
-       "1INCH": {
-        "reussite": 1.0,
-        "trades": 8,
-        "gain_moyen": 0.217
-       },
-       "ZEC": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.5294
-       },
-       "DASH": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.4837
-       },
-       "QNT": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": 0.0171
-       },
-       "CHZ": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": -0.0686
-       },
-       "APE": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": -0.0111
-       },
-       "BLUR": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.1149
-       },
-       "LRC": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": -0.106
-       },
-       "ANKR": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": 0.0791
-       },
-       "MINA": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.1165
-       },
-       "FLOW": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": 0.5522
-       },
-       "ROSE": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.3767
-       }
-      },
-      "par_annee": {
-       "2026": {
-        "reussite": 0.916,
-        "trades": 299
-       }
-      },
-      "par_session": {
-       "asie": {
-        "part": 1.0,
-        "trades": 299,
-        "reussite": 0.916
-       },
-       "londres": {
-        "part": 0.0,
-        "trades": 0,
-        "reussite": 0.0
-       },
-       "new_york": {
-        "part": 0.0,
-        "trades": 0,
-        "reussite": 0.0
-       },
-       "soir": {
-        "part": 0.0,
-        "trades": 0,
-        "reussite": 0.0
-       }
-      },
-      "reussite_moities": [
-       0.906,
-       0.927
-      ],
-      "annees_reussies": "1/1"
-     },
-     "vu": 1795201044.4023685
     },
     {
      "agent": "noyau_liquidite",
@@ -50529,7 +50514,7 @@
       ],
       "annees_reussies": "0/1"
      },
-     "vu": 1795213507.648557
+     "vu": 1795219163.0587583
     },
     {
      "agent": "noyau_continuation",
@@ -50827,6 +50812,128 @@
       "annees_reussies": "0/1"
      },
      "vu": 1795182045.1532722
+    },
+    {
+     "agent": "noyau_liquidite",
+     "dir": 1,
+     "exit": "e6",
+     "conds": [
+      [
+       "inventeur",
+       "acceleration(positionnement.cot_bitcoin_percentile_fonds,smc.fvg_baissier_age,5)",
+       0.0,
+       Infinity
+      ],
+      [
+       "inventeur",
+       "croise_moyenne(structure.vs_bas_2j,banque.objectif_r,11)",
+       2.4765625,
+       Infinity
+      ],
+      [
+       "liquidite",
+       "dist_bas_semaine",
+       0.212158203125,
+       6.4453125
+      ]
+     ],
+     "test_win": 0.9213,
+     "test_n": 89,
+     "test_avg": 0.2687,
+     "test_pf": 4.442,
+     "test_total": 23.917,
+     "apprentissage_win": 0.8049,
+     "validation_win": 0.6471,
+     "raison": "validation : 65 % sur 85 trades, facteur de profit 0.27",
+     "robustesse": {
+      "actifs_gagnants": "6/10",
+      "par_actif": {
+       "AVAX": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": 0.0041
+       },
+       "DOT": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": -0.0528
+       },
+       "XLM": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.518
+       },
+       "SUI": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.2803
+       },
+       "ETC": {
+        "reussite": 0.667,
+        "trades": 6,
+        "gain_moyen": -0.0445
+       },
+       "SHIB": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.1538
+       },
+       "APT": {
+        "reussite": 0.4,
+        "trades": 5,
+        "gain_moyen": -0.5876
+       },
+       "ALGO": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.2359
+       },
+       "YFI": {
+        "reussite": 0.6,
+        "trades": 5,
+        "gain_moyen": -0.3779
+       },
+       "ZEC": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.5256
+       }
+      },
+      "par_annee": {
+       "2026": {
+        "reussite": 0.787,
+        "trades": 174
+       }
+      },
+      "par_session": {
+       "asie": {
+        "part": 1.0,
+        "trades": 174,
+        "reussite": 0.787
+       },
+       "londres": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       },
+       "new_york": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       },
+       "soir": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       }
+      },
+      "reussite_moities": [
+       0.816,
+       0.759
+      ],
+      "annees_reussies": "0/1"
+     },
+     "vu": 1795219163.0587583
     },
     {
      "agent": "noyau_liquidite",
@@ -51744,6 +51851,367 @@
       "annees_reussies": "0/1"
      },
      "vu": 1795208441.7836037
+    },
+    {
+     "agent": "noyau_liquidite",
+     "dir": 1,
+     "exit": "e6",
+     "conds": [
+      [
+       "inventeur",
+       "acceleration(positionnement.cot_bitcoin_percentile_fonds,smc.fvg_baissier_age,5)",
+       0.0,
+       Infinity
+      ],
+      [
+       "liquidite",
+       "dist_bas_semaine",
+       0.212158203125,
+       6.4453125
+      ]
+     ],
+     "test_win": 0.9068,
+     "test_n": 236,
+     "test_avg": 0.3287,
+     "test_pf": 5.051,
+     "test_total": 77.583,
+     "apprentissage_win": 0.7397,
+     "validation_win": 0.7273,
+     "raison": "validation : 73 % sur 385 trades, facteur de profit 0.60",
+     "robustesse": {
+      "actifs_gagnants": "36/59",
+      "par_actif": {
+       "BTC": {
+        "reussite": 1.0,
+        "trades": 9,
+        "gain_moyen": 0.3396
+       },
+       "ETH": {
+        "reussite": 0.8,
+        "trades": 10,
+        "gain_moyen": 0.0758
+       },
+       "SOL": {
+        "reussite": 0.714,
+        "trades": 7,
+        "gain_moyen": 0.1196
+       },
+       "XRP": {
+        "reussite": 0.909,
+        "trades": 11,
+        "gain_moyen": 0.0854
+       },
+       "BNB": {
+        "reussite": 0.429,
+        "trades": 7,
+        "gain_moyen": -0.6196
+       },
+       "DOGE": {
+        "reussite": 0.75,
+        "trades": 12,
+        "gain_moyen": -0.0728
+       },
+       "ADA": {
+        "reussite": 0.818,
+        "trades": 11,
+        "gain_moyen": 0.1066
+       },
+       "AVAX": {
+        "reussite": 0.833,
+        "trades": 12,
+        "gain_moyen": 0.115
+       },
+       "LINK": {
+        "reussite": 0.889,
+        "trades": 9,
+        "gain_moyen": 0.0042
+       },
+       "LTC": {
+        "reussite": 0.667,
+        "trades": 9,
+        "gain_moyen": -0.3017
+       },
+       "DOT": {
+        "reussite": 0.846,
+        "trades": 13,
+        "gain_moyen": 0.131
+       },
+       "BCH": {
+        "reussite": 0.667,
+        "trades": 12,
+        "gain_moyen": -0.2679
+       },
+       "NEAR": {
+        "reussite": 0.929,
+        "trades": 14,
+        "gain_moyen": 0.3201
+       },
+       "XLM": {
+        "reussite": 1.0,
+        "trades": 15,
+        "gain_moyen": 0.3887
+       },
+       "HBAR": {
+        "reussite": 0.636,
+        "trades": 11,
+        "gain_moyen": -0.0995
+       },
+       "ATOM": {
+        "reussite": 0.636,
+        "trades": 11,
+        "gain_moyen": -0.1733
+       },
+       "UNI": {
+        "reussite": 0.571,
+        "trades": 7,
+        "gain_moyen": -0.2294
+       },
+       "AAVE": {
+        "reussite": 1.0,
+        "trades": 11,
+        "gain_moyen": 0.2902
+       },
+       "SUI": {
+        "reussite": 1.0,
+        "trades": 14,
+        "gain_moyen": 0.3029
+       },
+       "FIL": {
+        "reussite": 0.625,
+        "trades": 8,
+        "gain_moyen": 0.1207
+       },
+       "ETC": {
+        "reussite": 0.889,
+        "trades": 9,
+        "gain_moyen": 0.219
+       },
+       "ICP": {
+        "reussite": 0.917,
+        "trades": 12,
+        "gain_moyen": 0.1352
+       },
+       "SHIB": {
+        "reussite": 0.769,
+        "trades": 13,
+        "gain_moyen": 0.003
+       },
+       "ARB": {
+        "reussite": 0.846,
+        "trades": 13,
+        "gain_moyen": 0.7306
+       },
+       "OP": {
+        "reussite": 0.846,
+        "trades": 13,
+        "gain_moyen": 0.3859
+       },
+       "APT": {
+        "reussite": 0.7,
+        "trades": 10,
+        "gain_moyen": -0.2149
+       },
+       "INJ": {
+        "reussite": 0.625,
+        "trades": 8,
+        "gain_moyen": -0.1956
+       },
+       "GRT": {
+        "reussite": 0.667,
+        "trades": 12,
+        "gain_moyen": -0.2242
+       },
+       "CRV": {
+        "reussite": 0.9,
+        "trades": 10,
+        "gain_moyen": 0.2884
+       },
+       "LDO": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.2424
+       },
+       "SAND": {
+        "reussite": 0.5,
+        "trades": 10,
+        "gain_moyen": -0.3679
+       },
+       "MANA": {
+        "reussite": 0.7,
+        "trades": 10,
+        "gain_moyen": -0.1502
+       },
+       "ALGO": {
+        "reussite": 0.889,
+        "trades": 9,
+        "gain_moyen": 0.0502
+       },
+       "XTZ": {
+        "reussite": 0.8,
+        "trades": 10,
+        "gain_moyen": -0.1259
+       },
+       "FET": {
+        "reussite": 1.0,
+        "trades": 9,
+        "gain_moyen": 0.2158
+       },
+       "IMX": {
+        "reussite": 0.8,
+        "trades": 10,
+        "gain_moyen": -0.0184
+       },
+       "STX": {
+        "reussite": 0.778,
+        "trades": 9,
+        "gain_moyen": -0.0128
+       },
+       "AXS": {
+        "reussite": 0.8,
+        "trades": 10,
+        "gain_moyen": 0.0031
+       },
+       "COMP": {
+        "reussite": 0.778,
+        "trades": 9,
+        "gain_moyen": 0.0632
+       },
+       "SNX": {
+        "reussite": 0.583,
+        "trades": 12,
+        "gain_moyen": 0.1211
+       },
+       "YFI": {
+        "reussite": 0.9,
+        "trades": 10,
+        "gain_moyen": 0.0287
+       },
+       "1INCH": {
+        "reussite": 0.778,
+        "trades": 18,
+        "gain_moyen": -0.078
+       },
+       "BAT": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": 0.0961
+       },
+       "ZEC": {
+        "reussite": 0.889,
+        "trades": 9,
+        "gain_moyen": 0.2768
+       },
+       "DASH": {
+        "reussite": 0.727,
+        "trades": 11,
+        "gain_moyen": 0.1036
+       },
+       "QNT": {
+        "reussite": 0.667,
+        "trades": 12,
+        "gain_moyen": -0.1907
+       },
+       "CHZ": {
+        "reussite": 0.692,
+        "trades": 13,
+        "gain_moyen": -0.2408
+       },
+       "ENS": {
+        "reussite": 0.889,
+        "trades": 9,
+        "gain_moyen": 0.1222
+       },
+       "APE": {
+        "reussite": 0.8,
+        "trades": 10,
+        "gain_moyen": -0.081
+       },
+       "BLUR": {
+        "reussite": 0.692,
+        "trades": 13,
+        "gain_moyen": -0.0139
+       },
+       "LRC": {
+        "reussite": 0.7,
+        "trades": 10,
+        "gain_moyen": 0.0222
+       },
+       "SUSHI": {
+        "reussite": 0.889,
+        "trades": 9,
+        "gain_moyen": 0.023
+       },
+       "ZRX": {
+        "reussite": 0.778,
+        "trades": 9,
+        "gain_moyen": -0.0262
+       },
+       "ANKR": {
+        "reussite": 0.909,
+        "trades": 11,
+        "gain_moyen": 0.3216
+       },
+       "STORJ": {
+        "reussite": 0.714,
+        "trades": 14,
+        "gain_moyen": -0.165
+       },
+       "MINA": {
+        "reussite": 0.909,
+        "trades": 11,
+        "gain_moyen": -0.0011
+       },
+       "FLOW": {
+        "reussite": 0.8,
+        "trades": 10,
+        "gain_moyen": 0.374
+       },
+       "KAVA": {
+        "reussite": 1.0,
+        "trades": 8,
+        "gain_moyen": 0.331
+       },
+       "ROSE": {
+        "reussite": 0.8,
+        "trades": 10,
+        "gain_moyen": 0.1947
+       }
+      },
+      "par_annee": {
+       "2026": {
+        "reussite": 0.795,
+        "trades": 621
+       }
+      },
+      "par_session": {
+       "asie": {
+        "part": 0.986,
+        "trades": 612,
+        "reussite": 0.796
+       },
+       "londres": {
+        "part": 0.008,
+        "trades": 5,
+        "reussite": 0.8
+       },
+       "new_york": {
+        "part": 0.006,
+        "trades": 4,
+        "reussite": 0.75
+       },
+       "soir": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       }
+      },
+      "reussite_moities": [
+       0.803,
+       0.788
+      ],
+      "annees_reussies": "0/1"
+     },
+     "vu": 1795219163.0587583
     },
     {
      "agent": "noyau_liquidite",
@@ -52231,367 +52699,6 @@
        Infinity
       ],
       [
-       "liquidite",
-       "dist_bas_semaine",
-       0.21142578125,
-       6.44140625
-      ]
-     ],
-     "test_win": 0.9025,
-     "test_n": 236,
-     "test_avg": 0.3242,
-     "test_pf": 4.781,
-     "test_total": 76.506,
-     "apprentissage_win": 0.7387,
-     "validation_win": 0.7266,
-     "raison": "validation : 73 % sur 384 trades, facteur de profit 0.60",
-     "robustesse": {
-      "actifs_gagnants": "36/59",
-      "par_actif": {
-       "BTC": {
-        "reussite": 1.0,
-        "trades": 9,
-        "gain_moyen": 0.3396
-       },
-       "ETH": {
-        "reussite": 0.8,
-        "trades": 10,
-        "gain_moyen": 0.0758
-       },
-       "SOL": {
-        "reussite": 0.714,
-        "trades": 7,
-        "gain_moyen": 0.1196
-       },
-       "XRP": {
-        "reussite": 0.909,
-        "trades": 11,
-        "gain_moyen": 0.0854
-       },
-       "BNB": {
-        "reussite": 0.429,
-        "trades": 7,
-        "gain_moyen": -0.6196
-       },
-       "DOGE": {
-        "reussite": 0.75,
-        "trades": 12,
-        "gain_moyen": -0.0728
-       },
-       "ADA": {
-        "reussite": 0.818,
-        "trades": 11,
-        "gain_moyen": 0.1066
-       },
-       "AVAX": {
-        "reussite": 0.833,
-        "trades": 12,
-        "gain_moyen": 0.1236
-       },
-       "LINK": {
-        "reussite": 0.889,
-        "trades": 9,
-        "gain_moyen": 0.0042
-       },
-       "LTC": {
-        "reussite": 0.667,
-        "trades": 9,
-        "gain_moyen": -0.3017
-       },
-       "DOT": {
-        "reussite": 0.846,
-        "trades": 13,
-        "gain_moyen": 0.131
-       },
-       "BCH": {
-        "reussite": 0.667,
-        "trades": 12,
-        "gain_moyen": -0.2679
-       },
-       "NEAR": {
-        "reussite": 0.929,
-        "trades": 14,
-        "gain_moyen": 0.3201
-       },
-       "XLM": {
-        "reussite": 1.0,
-        "trades": 15,
-        "gain_moyen": 0.3887
-       },
-       "HBAR": {
-        "reussite": 0.636,
-        "trades": 11,
-        "gain_moyen": -0.0995
-       },
-       "ATOM": {
-        "reussite": 0.636,
-        "trades": 11,
-        "gain_moyen": -0.1733
-       },
-       "UNI": {
-        "reussite": 0.571,
-        "trades": 7,
-        "gain_moyen": -0.2294
-       },
-       "AAVE": {
-        "reussite": 1.0,
-        "trades": 11,
-        "gain_moyen": 0.2902
-       },
-       "SUI": {
-        "reussite": 1.0,
-        "trades": 14,
-        "gain_moyen": 0.3029
-       },
-       "FIL": {
-        "reussite": 0.625,
-        "trades": 8,
-        "gain_moyen": 0.1207
-       },
-       "ETC": {
-        "reussite": 0.889,
-        "trades": 9,
-        "gain_moyen": 0.219
-       },
-       "ICP": {
-        "reussite": 0.917,
-        "trades": 12,
-        "gain_moyen": 0.1352
-       },
-       "SHIB": {
-        "reussite": 0.769,
-        "trades": 13,
-        "gain_moyen": 0.003
-       },
-       "ARB": {
-        "reussite": 0.846,
-        "trades": 13,
-        "gain_moyen": 0.7306
-       },
-       "OP": {
-        "reussite": 0.846,
-        "trades": 13,
-        "gain_moyen": 0.3859
-       },
-       "APT": {
-        "reussite": 0.7,
-        "trades": 10,
-        "gain_moyen": -0.2149
-       },
-       "INJ": {
-        "reussite": 0.625,
-        "trades": 8,
-        "gain_moyen": -0.1956
-       },
-       "GRT": {
-        "reussite": 0.667,
-        "trades": 12,
-        "gain_moyen": -0.2242
-       },
-       "CRV": {
-        "reussite": 0.9,
-        "trades": 10,
-        "gain_moyen": 0.2884
-       },
-       "LDO": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.2424
-       },
-       "SAND": {
-        "reussite": 0.5,
-        "trades": 10,
-        "gain_moyen": -0.3679
-       },
-       "MANA": {
-        "reussite": 0.7,
-        "trades": 10,
-        "gain_moyen": -0.1502
-       },
-       "ALGO": {
-        "reussite": 0.889,
-        "trades": 9,
-        "gain_moyen": 0.0502
-       },
-       "XTZ": {
-        "reussite": 0.8,
-        "trades": 10,
-        "gain_moyen": -0.1259
-       },
-       "FET": {
-        "reussite": 1.0,
-        "trades": 9,
-        "gain_moyen": 0.2158
-       },
-       "IMX": {
-        "reussite": 0.8,
-        "trades": 10,
-        "gain_moyen": -0.0184
-       },
-       "STX": {
-        "reussite": 0.778,
-        "trades": 9,
-        "gain_moyen": -0.0128
-       },
-       "AXS": {
-        "reussite": 0.8,
-        "trades": 10,
-        "gain_moyen": 0.0031
-       },
-       "COMP": {
-        "reussite": 0.778,
-        "trades": 9,
-        "gain_moyen": 0.0632
-       },
-       "SNX": {
-        "reussite": 0.583,
-        "trades": 12,
-        "gain_moyen": 0.1211
-       },
-       "YFI": {
-        "reussite": 0.9,
-        "trades": 10,
-        "gain_moyen": 0.0287
-       },
-       "1INCH": {
-        "reussite": 0.722,
-        "trades": 18,
-        "gain_moyen": -0.1435
-       },
-       "BAT": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": 0.0961
-       },
-       "ZEC": {
-        "reussite": 0.889,
-        "trades": 9,
-        "gain_moyen": 0.2768
-       },
-       "DASH": {
-        "reussite": 0.727,
-        "trades": 11,
-        "gain_moyen": 0.1036
-       },
-       "QNT": {
-        "reussite": 0.667,
-        "trades": 12,
-        "gain_moyen": -0.1907
-       },
-       "CHZ": {
-        "reussite": 0.692,
-        "trades": 13,
-        "gain_moyen": -0.2408
-       },
-       "ENS": {
-        "reussite": 0.889,
-        "trades": 9,
-        "gain_moyen": 0.1222
-       },
-       "APE": {
-        "reussite": 0.8,
-        "trades": 10,
-        "gain_moyen": -0.081
-       },
-       "BLUR": {
-        "reussite": 0.692,
-        "trades": 13,
-        "gain_moyen": -0.0139
-       },
-       "LRC": {
-        "reussite": 0.7,
-        "trades": 10,
-        "gain_moyen": 0.0222
-       },
-       "SUSHI": {
-        "reussite": 0.889,
-        "trades": 9,
-        "gain_moyen": 0.023
-       },
-       "ZRX": {
-        "reussite": 0.778,
-        "trades": 9,
-        "gain_moyen": -0.0262
-       },
-       "ANKR": {
-        "reussite": 0.909,
-        "trades": 11,
-        "gain_moyen": 0.3216
-       },
-       "STORJ": {
-        "reussite": 0.714,
-        "trades": 14,
-        "gain_moyen": -0.165
-       },
-       "MINA": {
-        "reussite": 0.909,
-        "trades": 11,
-        "gain_moyen": -0.0011
-       },
-       "FLOW": {
-        "reussite": 0.8,
-        "trades": 10,
-        "gain_moyen": 0.374
-       },
-       "KAVA": {
-        "reussite": 1.0,
-        "trades": 7,
-        "gain_moyen": 0.3603
-       },
-       "ROSE": {
-        "reussite": 0.8,
-        "trades": 10,
-        "gain_moyen": 0.1947
-       }
-      },
-      "par_annee": {
-       "2026": {
-        "reussite": 0.794,
-        "trades": 620
-       }
-      },
-      "par_session": {
-       "asie": {
-        "part": 0.985,
-        "trades": 611,
-        "reussite": 0.794
-       },
-       "londres": {
-        "part": 0.008,
-        "trades": 5,
-        "reussite": 0.8
-       },
-       "new_york": {
-        "part": 0.006,
-        "trades": 4,
-        "reussite": 0.75
-       },
-       "soir": {
-        "part": 0.0,
-        "trades": 0,
-        "reussite": 0.0
-       }
-      },
-      "reussite_moities": [
-       0.803,
-       0.784
-      ],
-      "annees_reussies": "0/1"
-     },
-     "vu": 1795213507.648557
-    },
-    {
-     "agent": "noyau_liquidite",
-     "dir": 1,
-     "exit": "e6",
-     "conds": [
-      [
-       "inventeur",
-       "acceleration(positionnement.cot_bitcoin_percentile_fonds,smc.fvg_baissier_age,5)",
-       0.0,
-       Infinity
-      ],
-      [
        "inventeur",
        "croise_moyenne(structure.vs_bas_2j,positionnement.dvol_btc_prime_peur,9)",
        2.1875,
@@ -52971,188 +53078,27 @@
      "conds": [
       [
        "inventeur",
-       "acceleration(positionnement.cot_bitcoin_percentile_fonds,smc.fvg_baissier_age,7)",
+       "acceleration(positionnement.cot_bitcoin_percentile_fonds,smc.fvg_baissier_age,8)",
        0.0,
        Infinity
       ],
       [
        "liquidite",
        "dist_bas_mois",
-       -3.76953125,
+       -3.767578125,
        8.640625
       ]
      ],
-     "test_win": 0.9,
-     "test_n": 70,
-     "test_avg": 0.2064,
-     "test_pf": 4.346,
-     "test_total": 14.451,
-     "apprentissage_win": 0.7939,
-     "validation_win": 0.5963,
-     "raison": "validation : 60 % sur 161 trades, facteur de profit 0.41",
-     "robustesse": {
-      "actifs_gagnants": "9/19",
-      "par_actif": {
-       "DOGE": {
-        "reussite": 0.667,
-        "trades": 6,
-        "gain_moyen": -0.249
-       },
-       "DOT": {
-        "reussite": 0.714,
-        "trades": 7,
-        "gain_moyen": -0.2213
-       },
-       "XLM": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.3216
-       },
-       "HBAR": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": 0.1104
-       },
-       "UNI": {
-        "reussite": 0.6,
-        "trades": 5,
-        "gain_moyen": -0.2539
-       },
-       "AAVE": {
-        "reussite": 0.667,
-        "trades": 6,
-        "gain_moyen": -0.1887
-       },
-       "OP": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": -0.014
-       },
-       "APT": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": -0.1101
-       },
-       "SAND": {
-        "reussite": 0.8,
-        "trades": 10,
-        "gain_moyen": 0.0874
-       },
-       "FET": {
-        "reussite": 0.889,
-        "trades": 9,
-        "gain_moyen": 0.0675
-       },
-       "STX": {
-        "reussite": 0.6,
-        "trades": 5,
-        "gain_moyen": -0.2276
-       },
-       "BAT": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": 0.1312
-       },
-       "QNT": {
-        "reussite": 0.667,
-        "trades": 9,
-        "gain_moyen": -0.0644
-       },
-       "CHZ": {
-        "reussite": 0.571,
-        "trades": 7,
-        "gain_moyen": -0.3837
-       },
-       "APE": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.1429
-       },
-       "LRC": {
-        "reussite": 0.5,
-        "trades": 6,
-        "gain_moyen": -0.451
-       },
-       "ANKR": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": 0.2991
-       },
-       "STORJ": {
-        "reussite": 0.571,
-        "trades": 7,
-        "gain_moyen": 0.0469
-       },
-       "ROSE": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": 0.139
-       }
-      },
-      "par_annee": {
-       "2026": {
-        "reussite": 0.688,
-        "trades": 231
-       }
-      },
-      "par_session": {
-       "asie": {
-        "part": 0.965,
-        "trades": 223,
-        "reussite": 0.695
-       },
-       "londres": {
-        "part": 0.022,
-        "trades": 5,
-        "reussite": 0.6
-       },
-       "new_york": {
-        "part": 0.009,
-        "trades": 2,
-        "reussite": 0.5
-       },
-       "soir": {
-        "part": 0.004,
-        "trades": 1,
-        "reussite": 0.0
-       }
-      },
-      "reussite_moities": [
-       0.661,
-       0.716
-      ],
-      "annees_reussies": "0/1"
-     },
-     "vu": 1795213507.648557
-    },
-    {
-     "agent": "noyau_liquidite",
-     "dir": 1,
-     "exit": "e6",
-     "conds": [
-      [
-       "inventeur",
-       "acceleration(positionnement.cot_bitcoin_percentile_fonds,smc.ict_haussier_bougies,8)",
-       0.0,
-       Infinity
-      ],
-      [
-       "liquidite",
-       "dist_bas_mois",
-       -3.77734375,
-       8.625
-      ]
-     ],
-     "test_win": 0.8971,
-     "test_n": 68,
-     "test_avg": 0.1871,
-     "test_pf": 3.364,
-     "test_total": 12.726,
+     "test_win": 0.8986,
+     "test_n": 69,
+     "test_avg": 0.1878,
+     "test_pf": 3.412,
+     "test_total": 12.956,
      "apprentissage_win": 0.7648,
-     "validation_win": 0.5976,
-     "raison": "validation : 60 % sur 164 trades, facteur de profit 0.40",
+     "validation_win": 0.6,
+     "raison": "validation : 60 % sur 165 trades, facteur de profit 0.40",
      "robustesse": {
-      "actifs_gagnants": "8/19",
+      "actifs_gagnants": "8/20",
       "par_actif": {
        "DOGE": {
         "reussite": 0.667,
@@ -53198,6 +53144,11 @@
         "reussite": 0.778,
         "trades": 9,
         "gain_moyen": 0.0884
+       },
+       "XTZ": {
+        "reussite": 0.8,
+        "trades": 5,
+        "gain_moyen": -0.0883
        },
        "FET": {
         "reussite": 0.8,
@@ -53252,20 +53203,20 @@
       },
       "par_annee": {
        "2026": {
-        "reussite": 0.685,
-        "trades": 232
+        "reussite": 0.688,
+        "trades": 234
        }
       },
       "par_session": {
        "asie": {
-        "part": 0.94,
-        "trades": 218,
-        "reussite": 0.683
+        "part": 0.936,
+        "trades": 219,
+        "reussite": 0.685
        },
        "londres": {
-        "part": 0.047,
-        "trades": 11,
-        "reussite": 0.727
+        "part": 0.051,
+        "trades": 12,
+        "reussite": 0.75
        },
        "new_york": {
         "part": 0.009,
@@ -53279,12 +53230,12 @@
        }
       },
       "reussite_moities": [
-       0.638,
-       0.733
+       0.641,
+       0.735
       ],
       "annees_reussies": "0/1"
      },
-     "vu": 1795182045.1532722
+     "vu": 1795219163.0587583
     }
    ],
    "activables": [
@@ -53351,7 +53302,279 @@
       ],
       "annees_reussies": "1/1"
      },
-     "vu": 1795213507.648557
+     "vu": 1795219163.0587583
+    },
+    {
+     "agent": "noyau_liquidite",
+     "dir": 1,
+     "exit": "e6",
+     "conds": [
+      [
+       "inventeur",
+       "acceleration(positionnement.cot_bitcoin_fonds,chiffres_ronds.dist_rond,5)",
+       0.0,
+       Infinity
+      ],
+      [
+       "inventeur",
+       "acceleration(positionnement.cot_bitcoin_percentile_fonds,smc.fvg_baissier_age,11)",
+       0.0,
+       Infinity
+      ],
+      [
+       "liquidite",
+       "dist_bas_semaine",
+       0.212158203125,
+       6.4453125
+      ]
+     ],
+     "test_win": 0.9481,
+     "test_n": 135,
+     "test_avg": 0.3997,
+     "test_pf": 10.411,
+     "test_total": 53.961,
+     "apprentissage_win": 0.7956,
+     "validation_win": 0.8909,
+     "raison": "validation : 89 % sur 165 trades, facteur de profit 1.76",
+     "robustesse": {
+      "actifs_gagnants": "33/40",
+      "par_actif": {
+       "XRP": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.1915
+       },
+       "DOGE": {
+        "reussite": 0.8,
+        "trades": 5,
+        "gain_moyen": 0.1119
+       },
+       "ADA": {
+        "reussite": 0.714,
+        "trades": 7,
+        "gain_moyen": 0.0304
+       },
+       "LINK": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.1117
+       },
+       "LTC": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": -0.1056
+       },
+       "DOT": {
+        "reussite": 0.857,
+        "trades": 7,
+        "gain_moyen": 0.048
+       },
+       "BCH": {
+        "reussite": 0.6,
+        "trades": 5,
+        "gain_moyen": -0.3541
+       },
+       "NEAR": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.657
+       },
+       "XLM": {
+        "reussite": 1.0,
+        "trades": 8,
+        "gain_moyen": 0.6278
+       },
+       "HBAR": {
+        "reussite": 0.6,
+        "trades": 5,
+        "gain_moyen": 0.149
+       },
+       "ATOM": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.3858
+       },
+       "UNI": {
+        "reussite": 0.8,
+        "trades": 5,
+        "gain_moyen": 0.1086
+       },
+       "AAVE": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.1219
+       },
+       "SUI": {
+        "reussite": 1.0,
+        "trades": 7,
+        "gain_moyen": 0.3515
+       },
+       "ICP": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.21
+       },
+       "SHIB": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": 0.194
+       },
+       "ARB": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.5621
+       },
+       "OP": {
+        "reussite": 1.0,
+        "trades": 7,
+        "gain_moyen": 0.5085
+       },
+       "APT": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.1516
+       },
+       "GRT": {
+        "reussite": 0.75,
+        "trades": 8,
+        "gain_moyen": -0.0996
+       },
+       "CRV": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.1228
+       },
+       "SAND": {
+        "reussite": 0.8,
+        "trades": 5,
+        "gain_moyen": -0.0681
+       },
+       "MANA": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.0943
+       },
+       "FET": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.1593
+       },
+       "IMX": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.118
+       },
+       "AXS": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.3095
+       },
+       "COMP": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.2916
+       },
+       "YFI": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.1823
+       },
+       "1INCH": {
+        "reussite": 1.0,
+        "trades": 8,
+        "gain_moyen": 0.217
+       },
+       "ZEC": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.5294
+       },
+       "DASH": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.4837
+       },
+       "QNT": {
+        "reussite": 0.8,
+        "trades": 5,
+        "gain_moyen": 0.0171
+       },
+       "CHZ": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": -0.0686
+       },
+       "APE": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": -0.0111
+       },
+       "BLUR": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.1149
+       },
+       "LRC": {
+        "reussite": 0.8,
+        "trades": 5,
+        "gain_moyen": -0.106
+       },
+       "ANKR": {
+        "reussite": 0.8,
+        "trades": 5,
+        "gain_moyen": 0.0791
+       },
+       "MINA": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.1165
+       },
+       "FLOW": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": 0.5522
+       },
+       "ROSE": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.3767
+       }
+      },
+      "par_annee": {
+       "2026": {
+        "reussite": 0.917,
+        "trades": 300
+       }
+      },
+      "par_session": {
+       "asie": {
+        "part": 1.0,
+        "trades": 300,
+        "reussite": 0.917
+       },
+       "londres": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       },
+       "new_york": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       },
+       "soir": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       }
+      },
+      "reussite_moities": [
+       0.907,
+       0.927
+      ],
+      "annees_reussies": "1/1"
+     },
+     "vu": 1795219163.0587583
     },
     {
      "agent": "noyau_liquidite",
@@ -53624,278 +53847,6 @@
       "annees_reussies": "1/1"
      },
      "vu": 1795213507.648557
-    },
-    {
-     "agent": "noyau_liquidite",
-     "dir": 1,
-     "exit": "e6",
-     "conds": [
-      [
-       "inventeur",
-       "acceleration(positionnement.cot_bitcoin_fonds,chiffres_ronds.dist_rond,5)",
-       0.0,
-       Infinity
-      ],
-      [
-       "inventeur",
-       "acceleration(positionnement.cot_bitcoin_percentile_fonds,smc.fvg_baissier_age,10)",
-       0.0,
-       Infinity
-      ],
-      [
-       "liquidite",
-       "dist_bas_semaine",
-       0.2098388671875,
-       6.44140625
-      ]
-     ],
-     "test_win": 0.9481,
-     "test_n": 135,
-     "test_avg": 0.3997,
-     "test_pf": 10.411,
-     "test_total": 53.961,
-     "apprentissage_win": 0.7937,
-     "validation_win": 0.8902,
-     "raison": "validation : 89 % sur 164 trades, facteur de profit 1.76",
-     "robustesse": {
-      "actifs_gagnants": "33/40",
-      "par_actif": {
-       "XRP": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.1915
-       },
-       "DOGE": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": 0.1119
-       },
-       "ADA": {
-        "reussite": 0.714,
-        "trades": 7,
-        "gain_moyen": 0.0304
-       },
-       "LINK": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.1117
-       },
-       "LTC": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": -0.1056
-       },
-       "DOT": {
-        "reussite": 0.857,
-        "trades": 7,
-        "gain_moyen": 0.048
-       },
-       "BCH": {
-        "reussite": 0.6,
-        "trades": 5,
-        "gain_moyen": -0.3541
-       },
-       "NEAR": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.657
-       },
-       "XLM": {
-        "reussite": 1.0,
-        "trades": 8,
-        "gain_moyen": 0.6278
-       },
-       "HBAR": {
-        "reussite": 0.6,
-        "trades": 5,
-        "gain_moyen": 0.149
-       },
-       "ATOM": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.3858
-       },
-       "UNI": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": 0.1086
-       },
-       "AAVE": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.1219
-       },
-       "SUI": {
-        "reussite": 1.0,
-        "trades": 7,
-        "gain_moyen": 0.3515
-       },
-       "ICP": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.21
-       },
-       "SHIB": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": 0.194
-       },
-       "ARB": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.5621
-       },
-       "OP": {
-        "reussite": 1.0,
-        "trades": 7,
-        "gain_moyen": 0.5085
-       },
-       "APT": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.1516
-       },
-       "GRT": {
-        "reussite": 0.75,
-        "trades": 8,
-        "gain_moyen": -0.0996
-       },
-       "CRV": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.1228
-       },
-       "SAND": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": -0.0681
-       },
-       "MANA": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.0943
-       },
-       "FET": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.1593
-       },
-       "IMX": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.118
-       },
-       "AXS": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.3095
-       },
-       "COMP": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.2916
-       },
-       "YFI": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.1823
-       },
-       "1INCH": {
-        "reussite": 1.0,
-        "trades": 8,
-        "gain_moyen": 0.217
-       },
-       "ZEC": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.5294
-       },
-       "DASH": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.4837
-       },
-       "QNT": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": 0.0171
-       },
-       "CHZ": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": -0.0686
-       },
-       "APE": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": -0.0111
-       },
-       "BLUR": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.1149
-       },
-       "LRC": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": -0.106
-       },
-       "ANKR": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": 0.0791
-       },
-       "MINA": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.1165
-       },
-       "FLOW": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": 0.5522
-       },
-       "ROSE": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.3767
-       }
-      },
-      "par_annee": {
-       "2026": {
-        "reussite": 0.916,
-        "trades": 299
-       }
-      },
-      "par_session": {
-       "asie": {
-        "part": 1.0,
-        "trades": 299,
-        "reussite": 0.916
-       },
-       "londres": {
-        "part": 0.0,
-        "trades": 0,
-        "reussite": 0.0
-       },
-       "new_york": {
-        "part": 0.0,
-        "trades": 0,
-        "reussite": 0.0
-       },
-       "soir": {
-        "part": 0.0,
-        "trades": 0,
-        "reussite": 0.0
-       }
-      },
-      "reussite_moities": [
-       0.906,
-       0.927
-      ],
-      "annees_reussies": "1/1"
-     },
-     "vu": 1795201044.4023685
     },
     {
      "agent": "noyau_liquidite",
@@ -54464,7 +54415,7 @@
       ],
       "annees_reussies": "0/1"
      },
-     "vu": 1795213507.648557
+     "vu": 1795219163.0587583
     },
     {
      "agent": "noyau_continuation",
@@ -54762,6 +54713,128 @@
       "annees_reussies": "0/1"
      },
      "vu": 1795182045.1532722
+    },
+    {
+     "agent": "noyau_liquidite",
+     "dir": 1,
+     "exit": "e6",
+     "conds": [
+      [
+       "inventeur",
+       "acceleration(positionnement.cot_bitcoin_percentile_fonds,smc.fvg_baissier_age,5)",
+       0.0,
+       Infinity
+      ],
+      [
+       "inventeur",
+       "croise_moyenne(structure.vs_bas_2j,banque.objectif_r,11)",
+       2.4765625,
+       Infinity
+      ],
+      [
+       "liquidite",
+       "dist_bas_semaine",
+       0.212158203125,
+       6.4453125
+      ]
+     ],
+     "test_win": 0.9213,
+     "test_n": 89,
+     "test_avg": 0.2687,
+     "test_pf": 4.442,
+     "test_total": 23.917,
+     "apprentissage_win": 0.8049,
+     "validation_win": 0.6471,
+     "raison": "validation : 65 % sur 85 trades, facteur de profit 0.27",
+     "robustesse": {
+      "actifs_gagnants": "6/10",
+      "par_actif": {
+       "AVAX": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": 0.0041
+       },
+       "DOT": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": -0.0528
+       },
+       "XLM": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.518
+       },
+       "SUI": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.2803
+       },
+       "ETC": {
+        "reussite": 0.667,
+        "trades": 6,
+        "gain_moyen": -0.0445
+       },
+       "SHIB": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.1538
+       },
+       "APT": {
+        "reussite": 0.4,
+        "trades": 5,
+        "gain_moyen": -0.5876
+       },
+       "ALGO": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.2359
+       },
+       "YFI": {
+        "reussite": 0.6,
+        "trades": 5,
+        "gain_moyen": -0.3779
+       },
+       "ZEC": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.5256
+       }
+      },
+      "par_annee": {
+       "2026": {
+        "reussite": 0.787,
+        "trades": 174
+       }
+      },
+      "par_session": {
+       "asie": {
+        "part": 1.0,
+        "trades": 174,
+        "reussite": 0.787
+       },
+       "londres": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       },
+       "new_york": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       },
+       "soir": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       }
+      },
+      "reussite_moities": [
+       0.816,
+       0.759
+      ],
+      "annees_reussies": "0/1"
+     },
+     "vu": 1795219163.0587583
     },
     {
      "agent": "noyau_liquidite",
@@ -55694,6 +55767,367 @@
       [
        "liquidite",
        "dist_bas_semaine",
+       0.212158203125,
+       6.4453125
+      ]
+     ],
+     "test_win": 0.9068,
+     "test_n": 236,
+     "test_avg": 0.3287,
+     "test_pf": 5.051,
+     "test_total": 77.583,
+     "apprentissage_win": 0.7397,
+     "validation_win": 0.7273,
+     "raison": "validation : 73 % sur 385 trades, facteur de profit 0.60",
+     "robustesse": {
+      "actifs_gagnants": "36/59",
+      "par_actif": {
+       "BTC": {
+        "reussite": 1.0,
+        "trades": 9,
+        "gain_moyen": 0.3396
+       },
+       "ETH": {
+        "reussite": 0.8,
+        "trades": 10,
+        "gain_moyen": 0.0758
+       },
+       "SOL": {
+        "reussite": 0.714,
+        "trades": 7,
+        "gain_moyen": 0.1196
+       },
+       "XRP": {
+        "reussite": 0.909,
+        "trades": 11,
+        "gain_moyen": 0.0854
+       },
+       "BNB": {
+        "reussite": 0.429,
+        "trades": 7,
+        "gain_moyen": -0.6196
+       },
+       "DOGE": {
+        "reussite": 0.75,
+        "trades": 12,
+        "gain_moyen": -0.0728
+       },
+       "ADA": {
+        "reussite": 0.818,
+        "trades": 11,
+        "gain_moyen": 0.1066
+       },
+       "AVAX": {
+        "reussite": 0.833,
+        "trades": 12,
+        "gain_moyen": 0.115
+       },
+       "LINK": {
+        "reussite": 0.889,
+        "trades": 9,
+        "gain_moyen": 0.0042
+       },
+       "LTC": {
+        "reussite": 0.667,
+        "trades": 9,
+        "gain_moyen": -0.3017
+       },
+       "DOT": {
+        "reussite": 0.846,
+        "trades": 13,
+        "gain_moyen": 0.131
+       },
+       "BCH": {
+        "reussite": 0.667,
+        "trades": 12,
+        "gain_moyen": -0.2679
+       },
+       "NEAR": {
+        "reussite": 0.929,
+        "trades": 14,
+        "gain_moyen": 0.3201
+       },
+       "XLM": {
+        "reussite": 1.0,
+        "trades": 15,
+        "gain_moyen": 0.3887
+       },
+       "HBAR": {
+        "reussite": 0.636,
+        "trades": 11,
+        "gain_moyen": -0.0995
+       },
+       "ATOM": {
+        "reussite": 0.636,
+        "trades": 11,
+        "gain_moyen": -0.1733
+       },
+       "UNI": {
+        "reussite": 0.571,
+        "trades": 7,
+        "gain_moyen": -0.2294
+       },
+       "AAVE": {
+        "reussite": 1.0,
+        "trades": 11,
+        "gain_moyen": 0.2902
+       },
+       "SUI": {
+        "reussite": 1.0,
+        "trades": 14,
+        "gain_moyen": 0.3029
+       },
+       "FIL": {
+        "reussite": 0.625,
+        "trades": 8,
+        "gain_moyen": 0.1207
+       },
+       "ETC": {
+        "reussite": 0.889,
+        "trades": 9,
+        "gain_moyen": 0.219
+       },
+       "ICP": {
+        "reussite": 0.917,
+        "trades": 12,
+        "gain_moyen": 0.1352
+       },
+       "SHIB": {
+        "reussite": 0.769,
+        "trades": 13,
+        "gain_moyen": 0.003
+       },
+       "ARB": {
+        "reussite": 0.846,
+        "trades": 13,
+        "gain_moyen": 0.7306
+       },
+       "OP": {
+        "reussite": 0.846,
+        "trades": 13,
+        "gain_moyen": 0.3859
+       },
+       "APT": {
+        "reussite": 0.7,
+        "trades": 10,
+        "gain_moyen": -0.2149
+       },
+       "INJ": {
+        "reussite": 0.625,
+        "trades": 8,
+        "gain_moyen": -0.1956
+       },
+       "GRT": {
+        "reussite": 0.667,
+        "trades": 12,
+        "gain_moyen": -0.2242
+       },
+       "CRV": {
+        "reussite": 0.9,
+        "trades": 10,
+        "gain_moyen": 0.2884
+       },
+       "LDO": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.2424
+       },
+       "SAND": {
+        "reussite": 0.5,
+        "trades": 10,
+        "gain_moyen": -0.3679
+       },
+       "MANA": {
+        "reussite": 0.7,
+        "trades": 10,
+        "gain_moyen": -0.1502
+       },
+       "ALGO": {
+        "reussite": 0.889,
+        "trades": 9,
+        "gain_moyen": 0.0502
+       },
+       "XTZ": {
+        "reussite": 0.8,
+        "trades": 10,
+        "gain_moyen": -0.1259
+       },
+       "FET": {
+        "reussite": 1.0,
+        "trades": 9,
+        "gain_moyen": 0.2158
+       },
+       "IMX": {
+        "reussite": 0.8,
+        "trades": 10,
+        "gain_moyen": -0.0184
+       },
+       "STX": {
+        "reussite": 0.778,
+        "trades": 9,
+        "gain_moyen": -0.0128
+       },
+       "AXS": {
+        "reussite": 0.8,
+        "trades": 10,
+        "gain_moyen": 0.0031
+       },
+       "COMP": {
+        "reussite": 0.778,
+        "trades": 9,
+        "gain_moyen": 0.0632
+       },
+       "SNX": {
+        "reussite": 0.583,
+        "trades": 12,
+        "gain_moyen": 0.1211
+       },
+       "YFI": {
+        "reussite": 0.9,
+        "trades": 10,
+        "gain_moyen": 0.0287
+       },
+       "1INCH": {
+        "reussite": 0.778,
+        "trades": 18,
+        "gain_moyen": -0.078
+       },
+       "BAT": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": 0.0961
+       },
+       "ZEC": {
+        "reussite": 0.889,
+        "trades": 9,
+        "gain_moyen": 0.2768
+       },
+       "DASH": {
+        "reussite": 0.727,
+        "trades": 11,
+        "gain_moyen": 0.1036
+       },
+       "QNT": {
+        "reussite": 0.667,
+        "trades": 12,
+        "gain_moyen": -0.1907
+       },
+       "CHZ": {
+        "reussite": 0.692,
+        "trades": 13,
+        "gain_moyen": -0.2408
+       },
+       "ENS": {
+        "reussite": 0.889,
+        "trades": 9,
+        "gain_moyen": 0.1222
+       },
+       "APE": {
+        "reussite": 0.8,
+        "trades": 10,
+        "gain_moyen": -0.081
+       },
+       "BLUR": {
+        "reussite": 0.692,
+        "trades": 13,
+        "gain_moyen": -0.0139
+       },
+       "LRC": {
+        "reussite": 0.7,
+        "trades": 10,
+        "gain_moyen": 0.0222
+       },
+       "SUSHI": {
+        "reussite": 0.889,
+        "trades": 9,
+        "gain_moyen": 0.023
+       },
+       "ZRX": {
+        "reussite": 0.778,
+        "trades": 9,
+        "gain_moyen": -0.0262
+       },
+       "ANKR": {
+        "reussite": 0.909,
+        "trades": 11,
+        "gain_moyen": 0.3216
+       },
+       "STORJ": {
+        "reussite": 0.714,
+        "trades": 14,
+        "gain_moyen": -0.165
+       },
+       "MINA": {
+        "reussite": 0.909,
+        "trades": 11,
+        "gain_moyen": -0.0011
+       },
+       "FLOW": {
+        "reussite": 0.8,
+        "trades": 10,
+        "gain_moyen": 0.374
+       },
+       "KAVA": {
+        "reussite": 1.0,
+        "trades": 8,
+        "gain_moyen": 0.331
+       },
+       "ROSE": {
+        "reussite": 0.8,
+        "trades": 10,
+        "gain_moyen": 0.1947
+       }
+      },
+      "par_annee": {
+       "2026": {
+        "reussite": 0.795,
+        "trades": 621
+       }
+      },
+      "par_session": {
+       "asie": {
+        "part": 0.986,
+        "trades": 612,
+        "reussite": 0.796
+       },
+       "londres": {
+        "part": 0.008,
+        "trades": 5,
+        "reussite": 0.8
+       },
+       "new_york": {
+        "part": 0.006,
+        "trades": 4,
+        "reussite": 0.75
+       },
+       "soir": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       }
+      },
+      "reussite_moities": [
+       0.803,
+       0.788
+      ],
+      "annees_reussies": "0/1"
+     },
+     "vu": 1795219163.0587583
+    },
+    {
+     "agent": "noyau_liquidite",
+     "dir": 1,
+     "exit": "e6",
+     "conds": [
+      [
+       "inventeur",
+       "acceleration(positionnement.cot_bitcoin_percentile_fonds,smc.fvg_baissier_age,5)",
+       0.0,
+       Infinity
+      ],
+      [
+       "liquidite",
+       "dist_bas_semaine",
        0.1700439453125,
        6.40234375
       ],
@@ -56095,367 +56529,6 @@
        Infinity
       ],
       [
-       "liquidite",
-       "dist_bas_semaine",
-       0.21142578125,
-       6.44140625
-      ]
-     ],
-     "test_win": 0.9025,
-     "test_n": 236,
-     "test_avg": 0.3242,
-     "test_pf": 4.781,
-     "test_total": 76.506,
-     "apprentissage_win": 0.7387,
-     "validation_win": 0.7266,
-     "raison": "validation : 73 % sur 384 trades, facteur de profit 0.60",
-     "robustesse": {
-      "actifs_gagnants": "36/59",
-      "par_actif": {
-       "BTC": {
-        "reussite": 1.0,
-        "trades": 9,
-        "gain_moyen": 0.3396
-       },
-       "ETH": {
-        "reussite": 0.8,
-        "trades": 10,
-        "gain_moyen": 0.0758
-       },
-       "SOL": {
-        "reussite": 0.714,
-        "trades": 7,
-        "gain_moyen": 0.1196
-       },
-       "XRP": {
-        "reussite": 0.909,
-        "trades": 11,
-        "gain_moyen": 0.0854
-       },
-       "BNB": {
-        "reussite": 0.429,
-        "trades": 7,
-        "gain_moyen": -0.6196
-       },
-       "DOGE": {
-        "reussite": 0.75,
-        "trades": 12,
-        "gain_moyen": -0.0728
-       },
-       "ADA": {
-        "reussite": 0.818,
-        "trades": 11,
-        "gain_moyen": 0.1066
-       },
-       "AVAX": {
-        "reussite": 0.833,
-        "trades": 12,
-        "gain_moyen": 0.1236
-       },
-       "LINK": {
-        "reussite": 0.889,
-        "trades": 9,
-        "gain_moyen": 0.0042
-       },
-       "LTC": {
-        "reussite": 0.667,
-        "trades": 9,
-        "gain_moyen": -0.3017
-       },
-       "DOT": {
-        "reussite": 0.846,
-        "trades": 13,
-        "gain_moyen": 0.131
-       },
-       "BCH": {
-        "reussite": 0.667,
-        "trades": 12,
-        "gain_moyen": -0.2679
-       },
-       "NEAR": {
-        "reussite": 0.929,
-        "trades": 14,
-        "gain_moyen": 0.3201
-       },
-       "XLM": {
-        "reussite": 1.0,
-        "trades": 15,
-        "gain_moyen": 0.3887
-       },
-       "HBAR": {
-        "reussite": 0.636,
-        "trades": 11,
-        "gain_moyen": -0.0995
-       },
-       "ATOM": {
-        "reussite": 0.636,
-        "trades": 11,
-        "gain_moyen": -0.1733
-       },
-       "UNI": {
-        "reussite": 0.571,
-        "trades": 7,
-        "gain_moyen": -0.2294
-       },
-       "AAVE": {
-        "reussite": 1.0,
-        "trades": 11,
-        "gain_moyen": 0.2902
-       },
-       "SUI": {
-        "reussite": 1.0,
-        "trades": 14,
-        "gain_moyen": 0.3029
-       },
-       "FIL": {
-        "reussite": 0.625,
-        "trades": 8,
-        "gain_moyen": 0.1207
-       },
-       "ETC": {
-        "reussite": 0.889,
-        "trades": 9,
-        "gain_moyen": 0.219
-       },
-       "ICP": {
-        "reussite": 0.917,
-        "trades": 12,
-        "gain_moyen": 0.1352
-       },
-       "SHIB": {
-        "reussite": 0.769,
-        "trades": 13,
-        "gain_moyen": 0.003
-       },
-       "ARB": {
-        "reussite": 0.846,
-        "trades": 13,
-        "gain_moyen": 0.7306
-       },
-       "OP": {
-        "reussite": 0.846,
-        "trades": 13,
-        "gain_moyen": 0.3859
-       },
-       "APT": {
-        "reussite": 0.7,
-        "trades": 10,
-        "gain_moyen": -0.2149
-       },
-       "INJ": {
-        "reussite": 0.625,
-        "trades": 8,
-        "gain_moyen": -0.1956
-       },
-       "GRT": {
-        "reussite": 0.667,
-        "trades": 12,
-        "gain_moyen": -0.2242
-       },
-       "CRV": {
-        "reussite": 0.9,
-        "trades": 10,
-        "gain_moyen": 0.2884
-       },
-       "LDO": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.2424
-       },
-       "SAND": {
-        "reussite": 0.5,
-        "trades": 10,
-        "gain_moyen": -0.3679
-       },
-       "MANA": {
-        "reussite": 0.7,
-        "trades": 10,
-        "gain_moyen": -0.1502
-       },
-       "ALGO": {
-        "reussite": 0.889,
-        "trades": 9,
-        "gain_moyen": 0.0502
-       },
-       "XTZ": {
-        "reussite": 0.8,
-        "trades": 10,
-        "gain_moyen": -0.1259
-       },
-       "FET": {
-        "reussite": 1.0,
-        "trades": 9,
-        "gain_moyen": 0.2158
-       },
-       "IMX": {
-        "reussite": 0.8,
-        "trades": 10,
-        "gain_moyen": -0.0184
-       },
-       "STX": {
-        "reussite": 0.778,
-        "trades": 9,
-        "gain_moyen": -0.0128
-       },
-       "AXS": {
-        "reussite": 0.8,
-        "trades": 10,
-        "gain_moyen": 0.0031
-       },
-       "COMP": {
-        "reussite": 0.778,
-        "trades": 9,
-        "gain_moyen": 0.0632
-       },
-       "SNX": {
-        "reussite": 0.583,
-        "trades": 12,
-        "gain_moyen": 0.1211
-       },
-       "YFI": {
-        "reussite": 0.9,
-        "trades": 10,
-        "gain_moyen": 0.0287
-       },
-       "1INCH": {
-        "reussite": 0.722,
-        "trades": 18,
-        "gain_moyen": -0.1435
-       },
-       "BAT": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": 0.0961
-       },
-       "ZEC": {
-        "reussite": 0.889,
-        "trades": 9,
-        "gain_moyen": 0.2768
-       },
-       "DASH": {
-        "reussite": 0.727,
-        "trades": 11,
-        "gain_moyen": 0.1036
-       },
-       "QNT": {
-        "reussite": 0.667,
-        "trades": 12,
-        "gain_moyen": -0.1907
-       },
-       "CHZ": {
-        "reussite": 0.692,
-        "trades": 13,
-        "gain_moyen": -0.2408
-       },
-       "ENS": {
-        "reussite": 0.889,
-        "trades": 9,
-        "gain_moyen": 0.1222
-       },
-       "APE": {
-        "reussite": 0.8,
-        "trades": 10,
-        "gain_moyen": -0.081
-       },
-       "BLUR": {
-        "reussite": 0.692,
-        "trades": 13,
-        "gain_moyen": -0.0139
-       },
-       "LRC": {
-        "reussite": 0.7,
-        "trades": 10,
-        "gain_moyen": 0.0222
-       },
-       "SUSHI": {
-        "reussite": 0.889,
-        "trades": 9,
-        "gain_moyen": 0.023
-       },
-       "ZRX": {
-        "reussite": 0.778,
-        "trades": 9,
-        "gain_moyen": -0.0262
-       },
-       "ANKR": {
-        "reussite": 0.909,
-        "trades": 11,
-        "gain_moyen": 0.3216
-       },
-       "STORJ": {
-        "reussite": 0.714,
-        "trades": 14,
-        "gain_moyen": -0.165
-       },
-       "MINA": {
-        "reussite": 0.909,
-        "trades": 11,
-        "gain_moyen": -0.0011
-       },
-       "FLOW": {
-        "reussite": 0.8,
-        "trades": 10,
-        "gain_moyen": 0.374
-       },
-       "KAVA": {
-        "reussite": 1.0,
-        "trades": 7,
-        "gain_moyen": 0.3603
-       },
-       "ROSE": {
-        "reussite": 0.8,
-        "trades": 10,
-        "gain_moyen": 0.1947
-       }
-      },
-      "par_annee": {
-       "2026": {
-        "reussite": 0.794,
-        "trades": 620
-       }
-      },
-      "par_session": {
-       "asie": {
-        "part": 0.985,
-        "trades": 611,
-        "reussite": 0.794
-       },
-       "londres": {
-        "part": 0.008,
-        "trades": 5,
-        "reussite": 0.8
-       },
-       "new_york": {
-        "part": 0.006,
-        "trades": 4,
-        "reussite": 0.75
-       },
-       "soir": {
-        "part": 0.0,
-        "trades": 0,
-        "reussite": 0.0
-       }
-      },
-      "reussite_moities": [
-       0.803,
-       0.784
-      ],
-      "annees_reussies": "0/1"
-     },
-     "vu": 1795213507.648557
-    },
-    {
-     "agent": "noyau_liquidite",
-     "dir": 1,
-     "exit": "e6",
-     "conds": [
-      [
-       "inventeur",
-       "acceleration(positionnement.cot_bitcoin_percentile_fonds,smc.fvg_baissier_age,5)",
-       0.0,
-       Infinity
-      ],
-      [
        "inventeur",
        "croise_moyenne(structure.vs_bas_2j,positionnement.dvol_btc_prime_peur,9)",
        2.1875,
@@ -56842,7 +56915,7 @@
       [
        "liquidite",
        "dist_bas_mois",
-       -3.76953125,
+       -3.767578125,
        8.640625
       ]
      ],
@@ -56992,7 +57065,7 @@
       ],
       "annees_reussies": "0/1"
      },
-     "vu": 1795213507.648557
+     "vu": 1795219163.0587583
     },
     {
      "agent": "noyau_liquidite",
@@ -57007,15 +57080,15 @@
       ],
       [
        "inventeur",
-       "croise_moyenne(liquidite.dist_bas_veille,chandeliers.hikkakemod,8)",
+       "croise_moyenne(liquidite.dist_bas_veille,flux.gap_cme_ouvert,8)",
        2.0,
        Infinity
       ],
       [
        "liquidite",
        "dist_bas_semaine",
-       0.21142578125,
-       6.44140625
+       0.212158203125,
+       6.4453125
       ]
      ],
      "test_win": 0.8947,
@@ -57164,179 +57237,7 @@
       ],
       "annees_reussies": "0/1"
      },
-     "vu": 1795213507.648557
-    },
-    {
-     "agent": "noyau_liquidite",
-     "dir": 1,
-     "exit": "e6",
-     "conds": [
-      [
-       "inventeur",
-       "acceleration(positionnement.cot_bitcoin_percentile_fonds,smc.fvg_baissier_age,5)",
-       0.0,
-       Infinity
-      ],
-      [
-       "inventeur",
-       "croise_moyenne(liquidite.dist_bas_veille,liquidite.judas_swing,8)",
-       1.9990234375,
-       Infinity
-      ],
-      [
-       "liquidite",
-       "dist_bas_semaine",
-       0.2076416015625,
-       6.4375
-      ]
-     ],
-     "test_win": 0.8947,
-     "test_n": 95,
-     "test_avg": 0.2149,
-     "test_pf": 2.987,
-     "test_total": 20.42,
-     "apprentissage_win": 0.8016,
-     "validation_win": 0.6949,
-     "raison": "validation : 69 % sur 118 trades, facteur de profit 0.42",
-     "robustesse": {
-      "actifs_gagnants": "7/20",
-      "par_actif": {
-       "SOL": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": 0.1591
-       },
-       "AVAX": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": -0.0168
-       },
-       "DOT": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": -0.0528
-       },
-       "XLM": {
-        "reussite": 1.0,
-        "trades": 7,
-        "gain_moyen": 0.4552
-       },
-       "SUI": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.2803
-       },
-       "FIL": {
-        "reussite": 0.4,
-        "trades": 5,
-        "gain_moyen": -0.5935
-       },
-       "ETC": {
-        "reussite": 0.667,
-        "trades": 6,
-        "gain_moyen": -0.0445
-       },
-       "SHIB": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.1538
-       },
-       "OP": {
-        "reussite": 0.6,
-        "trades": 5,
-        "gain_moyen": -0.2824
-       },
-       "APT": {
-        "reussite": 0.6,
-        "trades": 5,
-        "gain_moyen": -0.3525
-       },
-       "GRT": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": -0.0919
-       },
-       "ALGO": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.2359
-       },
-       "XTZ": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": -0.0796
-       },
-       "IMX": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": -0.1272
-       },
-       "SNX": {
-        "reussite": 0.6,
-        "trades": 5,
-        "gain_moyen": 0.2738
-       },
-       "YFI": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": -0.1552
-       },
-       "1INCH": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": -0.2085
-       },
-       "ZEC": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.5256
-       },
-       "QNT": {
-        "reussite": 0.6,
-        "trades": 5,
-        "gain_moyen": -0.2882
-       },
-       "CHZ": {
-        "reussite": 0.667,
-        "trades": 6,
-        "gain_moyen": -0.2777
-       }
-      },
-      "par_annee": {
-       "2026": {
-        "reussite": 0.784,
-        "trades": 213
-       }
-      },
-      "par_session": {
-       "asie": {
-        "part": 0.986,
-        "trades": 210,
-        "reussite": 0.781
-       },
-       "londres": {
-        "part": 0.014,
-        "trades": 3,
-        "reussite": 1.0
-       },
-       "new_york": {
-        "part": 0.0,
-        "trades": 0,
-        "reussite": 0.0
-       },
-       "soir": {
-        "part": 0.0,
-        "trades": 0,
-        "reussite": 0.0
-       }
-      },
-      "reussite_moities": [
-       0.792,
-       0.776
-      ],
-      "annees_reussies": "0/1"
-     },
-     "vu": 1795188556.7972229
+     "vu": 1795219163.0587583
     }
    ],
    "sessions": [
@@ -57404,7 +57305,280 @@
       "annees_reussies": "1/1"
      },
      "session": "asie",
-     "vu": 1795213507.648557
+     "vu": 1795219163.0587583
+    },
+    {
+     "agent": "noyau_liquidite",
+     "dir": 1,
+     "exit": "e6",
+     "conds": [
+      [
+       "inventeur",
+       "acceleration(positionnement.cot_bitcoin_fonds,chiffres_ronds.dist_rond,5)",
+       0.0,
+       Infinity
+      ],
+      [
+       "inventeur",
+       "acceleration(positionnement.cot_bitcoin_percentile_fonds,smc.fvg_baissier_age,11)",
+       0.0,
+       Infinity
+      ],
+      [
+       "liquidite",
+       "dist_bas_semaine",
+       0.212158203125,
+       6.4453125
+      ]
+     ],
+     "test_win": 0.9481,
+     "test_n": 135,
+     "test_avg": 0.3997,
+     "test_pf": 10.411,
+     "test_total": 53.961,
+     "apprentissage_win": 0.7956,
+     "validation_win": 0.8909,
+     "raison": "validation : 89 % sur 165 trades, facteur de profit 1.76",
+     "robustesse": {
+      "actifs_gagnants": "33/40",
+      "par_actif": {
+       "XRP": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.1915
+       },
+       "DOGE": {
+        "reussite": 0.8,
+        "trades": 5,
+        "gain_moyen": 0.1119
+       },
+       "ADA": {
+        "reussite": 0.714,
+        "trades": 7,
+        "gain_moyen": 0.0304
+       },
+       "LINK": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.1117
+       },
+       "LTC": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": -0.1056
+       },
+       "DOT": {
+        "reussite": 0.857,
+        "trades": 7,
+        "gain_moyen": 0.048
+       },
+       "BCH": {
+        "reussite": 0.6,
+        "trades": 5,
+        "gain_moyen": -0.3541
+       },
+       "NEAR": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.657
+       },
+       "XLM": {
+        "reussite": 1.0,
+        "trades": 8,
+        "gain_moyen": 0.6278
+       },
+       "HBAR": {
+        "reussite": 0.6,
+        "trades": 5,
+        "gain_moyen": 0.149
+       },
+       "ATOM": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.3858
+       },
+       "UNI": {
+        "reussite": 0.8,
+        "trades": 5,
+        "gain_moyen": 0.1086
+       },
+       "AAVE": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.1219
+       },
+       "SUI": {
+        "reussite": 1.0,
+        "trades": 7,
+        "gain_moyen": 0.3515
+       },
+       "ICP": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.21
+       },
+       "SHIB": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": 0.194
+       },
+       "ARB": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.5621
+       },
+       "OP": {
+        "reussite": 1.0,
+        "trades": 7,
+        "gain_moyen": 0.5085
+       },
+       "APT": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.1516
+       },
+       "GRT": {
+        "reussite": 0.75,
+        "trades": 8,
+        "gain_moyen": -0.0996
+       },
+       "CRV": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.1228
+       },
+       "SAND": {
+        "reussite": 0.8,
+        "trades": 5,
+        "gain_moyen": -0.0681
+       },
+       "MANA": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.0943
+       },
+       "FET": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.1593
+       },
+       "IMX": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.118
+       },
+       "AXS": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.3095
+       },
+       "COMP": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.2916
+       },
+       "YFI": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.1823
+       },
+       "1INCH": {
+        "reussite": 1.0,
+        "trades": 8,
+        "gain_moyen": 0.217
+       },
+       "ZEC": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.5294
+       },
+       "DASH": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.4837
+       },
+       "QNT": {
+        "reussite": 0.8,
+        "trades": 5,
+        "gain_moyen": 0.0171
+       },
+       "CHZ": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": -0.0686
+       },
+       "APE": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": -0.0111
+       },
+       "BLUR": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.1149
+       },
+       "LRC": {
+        "reussite": 0.8,
+        "trades": 5,
+        "gain_moyen": -0.106
+       },
+       "ANKR": {
+        "reussite": 0.8,
+        "trades": 5,
+        "gain_moyen": 0.0791
+       },
+       "MINA": {
+        "reussite": 1.0,
+        "trades": 5,
+        "gain_moyen": 0.1165
+       },
+       "FLOW": {
+        "reussite": 0.833,
+        "trades": 6,
+        "gain_moyen": 0.5522
+       },
+       "ROSE": {
+        "reussite": 1.0,
+        "trades": 6,
+        "gain_moyen": 0.3767
+       }
+      },
+      "par_annee": {
+       "2026": {
+        "reussite": 0.917,
+        "trades": 300
+       }
+      },
+      "par_session": {
+       "asie": {
+        "part": 1.0,
+        "trades": 300,
+        "reussite": 0.917
+       },
+       "londres": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       },
+       "new_york": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       },
+       "soir": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       }
+      },
+      "reussite_moities": [
+       0.907,
+       0.927
+      ],
+      "annees_reussies": "1/1"
+     },
+     "session": "asie",
+     "vu": 1795219163.0587583
     },
     {
      "agent": "noyau_liquidite",
@@ -57678,279 +57852,6 @@
      },
      "session": "asie",
      "vu": 1795213507.648557
-    },
-    {
-     "agent": "noyau_liquidite",
-     "dir": 1,
-     "exit": "e6",
-     "conds": [
-      [
-       "inventeur",
-       "acceleration(positionnement.cot_bitcoin_fonds,chiffres_ronds.dist_rond,5)",
-       0.0,
-       Infinity
-      ],
-      [
-       "inventeur",
-       "acceleration(positionnement.cot_bitcoin_percentile_fonds,smc.fvg_baissier_age,10)",
-       0.0,
-       Infinity
-      ],
-      [
-       "liquidite",
-       "dist_bas_semaine",
-       0.2098388671875,
-       6.44140625
-      ]
-     ],
-     "test_win": 0.9481,
-     "test_n": 135,
-     "test_avg": 0.3997,
-     "test_pf": 10.411,
-     "test_total": 53.961,
-     "apprentissage_win": 0.7937,
-     "validation_win": 0.8902,
-     "raison": "validation : 89 % sur 164 trades, facteur de profit 1.76",
-     "robustesse": {
-      "actifs_gagnants": "33/40",
-      "par_actif": {
-       "XRP": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.1915
-       },
-       "DOGE": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": 0.1119
-       },
-       "ADA": {
-        "reussite": 0.714,
-        "trades": 7,
-        "gain_moyen": 0.0304
-       },
-       "LINK": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.1117
-       },
-       "LTC": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": -0.1056
-       },
-       "DOT": {
-        "reussite": 0.857,
-        "trades": 7,
-        "gain_moyen": 0.048
-       },
-       "BCH": {
-        "reussite": 0.6,
-        "trades": 5,
-        "gain_moyen": -0.3541
-       },
-       "NEAR": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.657
-       },
-       "XLM": {
-        "reussite": 1.0,
-        "trades": 8,
-        "gain_moyen": 0.6278
-       },
-       "HBAR": {
-        "reussite": 0.6,
-        "trades": 5,
-        "gain_moyen": 0.149
-       },
-       "ATOM": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.3858
-       },
-       "UNI": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": 0.1086
-       },
-       "AAVE": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.1219
-       },
-       "SUI": {
-        "reussite": 1.0,
-        "trades": 7,
-        "gain_moyen": 0.3515
-       },
-       "ICP": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.21
-       },
-       "SHIB": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": 0.194
-       },
-       "ARB": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.5621
-       },
-       "OP": {
-        "reussite": 1.0,
-        "trades": 7,
-        "gain_moyen": 0.5085
-       },
-       "APT": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.1516
-       },
-       "GRT": {
-        "reussite": 0.75,
-        "trades": 8,
-        "gain_moyen": -0.0996
-       },
-       "CRV": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.1228
-       },
-       "SAND": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": -0.0681
-       },
-       "MANA": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.0943
-       },
-       "FET": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.1593
-       },
-       "IMX": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.118
-       },
-       "AXS": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.3095
-       },
-       "COMP": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.2916
-       },
-       "YFI": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.1823
-       },
-       "1INCH": {
-        "reussite": 1.0,
-        "trades": 8,
-        "gain_moyen": 0.217
-       },
-       "ZEC": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.5294
-       },
-       "DASH": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.4837
-       },
-       "QNT": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": 0.0171
-       },
-       "CHZ": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": -0.0686
-       },
-       "APE": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": -0.0111
-       },
-       "BLUR": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.1149
-       },
-       "LRC": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": -0.106
-       },
-       "ANKR": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": 0.0791
-       },
-       "MINA": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.1165
-       },
-       "FLOW": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": 0.5522
-       },
-       "ROSE": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.3767
-       }
-      },
-      "par_annee": {
-       "2026": {
-        "reussite": 0.916,
-        "trades": 299
-       }
-      },
-      "par_session": {
-       "asie": {
-        "part": 1.0,
-        "trades": 299,
-        "reussite": 0.916
-       },
-       "londres": {
-        "part": 0.0,
-        "trades": 0,
-        "reussite": 0.0
-       },
-       "new_york": {
-        "part": 0.0,
-        "trades": 0,
-        "reussite": 0.0
-       },
-       "soir": {
-        "part": 0.0,
-        "trades": 0,
-        "reussite": 0.0
-       }
-      },
-      "reussite_moities": [
-       0.906,
-       0.927
-      ],
-      "annees_reussies": "1/1"
-     },
-     "session": "asie",
-     "vu": 1795201044.4023685
     },
     {
      "agent": "noyau_liquidite",
@@ -58521,7 +58422,7 @@
       "annees_reussies": "0/1"
      },
      "session": "asie",
-     "vu": 1795213507.648557
+     "vu": 1795219163.0587583
     },
     {
      "agent": "noyau_liquidite",
@@ -58593,7 +58494,7 @@
       "annees_reussies": "0/1"
      },
      "session": "soir",
-     "vu": 1795213507.648557
+     "vu": 1795219163.0587583
     }
    ],
    "continuation": [
@@ -58660,7 +58561,7 @@
       ],
       "annees_reussies": "1/1"
      },
-     "vu": 1795213507.648557
+     "vu": 1795219163.0587583
     },
     {
      "agent": "noyau_continuation",
@@ -59235,308 +59136,6 @@
       "annees_reussies": "0/1"
      },
      "vu": 1795208441.7836037
-    },
-    {
-     "agent": "noyau_continuation",
-     "dir": 1,
-     "exit": "e6",
-     "conds": [
-      [
-       "fibonacci",
-       "position_swing200",
-       0.17626953125,
-       0.323486328125
-      ],
-      [
-       "inventeur",
-       "acceleration(positionnement.cot_bitcoin_percentile_fonds,smc.fvg_baissier_age,6)",
-       0.0,
-       Infinity
-      ],
-      [
-       "liquidite",
-       "bas_veille_pris",
-       -1e-06,
-       1e-06
-      ]
-     ],
-     "test_win": 0.9051,
-     "test_n": 137,
-     "test_avg": 0.2177,
-     "test_pf": 3.289,
-     "test_total": 29.821,
-     "apprentissage_win": 0.8386,
-     "validation_win": 0.7222,
-     "raison": "validation : 72 % sur 234 trades, facteur de profit 0.62",
-     "robustesse": {
-      "actifs_gagnants": "17/46",
-      "par_actif": {
-       "ADA": {
-        "reussite": 0.75,
-        "trades": 8,
-        "gain_moyen": -0.0549
-       },
-       "AVAX": {
-        "reussite": 0.6,
-        "trades": 5,
-        "gain_moyen": -0.3604
-       },
-       "DOT": {
-        "reussite": 1.0,
-        "trades": 7,
-        "gain_moyen": 0.1338
-       },
-       "BCH": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": -0.0968
-       },
-       "NEAR": {
-        "reussite": 1.0,
-        "trades": 13,
-        "gain_moyen": 0.464
-       },
-       "HBAR": {
-        "reussite": 0.5,
-        "trades": 6,
-        "gain_moyen": -0.5
-       },
-       "ATOM": {
-        "reussite": 0.714,
-        "trades": 7,
-        "gain_moyen": -0.1452
-       },
-       "UNI": {
-        "reussite": 0.714,
-        "trades": 7,
-        "gain_moyen": -0.2222
-       },
-       "AAVE": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.203
-       },
-       "SUI": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": 0.0654
-       },
-       "FIL": {
-        "reussite": 0.8,
-        "trades": 10,
-        "gain_moyen": -0.1137
-       },
-       "ETC": {
-        "reussite": 0.778,
-        "trades": 9,
-        "gain_moyen": -0.0636
-       },
-       "ICP": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": 0.1421
-       },
-       "SHIB": {
-        "reussite": 0.714,
-        "trades": 7,
-        "gain_moyen": -0.0945
-       },
-       "ARB": {
-        "reussite": 0.571,
-        "trades": 7,
-        "gain_moyen": -0.0095
-       },
-       "OP": {
-        "reussite": 0.778,
-        "trades": 9,
-        "gain_moyen": -0.1003
-       },
-       "APT": {
-        "reussite": 0.714,
-        "trades": 7,
-        "gain_moyen": -0.0017
-       },
-       "INJ": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.5011
-       },
-       "GRT": {
-        "reussite": 0.667,
-        "trades": 6,
-        "gain_moyen": -0.2439
-       },
-       "CRV": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": 0.705
-       },
-       "SAND": {
-        "reussite": 0.875,
-        "trades": 8,
-        "gain_moyen": -0.0267
-       },
-       "MANA": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.0955
-       },
-       "ALGO": {
-        "reussite": 0.714,
-        "trades": 7,
-        "gain_moyen": -0.0558
-       },
-       "XTZ": {
-        "reussite": 0.714,
-        "trades": 7,
-        "gain_moyen": -0.2444
-       },
-       "FET": {
-        "reussite": 0.8,
-        "trades": 5,
-        "gain_moyen": -0.095
-       },
-       "IMX": {
-        "reussite": 0.5,
-        "trades": 6,
-        "gain_moyen": -0.4892
-       },
-       "AXS": {
-        "reussite": 1.0,
-        "trades": 9,
-        "gain_moyen": 0.1367
-       },
-       "COMP": {
-        "reussite": 1.0,
-        "trades": 6,
-        "gain_moyen": 0.1473
-       },
-       "SNX": {
-        "reussite": 0.857,
-        "trades": 7,
-        "gain_moyen": 1.0094
-       },
-       "YFI": {
-        "reussite": 0.833,
-        "trades": 6,
-        "gain_moyen": -0.0088
-       },
-       "1INCH": {
-        "reussite": 0.667,
-        "trades": 9,
-        "gain_moyen": -0.2699
-       },
-       "BAT": {
-        "reussite": 1.0,
-        "trades": 5,
-        "gain_moyen": 0.8499
-       },
-       "DASH": {
-        "reussite": 0.857,
-        "trades": 7,
-        "gain_moyen": 0.0514
-       },
-       "QNT": {
-        "reussite": 0.571,
-        "trades": 7,
-        "gain_moyen": -0.3067
-       },
-       "CHZ": {
-        "reussite": 0.286,
-        "trades": 7,
-        "gain_moyen": -0.7764
-       },
-       "ENS": {
-        "reussite": 0.667,
-        "trades": 6,
-        "gain_moyen": 0.2738
-       },
-       "APE": {
-        "reussite": 0.857,
-        "trades": 7,
-        "gain_moyen": -0.0198
-       },
-       "BLUR": {
-        "reussite": 0.429,
-        "trades": 7,
-        "gain_moyen": -0.2837
-       },
-       "LRC": {
-        "reussite": 0.667,
-        "trades": 6,
-        "gain_moyen": -0.2693
-       },
-       "SUSHI": {
-        "reussite": 1.0,
-        "trades": 7,
-        "gain_moyen": 0.0928
-       },
-       "ZRX": {
-        "reussite": 0.875,
-        "trades": 8,
-        "gain_moyen": -0.0316
-       },
-       "ANKR": {
-        "reussite": 0.667,
-        "trades": 6,
-        "gain_moyen": -0.2955
-       },
-       "STORJ": {
-        "reussite": 0.778,
-        "trades": 9,
-        "gain_moyen": -0.0306
-       },
-       "MINA": {
-        "reussite": 0.9,
-        "trades": 10,
-        "gain_moyen": -0.0103
-       },
-       "FLOW": {
-        "reussite": 0.857,
-        "trades": 7,
-        "gain_moyen": 0.0872
-       },
-       "ROSE": {
-        "reussite": 0.75,
-        "trades": 8,
-        "gain_moyen": 0.2503
-       }
-      },
-      "par_annee": {
-       "2026": {
-        "reussite": 0.79,
-        "trades": 371
-       }
-      },
-      "par_session": {
-       "asie": {
-        "part": 0.976,
-        "trades": 362,
-        "reussite": 0.793
-       },
-       "londres": {
-        "part": 0.019,
-        "trades": 7,
-        "reussite": 0.714
-       },
-       "new_york": {
-        "part": 0.003,
-        "trades": 1,
-        "reussite": 1.0
-       },
-       "soir": {
-        "part": 0.003,
-        "trades": 1,
-        "reussite": 0.0
-       }
-      },
-      "reussite_moities": [
-       0.811,
-       0.769
-      ],
-      "annees_reussies": "0/1"
-     },
-     "vu": 1795129321.8435583
     },
     {
      "agent": "noyau_continuation",
@@ -60730,7 +60329,72 @@
       ],
       "annees_reussies": "0/1"
      },
-     "vu": 1795213507.648557
+     "vu": 1795219163.0587583
+    },
+    {
+     "agent": "noyau_continuation",
+     "dir": -1,
+     "exit": "e6",
+     "conds": [
+      [
+       "flux",
+       "heures_fomc",
+       5.5,
+       Infinity
+      ],
+      [
+       "liquidite",
+       "haut_semaine_pris",
+       -1e-06,
+       1e-06
+      ]
+     ],
+     "test_win": 0.8636,
+     "test_n": 110,
+     "test_avg": 0.2822,
+     "test_pf": 3.033,
+     "test_total": 31.039,
+     "apprentissage_win": 0.8277,
+     "validation_win": 0.8596,
+     "raison": "validation : 86 % sur 57 trades, facteur de profit 2.03",
+     "robustesse": {
+      "actifs_gagnants": "0/0",
+      "par_actif": {},
+      "par_annee": {
+       "2026": {
+        "reussite": 0.862,
+        "trades": 167
+       }
+      },
+      "par_session": {
+       "asie": {
+        "part": 1.0,
+        "trades": 167,
+        "reussite": 0.862
+       },
+       "londres": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       },
+       "new_york": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       },
+       "soir": {
+        "part": 0.0,
+        "trades": 0,
+        "reussite": 0.0
+       }
+      },
+      "reussite_moities": [
+       0.819,
+       0.905
+      ],
+      "annees_reussies": "1/1"
+     },
+     "vu": 1795219163.0587583
     }
    ],
    "achats": [
@@ -61110,7 +60774,7 @@
       ],
       "annees_reussies": "0/1"
      },
-     "vu": 1795213507.648557
+     "vu": 1795219163.0587583
     }
    ]
   },
@@ -99545,15 +99209,15 @@
    "ventes": []
   }
  ],
- "duree_min": 61.3,
+ "duree_min": 60.5,
  "total": {
-  "conditions": 56937,
-  "combinaisons": 13244878,
-  "candidates": 13803,
+  "conditions": 56930,
+  "combinaisons": 13257681,
+  "candidates": 13778,
   "strategies": 3
  },
  "inventeur": {
-  "idees_testees": 566,
+  "idees_testees": 572,
   "idees_gagnantes": 172
  }
 }
