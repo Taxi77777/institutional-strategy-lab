@@ -35,7 +35,7 @@ def trades(a, sym, sess="londres", gestion="swing", n=20, fond=90, retest=None, 
     is_close = np.zeros(len(a), bool)
     is_close[en] = True
     a_end, m_end, fb = SESSIONS[sess]
-    k, t1, tp2 = (4.0, 0.5, None) if gestion == "swing" else (1.0, 0.2, 1.0)
+    k, t1, tp2 = (4.0, 0.5, None) if gestion == "swing" else (1.0, 0.2, 1.0)   # « h24 » et « intraday » : memes niveaux
     out, i = [], max(n, fond, 21) + 1
     while i < len(D) - 2:
         d = 0
@@ -90,7 +90,11 @@ def trades(a, sym, sess="londres", gestion="swing", n=20, fond=90, retest=None, 
         stop, tg1, half, best = e - d * risk, e + d * t1 * A, False, e
         tg2 = e + d * tp2 * A if tp2 else None
         x, j = None, m
+        day_m = a[m, 0] // 86400
         while j < len(a):
+            if gestion == "intraday" and j > m and (a[j, 0] // 86400 != day_m or hr[j] >= 20):
+                x = o[j]                                     # fermeture du soir (20 h UTC = 21 h Paris)
+                break
             if (l[j] <= stop) if d == 1 else (h[j] >= stop):
                 x = stop if j == m else (min(o[j], stop) if d == 1 else max(o[j], stop))
                 break
@@ -139,7 +143,7 @@ def run(kind, tf="1H"):
                 "total_R": round(float(r.sum()), 1)}
     res = []
     variantes = [None, (0.1, 0.5), (0.25, 0.5), (0.5, 0.5), (0.25, 1.0), (0.5, 1.5)]
-    for g in ("swing", "h24"):
+    for g in ("intraday", "swing", "h24"):
         for v in variantes:
             tr, te = [], []
             for s, a in bars.items():
